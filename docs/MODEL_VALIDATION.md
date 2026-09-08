@@ -9,7 +9,7 @@ and the [public workflow](PUBLIC_WORKFLOW.md).
 
 | Campaign | Target and revision | Backend/runtime pin | Evidence class |
 | --- | --- | --- | --- |
-| H100/H200 Ling functional runs | `inclusionAI/Ling-3.0-tiny@a2ee06c0f2de5b171701aee7f73f70a1da75483b` | SGLang `8ba213fc67550aea80dfbd5ef66f4574ec25e653`; Ling `BailingMoeV3ForCausalLM`, 24 layers, hidden size 1536 | Real target and draft weights |
+| H200 Ling functional run | `inclusionAI/Ling-3.0-tiny@a2ee06c0f2de5b171701aee7f73f70a1da75483b` (download metadata) | SGLang `8ba213fc67550aea80dfbd5ef66f4574ec25e653`; Ling `BailingMoeV3ForCausalLM`, 24 layers, hidden size 1536 | Real target and draft weights |
 | H100 native replay runs | `inclusionAI/Ling-3.0-tiny@e3a47d5b986e7141b6efd62597d598ebb392060d` | SGLang `8ba213fc67550aea80dfbd5ef66f4574ec25e653`; Triton, TP1, radix off, graphs off | Real target and draft weights |
 | RTX 5090 public run | `inclusionAI/Ling-3.0-tiny@e3a47d5b986e7141b6efd62597d598ebb392060d` | Torch `2.13.0+cu129`, CUDA 12.9, Triton 3.7.1, same SGLang source | Real target and draft weights |
 | Dense live capture fixture | Locally generated 8-layer `LlamaForCausalLM`; no Hub revision | Hidden size 64, vocab 256, seed 1234 | Synthetic random weights |
