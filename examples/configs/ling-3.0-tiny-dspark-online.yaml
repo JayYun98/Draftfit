@@ -1,0 +1,70 @@
+# Ling 3.0 tiny: one live target/capture server on GPU 0 and one DSpark
+# training process on GPU 1. The SGLang image must carry the exact-revision
+# SpecForge spec-capture patch before this managed stack is launched.
+model:
+  target_model_path: inclusionAI/Ling-3.0-tiny
+  draft_model_config: configs/ling-3.0-tiny-dspark.json
+  target_layer_ids: [3, 7, 11, 15, 19]
+  target_backend: sglang
+  trust_remote_code: true
+  embedding_key: model.word_embeddings.weight
+  lm_head_key: lm_head.weight
+  torch_dtype: bfloat16
+  mask_token_id: 156901
+  sglang_attention_backend: triton
+  sglang_linear_attn_backend: triton
+  sglang_linear_attn_verify_backend: triton
+  sglang_enable_deterministic_inference: true
+  sglang_disable_cuda_graph: true
+  sglang_mem_fraction_static: 0.72
+  sglang_context_length: 4103
+  sglang_max_running_requests: 1
+  sglang_max_total_tokens: 4103
+  sglang_disable_radix_cache: true
+
+data:
+  train_data_path: ./cache/dataset/ling-3.0-tiny-train.jsonl
+  max_length: 4096
+  chat_template: ling-flash-2.0
+  cache_dir: ./cache
+
+training:
+  strategy: dspark
+  num_epochs: 1
+  max_steps: 100
+  batch_size: 1
+  accumulation_steps: 1
+  learning_rate: 0.0003
+  warmup_ratio: 0.03
+  max_grad_norm: 1.0
+  attention_backend: flex_attention
+  num_anchors: 256
+  loss_decay_gamma: 4.0
+  save_interval: 50
+  log_interval: 1
+  dist_timeout: 30
+  seed: 42
+
+run_id: ling-3.0-tiny-dspark-online
+output_dir: ./outputs/ling-3.0-tiny-dspark-online
+
+deployment:
+  mode: disaggregated
+  trainer:
+    nnodes: 1
+    nproc_per_node: 1
+  disaggregated:
+    control_dir: ./outputs/ling-3.0-tiny-dspark-online/control
+    backend: mooncake
+    managed_local:
+      trainer_cuda_visible_devices: ["1"]
+      mooncake:
+        protocol: tcp
+        global_segment_size_bytes: 34359738368
+        local_buffer_size_bytes: 1073741824
+      capture_servers:
+        - port: 30000
+          cuda_visible_devices: ["0"]
+          tp_size: 1
+          mem_fraction_static: 0.72
+          startup_timeout_s: 1800

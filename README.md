@@ -1,0 +1,195 @@
+This customization fork adds a [public draft workflow](docs/PUBLIC_WORKFLOW.md).
+See [support boundaries](docs/PUBLIC_SUPPORT.md) and
+[CPU installation/release status](docs/PUBLIC_RELEASE.md) before running it.
+Upstream project identity and notices below are retained; this fork is not yet
+a certified public release.
+
+<div align="center" id="sglangtop">
+<img src="./assets/logo.png" alt="logo" width="400" margin="10px"></img>
+
+[![documentation](https://img.shields.io/badge/📖-Documentation-red.svg?style=flat)](https://docs.sglang.ai/SpecForge/)
+[![SpecBundle](https://img.shields.io/badge/🤗%20SpecBundle-yellow.svg?style=flat)](https://huggingface.co/collections/lmsys/specbundle)
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-SpecForge-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAyCAYAAAAnWDnqAAAAAXNSR0IArs4c6QAAA05JREFUaEPtmUtyEzEQhtWTQyQLHNak2AB7ZnyXZMEjXMGeK/AIi+QuHrMnbChYY7MIh8g01fJoopFb0uhhEqqcbWTp06/uv1saEDv4O3n3dV60RfP947Mm9/SQc0ICFQgzfc4CYZoTPAswgSJCCUJUnAAoRHOAUOcATwbmVLWdGoH//PB8mnKqScAhsD0kYP3j/Yt5LPQe2KvcXmGvRHcDnpxfL2zOYJ1mFwrryWTz0advv1Ut4CJgf5uhDuDj5eUcAUoahrdY/56ebRWeraTjMt/00Sh3UDtjgHtQNHwcRGOC98BJEAEymycmYcWwOprTgcB6VZ5JK5TAJ+fXGLBm3FDAmn6oPPjR4rKCAoJCal2eAiQp2x0vxTPB3ALO2CRkwmDy5WohzBDwSEFKRwPbknEggCPB/imwrycgxX2NzoMCHhPkDwqYMr9tRcP5qNrMZHkVnOjRMWwLCcr8ohBVb1OMjxLwGCvjTikrsBOiA6fNyCrm8V1rP93iVPpwaE+gO0SsWmPiXB+jikdf6SizrT5qKasx5j8ABbHpFTx+vFXp9EnYQmLx02h1QTTrl6eDqxLnGjporxl3NL3agEvXdT0WmEost648sQOYAeJS9Q7bfUVoMGnjo4AZdUMQku50McDcMWcBPvr0SzbTAFDfvJqwLzgxwATnCgnp4wDl6Aa+Ax283gghmj+vj7feE2KBBRMW3FzOpLOADl0Isb5587h/U4gGvkt5v60Z1VLG8BhYjbzRwyQZemwAd6cCR5/XFWLYZRIMpX39AR0tjaGGiGzLVyhse5C9RKC6ai42ppWPKiBagOvaYk8lO7DajerabOZP46Lby5wKjw1HCRx7p9sVMOWGzb/vA1hwiWc6jm3MvQDTogQkiqIhJV0nBQBTU+3okKCFDy9WwferkHjtxib7t3xIUQtHxnIwtx4mpg26/HfwVNVDb4oI9RHmx5WGelRVlrtiw43zboCLaxv46AZeB3IlTkwouebTr1y2NjSpHz68WNFjHvupy3q8TFn3Hos2IAk4Ju5dCo8B3wP7VPr/FGaKiG+T+v+TQqIrOqMTL1VdWV1DdmcbO8KXBz6esmYWYKPwDL5b5FA1a0hwapHiom0r/cKaoqr+27/XcrS5UwSMbQAAAABJRU5ErkJggg==)](https://deepwiki.com/sgl-project/SpecForge)
+
+[![github badge](https://img.shields.io/badge/📃%20LMSYS-Blog-black.svg?style=flat)](https://lmsys.org/blog/2025-07-25-spec-forge/)
+[![slack badge](https://img.shields.io/badge/Slack-join-blueviolet?logo=slack&amp)](https://sgl-fru7574.slack.com/archives/C09784E3EN6)
+[![license](https://img.shields.io/badge/License-MIT%202.0-blue)](./LICENSE)
+
+</div>
+
+## 📍 Overview
+
+SpecForge is an ecosystem project developed by the SGLang team. It is a framework for training speculative decoding models so that you can smoothly port them over to the SGLang serving framework to speed up your inference.
+
+We have seen many open-source projects for speculative decoding, but most of them are not well-maintained or not directly compatible with SGLang. We prepared this project because we wish that the open-source community can enjoy a speculative decoding framework that is
+- regularly maintained by the SpecForge team: the code is runnable out-of-the-box
+- directly compatible with SGLang: there is no additional efforts for porting to SGLang
+- provides local offline and server-only online-disaggregated training through
+  one runtime, including the supported data, tensor, and sequence parallel
+  topologies
+
+
+Check out [**our documentation**](https://docs.sglang.ai/SpecForge/) to get started.
+
+
+## 🔧 Supported Methods
+
+Every method uses the same typed training entry point:
+
+```bash
+specforge train --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml
+```
+
+The typed `deployment.trainer` topology self-launches trainer DP and EAGLE3
+offline USP process groups. A single-node disaggregated config also supervises
+its SpecForge producer and consumer; Mooncake and SGLang remain externally
+managed services, and online target parallelism belongs to SGLang. There are no
+method-specific Python training entry points.
+
+| Method | Description | Example config | Optimization |
+| --- | --- | --- | --- |
+| **[EAGLE3](https://arxiv.org/abs/2503.01840)** | Feature-based autoregressive drafting | [Online](./examples/configs/qwen3-8b-eagle3-disaggregated.yaml) / [Offline](./examples/configs/qwen3-8b-eagle3-offline.yaml) / [Disaggregated offline](./examples/configs/qwen3-8b-eagle3-offline-disaggregated.yaml) | [LK loss](https://arxiv.org/pdf/2602.23881) |
+| **[P-EAGLE](https://arxiv.org/abs/2602.01469)** | Parallel EAGLE | [Online](./examples/configs/qwen3-8b-peagle-disaggregated.yaml) | — |
+| **EAGLE3.1** | Feature-based autoregressive drafting with attention drift | [Online](./examples/configs/qwen3-30b-a3b-eagle3.1-online.yaml) | — |
+| **[DFlash](https://arxiv.org/abs/2602.06036)** | Block-parallel drafting | [Online](./examples/configs/qwen3-8b-dflash-online.yaml) / [Disaggregated](./examples/configs/qwen3-8b-dflash-disaggregated.yaml) | [D-PACE](https://arxiv.org/abs/2605.18810) |
+| **[Domino](https://arxiv.org/html/2605.29707v1)** | DFlash with GRU logit correction | [Online](./examples/configs/qwen3-8b-domino-online.yaml) / [Disaggregated](./examples/configs/qwen3-8b-domino-disaggregated.yaml) | — |
+| **[DSpark](https://arxiv.org/abs/2607.05147)** | Confidence-Scheduled Semi-Autoregressive Generation | [Disaggregated](./examples/configs/qwen3-4b-dspark-disaggregated.yaml) | — |
+
+See the [training guide](./docs/basic_usage/training.md) for the supported
+method/topology matrix and the
+[disaggregated guide](./docs/basic_usage/disaggregated_training.md) for the
+online/offline launch workflows. Unsupported combinations are rejected during
+config validation or run assembly instead of falling back to an older trainer.
+
+### Weight-free target inspection
+
+The local fork also exposes a metadata-only target inspector. It reads HF
+configuration/tokenizer metadata and Hub model metadata, never executes remote
+modeling code and never downloads weights:
+
+```bash
+PYTHONPATH=. python -m specforge.cli target inspect LiquidAI/LFM2.5-2.6B
+PYTHONPATH=. python -m specforge.cli target inspect ./local-model --local-only
+```
+
+The JSON result separates observed facts, initial DSpark recommendations and
+unknowns that still require a backend load/parity test.
+
+Pinned inspector output can be turned into a generic adapter for dense, MoE,
+hybrid, or recurrent targets; targets without a tokenizer chat template require
+an explicit renderer registration:
+
+```python
+from specforge.inference.target_adapter import TargetAdapter
+adapter = TargetAdapter.from_inspection(inspect_json)
+```
+
+Generate a typed offline DSpark scaffold (plus a `.target-spec.json` sidecar)
+from a pinned inspection snapshot:
+
+```bash
+PYTHONPATH=. python -m specforge.cli target scaffold \
+  --inspection configs/target_specs/granite-4.2-3b.json \
+  --output run/granite-4.2-3b-dspark.json
+```
+
+The sidecar keeps architecture/state support and required gates visible. A
+scaffold is intentionally metadata-only: feature capture, target backend
+support, and state replay still have to pass before a GPU run.
+
+### DSpark validation helpers
+
+The fork keeps the first adapter boundary small: `LingRenderer` and
+`TargetAdapter.ling()` own token rendering and target capability metadata, while
+SGLang remains the target executor.  Offline/online manifests and serving
+snapshots can be checked without loading torch:
+
+```bash
+PYTHONPATH=. python -m specforge.cli validate parity --offline offline.json --online online.json
+PYTHONPATH=. python -m specforge.cli validate tokens --expected target.json --actual speculative.json
+PYTHONPATH=. python -m specforge.cli validate state --expected baseline.json --actual replay.json
+PYTHONPATH=. python -m specforge.cli validate replay --expected baseline-state.json --actual replay-state.json
+PYTHONPATH=. python -m specforge.cli validate acceptance --summary serving-summary.json \
+  --min-train-acc-len 2.5 --min-holdout-acc-len 2.0 --min-holdout-pos2 0.2
+PYTHONPATH=. python -m specforge.cli artifact manifest --output run/artifact.json \
+  --run-id ling-1k --target-model inclusionAI/Ling-3.0-tiny \
+  --target-revision a2ee06c0f2de5b171701aee7f73f70a1da75483b \
+  --source config=examples/configs/ling-3.0-tiny-dspark-offline.yaml \
+  --validation run/acceptance.json
+PYTHONPATH=. python -m specforge.cli sweep --model-spec target-inspect.json --output sweep.json
+PYTHONPATH=. python -m specforge.cli distributed plan --nodes 1 --gpus-per-node 1
+```
+
+`distributed plan` is a TorchSpec-style resource/checkpoint manifest over the
+existing torchrun/FSDP2 executor; it does not silently start a multi-node job.
+`validate acceptance` turns the aggregated serving-gate report into a CI-safe
+exit code and can re-evaluate it with model-specific acceptance thresholds.
+`validate replay` requires matching pinned target revisions, state kinds, state
+digests, and consumed token prefixes; malformed or incomplete snapshots fail.
+Use `scripts/make_1k_split.py` to produce the deterministic Ling 1K train and
+holdout files before opening a GPU session.
+
+The pinned Ling 3.0 tiny offline recipe is
+[`examples/configs/ling-3.0-tiny-dspark-offline.yaml`](./examples/configs/ling-3.0-tiny-dspark-offline.yaml).
+
+Upstream source revisions and the local sync boundary are recorded in
+[`THIRDPARTY_NOTICES.md`](./THIRDPARTY_NOTICES.md).
+
+
+## 🚀 Accelerate with SpecBundle
+
+SpecBundle is a collection of production-grade speculative decoding models that are released by the SpecForge team and our industry partners. They provide higher acceptance rate compared to the existing open-source checkpoints over a wide range of domains. Together with SGLang, you can experience up to 4x speedup for inference. Check out our resources below:
+
+
+| Item | Link |
+| --- | --- |
+| 📝 Documentation | [Link](https://docs.sglang.io/SpecForge/community_resources/specbundle.html) |
+| 📊 Performance Dashboard | [Link](https://docs.sglang.io/SpecForge/SpecBundle/index.html) |
+| 🤗 Hugging Face Collection | [Link](https://huggingface.co/collections/lmsys/specbundle) |
+
+
+## 🎉 News
+- [2026-08] 🎉 Released SpecBundle (phase 2) and SpecForge v0.3.0. Check out our blog at [LMSYS.org](https://www.lmsys.org/blog/2026-08-04-specforge-v0-3)
+- [2026-07] 🚀 Day0 supported two flagship dspark draft model, [Inklink](https://huggingface.co/RadixArk/Inkling-DSpark-Preview) and [Kimi-K3](https://huggingface.co/RadixArk/Kimi-K3-DSpark).
+- [2026-07] 🔥 Supported full disaggregation of training and inference in online training.
+- [2026-07] 🔥 Added DSpark online training for DFlash draft models.
+- [2026-06] 🔥 Added D-PACE as an optional loss for DFlash training.
+- [2026-06] 🔥 Added Domino online training for DFlash draft models.
+- [2026-01] 🔥 Added DFlash block-parallel online training with SGLang serving support.
+- [2025-12] 🎉 Released SpecBundle (phase 1) and SpecForge v0.2.0. Check out our blog at [LMSYS.org](https://lmsys.org/blog/2025-12-23-spec-bundle-phase-1/)
+- [2025-08] 🔔 SpecForge is listed as a [flagship project](https://lmsys.org/about/) in LMSYS. Congratulations to the SpecForge team!
+- [2025-08] 🔥 SpecForge powered the Eagle3 draft model for GPT-OSS. Check out the blog at [LMSYS.org](https://lmsys.org/blog/2025-08-27-gpt-oss/)
+- [2025-07] 🔥 SpecForge is released together with Llama4-Eagle3 checkpoints. Check out our blog at [LMSYS.org](https://lmsys.org/blog/2025-07-25-spec-forge/)
+
+## ✨ Acknowledgements
+
+<img src="./assets/acknowledgements.png" alt="acknowledgements"></img>
+
+We would like to express our sincere gratitude to the official EAGLE team, especially Hongyang Zhang and Yuhui Li, for their invaluable contributions and support. Our thanks also go to the NVIDIA team—particularly Avery H and Izzy Putterman—and to the Google team, especially Ying Wang, for their insightful discussions and generous assistance throughout the project.
+
+We are especially grateful to Meituan for their strong backing and meaningful contributions, which played a vital role in driving this project forward.
+
+This project has also been inspired by many outstanding open-source projects from the LLM community, including [EAGLE](https://github.com/SafeAILab/EAGLE), [BaldEagle](https://github.com/NickL77/BaldEagle), and [TensorRT-Model-Optimizer](https://github.com/NVIDIA/TensorRT-Model-Optimizer) and others. Their contributions and shared knowledge have greatly benefited our work.
+
+## 💡 Special Thanks to Voltage Park
+
+We would like to extend our sincere thanks to [Voltage Park](https://www.voltagepark.com/), our official infrastructure partner. As part of a formal collaboration with the SGLang team, Voltage Park provided critical GPU resources that empowered us to train and evaluate large-scale speculative decoding models efficiently and reliably. This partnership was instrumental in making SpecForge possible. We deeply appreciate Voltage Park’s mission to make cutting-edge AI infrastructure more accessible, and we look forward to continued collaboration as we push the boundaries of open-source LLM serving and optimization.
+
+## 📃 Citation
+
+```bibtex
+@article{li2026specforge,
+  title={{SpecForge}: A flexible and efficient open-source training framework for speculative decoding},
+  author={Li, Shenggui and Wang, Chao and Zhu, Yikai and Wang, Yubo and Yin, Fan and Shi, Shuai and Chen, Yefei and Dong, Xiaomin and Chen, Qiaoling and Pan, Jin and others},
+  journal={arXiv preprint arXiv:2603.18567},
+  year={2026}
+}
+
+@misc{specforge2025,
+  title={SpecForge: Train speculative decoding models effortlessly},
+  author={Shenggui Li, Yikai Zhu, Chao Wang, Fan Yin, Shuai Shi, Yubo Wang, Yi Zhang, Yingyi Huang, Haoshuai Zheng, Yineng Zhang},
+  year={2025},
+  publisher={GitHub},
+  howpublished={\url{https://github.com/sgl-project/specforge}},
+}
+```

@@ -1,0 +1,14 @@
+# GPU_VALIDATED_BOUNDED: Ling tiny, Linux 2xH200, 2026-09-08, instance 50190940.
+# Optional FA3 override has not passed this online composition's GPU gates.
+# TP1 GPU0 capture + GPU1 trainer: 100 finite steps; 13-token online/offline
+# features bitwise equal; native ReplaySSM 18-round committed-state/token parity.
+# Other models/SM90 devices and production workloads remain unvalidated.
+# Linux CUDA only; Hopper SM90 (H100/H200).
+# Expected image: lmsysorg/sglang:dev-cu12-Ling-3.0-tiny
+# Expected SGLang: 8ba213fc67550aea80dfbd5ef66f4574ec25e653
+# Expected torch: 2.13.0+cu129; CUDA runtime: 12.9.
+- model.sglang_attention_backend=triton
+- model.sglang_linear_attn_backend=triton
+- model.sglang_linear_attn_verify_backend=triton
+- model.sglang_enable_deterministic_inference=true
+- model.sglang_disable_cuda_graph=true
