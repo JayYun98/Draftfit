@@ -1,195 +1,268 @@
-This customization fork adds a [public draft workflow](docs/PUBLIC_WORKFLOW.md).
-See [support boundaries](docs/PUBLIC_SUPPORT.md) and
-[CPU installation/release status](docs/PUBLIC_RELEASE.md) before running it.
-Upstream project identity and notices below are retained; this fork is not yet
-a certified public release.
+# DSpark Train Platform
 
-<div align="center" id="sglangtop">
-<img src="./assets/logo.png" alt="logo" width="400" margin="10px"></img>
+DSpark Train Platform is a configuration-first toolkit for adapting a
+speculative draft model to a target model chosen by the user. It inspects target
+metadata, generates an editable run/draft pair, prepares offline or online
+features, trains or fine-tunes the draft, records provenance, and exports a
+checkpoint for independent serving validation.
 
-[![documentation](https://img.shields.io/badge/📖-Documentation-red.svg?style=flat)](https://docs.sglang.ai/SpecForge/)
-[![SpecBundle](https://img.shields.io/badge/🤗%20SpecBundle-yellow.svg?style=flat)](https://huggingface.co/collections/lmsys/specbundle)
-[![DeepWiki](https://img.shields.io/badge/DeepWiki-SpecForge-blue.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAyCAYAAAAnWDnqAAAAAXNSR0IArs4c6QAAA05JREFUaEPtmUtyEzEQhtWTQyQLHNak2AB7ZnyXZMEjXMGeK/AIi+QuHrMnbChYY7MIh8g01fJoopFb0uhhEqqcbWTp06/uv1saEDv4O3n3dV60RfP947Mm9/SQc0ICFQgzfc4CYZoTPAswgSJCCUJUnAAoRHOAUOcATwbmVLWdGoH//PB8mnKqScAhsD0kYP3j/Yt5LPQe2KvcXmGvRHcDnpxfL2zOYJ1mFwrryWTz0advv1Ut4CJgf5uhDuDj5eUcAUoahrdY/56ebRWeraTjMt/00Sh3UDtjgHtQNHwcRGOC98BJEAEymycmYcWwOprTgcB6VZ5JK5TAJ+fXGLBm3FDAmn6oPPjR4rKCAoJCal2eAiQp2x0vxTPB3ALO2CRkwmDy5WohzBDwSEFKRwPbknEggCPB/imwrycgxX2NzoMCHhPkDwqYMr9tRcP5qNrMZHkVnOjRMWwLCcr8ohBVb1OMjxLwGCvjTikrsBOiA6fNyCrm8V1rP93iVPpwaE+gO0SsWmPiXB+jikdf6SizrT5qKasx5j8ABbHpFTx+vFXp9EnYQmLx02h1QTTrl6eDqxLnGjporxl3NL3agEvXdT0WmEost648sQOYAeJS9Q7bfUVoMGnjo4AZdUMQku50McDcMWcBPvr0SzbTAFDfvJqwLzgxwATnCgnp4wDl6Aa+Ax283gghmj+vj7feE2KBBRMW3FzOpLOADl0Isb5587h/U4gGvkt5v60Z1VLG8BhYjbzRwyQZemwAd6cCR5/XFWLYZRIMpX39AR0tjaGGiGzLVyhse5C9RKC6ai42ppWPKiBagOvaYk8lO7DajerabOZP46Lby5wKjw1HCRx7p9sVMOWGzb/vA1hwiWc6jm3MvQDTogQkiqIhJV0nBQBTU+3okKCFDy9WwferkHjtxib7t3xIUQtHxnIwtx4mpg26/HfwVNVDb4oI9RHmx5WGelRVlrtiw43zboCLaxv46AZeB3IlTkwouebTr1y2NjSpHz68WNFjHvupy3q8TFn3Hos2IAk4Ju5dCo8B3wP7VPr/FGaKiG+T+v+TQqIrOqMTL1VdWV1DdmcbO8KXBz6esmYWYKPwDL5b5FA1a0hwapHiom0r/cKaoqr+27/XcrS5UwSMbQAAAABJRU5ErkJggg==)](https://deepwiki.com/sgl-project/SpecForge)
+The private repository is `JayYun98/dspark-train-platform`.
 
-[![github badge](https://img.shields.io/badge/📃%20LMSYS-Blog-black.svg?style=flat)](https://lmsys.org/blog/2025-07-25-spec-forge/)
-[![slack badge](https://img.shields.io/badge/Slack-join-blueviolet?logo=slack&amp)](https://sgl-fru7574.slack.com/archives/C09784E3EN6)
-[![license](https://img.shields.io/badge/License-MIT%202.0-blue)](./LICENSE)
+The target stays frozen. The platform does not port target architectures into
+the trainer and does not turn a recipe into a support claim. A generated
+configuration is a starting point; capture, training, export, serving, and
+state checks are separate gates.
 
-</div>
+## What is implemented
 
-## 📍 Overview
+The live registry currently contains these draft methods:
 
-SpecForge is an ecosystem project developed by the SGLang team. It is a framework for training speculative decoding models so that you can smoothly port them over to the SGLang serving framework to speed up your inference.
+| Method | Metadata-derived draft | Offline features | Online capture | Boundary |
+| --- | --- | --- | --- | --- |
+| DSpark | Yes | Yes | Yes | Requires target last-hidden features and auxiliary taps |
+| DFlash | Yes | Yes | Yes | Requires algorithm-compatible hidden features and mask token |
+| EAGLE3 | Yes | Yes | Yes | Requires the method's target features and vocabulary contract |
+| PEagle | Yes | No | Yes | Streaming-only; flex attention is required |
+| Domino | No | Yes | Yes | Supply a compatible draft JSON explicitly |
 
-We have seen many open-source projects for speculative decoding, but most of them are not well-maintained or not directly compatible with SGLang. We prepared this project because we wish that the open-source community can enjoy a speculative decoding framework that is
-- regularly maintained by the SpecForge team: the code is runnable out-of-the-box
-- directly compatible with SGLang: there is no additional efforts for porting to SGLang
-- provides local offline and server-only online-disaggregated training through
-  one runtime, including the supported data, tensor, and sequence parallel
-  topologies
+“Implemented” means code and configuration paths exist. It does not mean every
+target, backend, GPU, sequence length, cache mode, export, or workload has been
+validated.
 
+The following are not public capabilities of this repository: DFlash2, DFly,
+DFlare, MTP, and multimodal training. Changing `training.strategy` does not
+convert an incompatible draft, feature cache, or target contract.
 
-Check out [**our documentation**](https://docs.sglang.ai/SpecForge/) to get started.
+## Target boundary
 
+The user configures the target with `model.target_model_path` and, when needed,
+an exact `model.target_revision`. For local targets, use `--local-only`; for a
+Hub target, pin the revision used for the weights, tokenizer, capture backend,
+and serving check.
 
-## 🔧 Supported Methods
+Online runs use the deployment configuration and a compatible target/capture
+backend, which can be managed locally or externally.
+The target's architecture and recurrent state remain the responsibility of
+that backend.
 
-Every method uses the same typed training entry point:
+`target inspect` is metadata-only: it reads configuration and tokenizer
+metadata without downloading weights or executing remote modeling code. Its
+recommendations are hypotheses. Verify tokenizer masks, embedding/head names,
+feature taps, normalization, state semantics, and backend revision before
+spending GPU time.
 
-```bash
-specforge train --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml
+## Quick start
+
+### CPU preparation
+
+The locked profile is for onboarding and release checks, not inference or GPU
+training. It is verified on Linux with Python 3.12 and uv 0.9.18:
+
+```sh
+uv venv --seed .venv-cpu
+uv pip sync requirements-cpu.lock --python .venv-cpu/bin/python \
+  --torch-backend cpu --require-hashes
+.venv-cpu/bin/python -m tests.public_cpu
 ```
 
-The typed `deployment.trainer` topology self-launches trainer DP and EAGLE3
-offline USP process groups. A single-node disaggregated config also supervises
-its SpecForge producer and consumer; Mooncake and SGLang remain externally
-managed services, and online target parallelism belongs to SGLang. There are no
-method-specific Python training entry points.
+Current local gate: 218 tests ran, 211 passed and seven accelerator-only cases
+were skipped on macOS with the existing CPU dependencies. A prior clean Linux
+locked run passed 202 of 209 tests with seven skips.
+A fresh macOS locked install remains blocked by the documented Torch wheel
+hash mismatch; hash checking is not bypassed.
 
-| Method | Description | Example config | Optimization |
-| --- | --- | --- | --- |
-| **[EAGLE3](https://arxiv.org/abs/2503.01840)** | Feature-based autoregressive drafting | [Online](./examples/configs/qwen3-8b-eagle3-disaggregated.yaml) / [Offline](./examples/configs/qwen3-8b-eagle3-offline.yaml) / [Disaggregated offline](./examples/configs/qwen3-8b-eagle3-offline-disaggregated.yaml) | [LK loss](https://arxiv.org/pdf/2602.23881) |
-| **[P-EAGLE](https://arxiv.org/abs/2602.01469)** | Parallel EAGLE | [Online](./examples/configs/qwen3-8b-peagle-disaggregated.yaml) | — |
-| **EAGLE3.1** | Feature-based autoregressive drafting with attention drift | [Online](./examples/configs/qwen3-30b-a3b-eagle3.1-online.yaml) | — |
-| **[DFlash](https://arxiv.org/abs/2602.06036)** | Block-parallel drafting | [Online](./examples/configs/qwen3-8b-dflash-online.yaml) / [Disaggregated](./examples/configs/qwen3-8b-dflash-disaggregated.yaml) | [D-PACE](https://arxiv.org/abs/2605.18810) |
-| **[Domino](https://arxiv.org/html/2605.29707v1)** | DFlash with GRU logit correction | [Online](./examples/configs/qwen3-8b-domino-online.yaml) / [Disaggregated](./examples/configs/qwen3-8b-domino-disaggregated.yaml) | — |
-| **[DSpark](https://arxiv.org/abs/2607.05147)** | Confidence-Scheduled Semi-Autoregressive Generation | [Disaggregated](./examples/configs/qwen3-4b-dspark-disaggregated.yaml) | — |
+The lock and CPU tests are source-checkout assets. They are not a complete GPU
+environment and are not copied into a serving image. After dependencies are
+provisioned for the intended environment, build and inspect a local wheel:
 
-See the [training guide](./docs/basic_usage/training.md) for the supported
-method/topology matrix and the
-[disaggregated guide](./docs/basic_usage/disaggregated_training.md) for the
-online/offline launch workflows. Unsupported combinations are rejected during
-config validation or run assembly instead of falling back to an older trainer.
-
-### Weight-free target inspection
-
-The local fork also exposes a metadata-only target inspector. It reads HF
-configuration/tokenizer metadata and Hub model metadata, never executes remote
-modeling code and never downloads weights:
-
-```bash
-PYTHONPATH=. python -m specforge.cli target inspect LiquidAI/LFM2.5-2.6B
-PYTHONPATH=. python -m specforge.cli target inspect ./local-model --local-only
+```sh
+python -m pip wheel --no-deps --no-build-isolation . -w dist
+python -m pip install --no-deps dist/specforge-<version>-py3-none-any.whl
+python -m specforge.assets list
+python -I scripts/check_public_install.py
 ```
 
-The JSON result separates observed facts, initial DSpark recommendations and
-unknowns that still require a backend load/parity test.
+`--no-deps` does not make an arbitrary machine compatible or replace a pinned
+GPU backend.
 
-Pinned inspector output can be turned into a generic adapter for dense, MoE,
-hybrid, or recurrent targets; targets without a tokenizer chat template require
-an explicit renderer registration:
+### Recipes without a training dependency
 
-```python
-from specforge.inference.target_adapter import TargetAdapter
-adapter = TargetAdapter.from_inspection(inspect_json)
+Recipe access uses the Python standard library and can run without Torch,
+SGLang, a GPU, or a source checkout:
+
+```sh
+python -m specforge.assets list
+python -m specforge.assets export ./my-draft-project
+cd ./my-draft-project
 ```
 
-Generate a typed offline DSpark scaffold (plus a `.target-spec.json` sidecar)
-from a pinned inspection snapshot:
+Export requires a new destination and refuses to overwrite it. The exported
+project preserves `configs/` and `examples/configs/` so its references remain
+usable.
 
-```bash
-PYTHONPATH=. python -m specforge.cli target scaffold \
-  --inspection configs/target_specs/granite-4.2-3b.json \
-  --output run/granite-4.2-3b-dspark.json
+### Inspect and prepare a target
+
+The command surface is:
+
+```sh
+specforge algorithms
+specforge target inspect ORG/MODEL --revision EXACT_COMMIT
+specforge target inspect /path/to/target --local-only
 ```
 
-The sidecar keeps architecture/state support and required gates visible. A
-scaffold is intentionally metadata-only: feature capture, target backend
-support, and state replay still have to pass before a GPU run.
+Generate an editable offline project from target metadata and pre-captured
+features:
 
-### DSpark validation helpers
-
-The fork keeps the first adapter boundary small: `LingRenderer` and
-`TargetAdapter.ling()` own token rendering and target capability metadata, while
-SGLang remains the target executor.  Offline/online manifests and serving
-snapshots can be checked without loading torch:
-
-```bash
-PYTHONPATH=. python -m specforge.cli validate parity --offline offline.json --online online.json
-PYTHONPATH=. python -m specforge.cli validate tokens --expected target.json --actual speculative.json
-PYTHONPATH=. python -m specforge.cli validate state --expected baseline.json --actual replay.json
-PYTHONPATH=. python -m specforge.cli validate replay --expected baseline-state.json --actual replay-state.json
-PYTHONPATH=. python -m specforge.cli validate acceptance --summary serving-summary.json \
-  --min-train-acc-len 2.5 --min-holdout-acc-len 2.0 --min-holdout-pos2 0.2
-PYTHONPATH=. python -m specforge.cli artifact manifest --output run/artifact.json \
-  --run-id ling-1k --target-model inclusionAI/Ling-3.0-tiny \
-  --target-revision a2ee06c0f2de5b171701aee7f73f70a1da75483b \
-  --source config=examples/configs/ling-3.0-tiny-dspark-offline.yaml \
-  --validation run/acceptance.json
-PYTHONPATH=. python -m specforge.cli sweep --model-spec target-inspect.json --output sweep.json
-PYTHONPATH=. python -m specforge.cli distributed plan --nodes 1 --gpus-per-node 1
+```sh
+specforge target prepare /path/to/target --local-only \
+  --strategy dspark \
+  --hidden-states /path/to/features \
+  --output-dir ./my-custom-draft \
+  --set model.draft_num_hidden_layers=5
 ```
 
-`distributed plan` is a TorchSpec-style resource/checkpoint manifest over the
-existing torchrun/FSDP2 executor; it does not silently start a multi-node job.
-`validate acceptance` turns the aggregated serving-gate report into a CI-safe
-exit code and can re-evaluate it with model-specific acceptance thresholds.
-`validate replay` requires matching pinned target revisions, state kinds, state
-digests, and consumed token prefixes; malformed or incomplete snapshots fail.
-Use `scripts/make_1k_split.py` to produce the deterministic Ling 1K train and
-holdout files before opening a GPU session.
+For managed online capture plus training, replace `--hidden-states` with raw
+conversation JSONL:
 
-The pinned Ling 3.0 tiny offline recipe is
-[`examples/configs/ling-3.0-tiny-dspark-offline.yaml`](./examples/configs/ling-3.0-tiny-dspark-offline.yaml).
+```sh
+specforge target prepare /path/to/target --local-only \
+  --strategy dspark \
+  --train-data /path/to/data.jsonl \
+  --output-dir ./my-online-draft
+```
 
-Upstream source revisions and the local sync boundary are recorded in
-[`THIRDPARTY_NOTICES.md`](./THIRDPARTY_NOTICES.md).
+The generated directory contains `train.json`, `draft.json`, `inspection.json`,
+and a manifest. Preparation validates the target/data contract before writing
+and refuses overwrites. Conversation JSONL uses a `conversations` array per
+row; it is not a top-level `messages` document. This is structural validation,
+not proof that tokenization masks or backend features are correct.
 
+### Plan and run
 
-## 🚀 Accelerate with SpecBundle
+Inspect the resolved process plan first:
 
-SpecBundle is a collection of production-grade speculative decoding models that are released by the SpecForge team and our industry partners. They provide higher acceptance rate compared to the existing open-source checkpoints over a wide range of domains. Together with SGLang, you can experience up to 4x speedup for inference. Check out our resources below:
+```sh
+specforge train -c ./my-custom-draft/train.json --plan
+```
 
+Then start a short smoke run in a new output directory before increasing the
+budget:
 
-| Item | Link |
+```sh
+specforge train -c examples/configs/qwen3-8b-dflash-offline.yaml \
+  training.max_steps=5 training.save_interval=5 \
+  output_dir=./outputs/first-smoke
+```
+
+Offline recipes require previously captured features. Online/disaggregated
+recipes require a compatible capture server, transport, and deployment
+configuration. `--plan` validates configuration and launch assembly; it does
+not load real weights or prove a kernel, backend, or serving state path.
+
+### Warm start versus resume
+
+Use a draft export for a weights-only warm start:
+
+```sh
+specforge train -c ./my-custom-draft/train.json \
+  model.draft_checkpoint_path=/path/to/draft-export
+```
+
+This starts a new optimizer, schedule, step counter, and data progression.
+
+Use a training checkpoint to resume the training run:
+
+```sh
+specforge train -c ./my-custom-draft/train.json \
+  training.resume_from=/path/to/training-checkpoint
+```
+
+This restores the checkpoint payload and its training state. Do not set both
+options. Cross-world-size optimizer resharding and cold-host infrastructure
+recovery are not supported claims.
+
+### Export
+
+Export the completed checkpoint with the exact draft configuration used to
+train it:
+
+```sh
+specforge export --to hf \
+  --checkpoint /path/to/completed-checkpoint \
+  --draft-config /path/to/draft.json \
+  --output-dir ./exports/my-draft
+```
+
+Some methods additionally require `--vocab-mapping`, `--embedding-source`, or
+`--embedding-key`; check `specforge export --help`. A successful conversion is
+not an inference compatibility result. Reload the exact artifact in its target
+serving backend and compare target-only and speculative tokens/state on held-out
+prompts.
+
+## Validation commands
+
+The dependency-light validation surface includes:
+
+```sh
+specforge validate parity --offline offline.json --online online.json
+specforge validate tokens --expected target.json --actual speculative.json
+specforge validate state --expected baseline.json --actual replay.json
+specforge validate replay --expected baseline-state.json --actual replay-state.json
+specforge validate acceptance --summary serving-summary.json
+```
+
+Functional correctness, acceptance length, quality, and speed are different
+results. Report them separately. Do not infer quality or speedup from a passing
+configuration, tensor comparison, or short smoke run.
+
+## Current bounded evidence
+
+| Target | What was actually tested |
 | --- | --- |
-| 📝 Documentation | [Link](https://docs.sglang.io/SpecForge/community_resources/specbundle.html) |
-| 📊 Performance Dashboard | [Link](https://docs.sglang.io/SpecForge/SpecBundle/index.html) |
-| 🤗 Hugging Face Collection | [Link](https://huggingface.co/collections/lmsys/specbundle) |
+| Ling-3.0-tiny | Real DSpark offline and online training, recovery/export, bounded serving/state checks |
+| Llama-3.2-1B | Real-weight TP2 feature capture; not complete training/serving certification |
+| LFM2.5-1.2B-Instruct | Real-weight CUDA load and chat smoke only |
+| Qwen3-30B-A3B FP8 architecture | Dummy-weight MoE capture only |
+| Tiny Llama fixture / reduced draft configs | Synthetic EAGLE3/DFlash capture and algorithm update/reload checks |
 
+See the [model and training matrix](docs/MODEL_VALIDATION.md) for exact scope,
+offline TP2 capture versus DP2 draft training, GPU0/GPU1 online training,
+checkpoint steps, failures, and unknown revisions.
 
-## 🎉 News
-- [2026-08] 🎉 Released SpecBundle (phase 2) and SpecForge v0.3.0. Check out our blog at [LMSYS.org](https://www.lmsys.org/blog/2026-08-04-specforge-v0-3)
-- [2026-07] 🚀 Day0 supported two flagship dspark draft model, [Inklink](https://huggingface.co/RadixArk/Inkling-DSpark-Preview) and [Kimi-K3](https://huggingface.co/RadixArk/Kimi-K3-DSpark).
-- [2026-07] 🔥 Supported full disaggregation of training and inference in online training.
-- [2026-07] 🔥 Added DSpark online training for DFlash draft models.
-- [2026-06] 🔥 Added D-PACE as an optional loss for DFlash training.
-- [2026-06] 🔥 Added Domino online training for DFlash draft models.
-- [2026-01] 🔥 Added DFlash block-parallel online training with SGLang serving support.
-- [2025-12] 🎉 Released SpecBundle (phase 1) and SpecForge v0.2.0. Check out our blog at [LMSYS.org](https://lmsys.org/blog/2025-12-23-spec-bundle-phase-1/)
-- [2025-08] 🔔 SpecForge is listed as a [flagship project](https://lmsys.org/about/) in LMSYS. Congratulations to the SpecForge team!
-- [2025-08] 🔥 SpecForge powered the Eagle3 draft model for GPT-OSS. Check out the blog at [LMSYS.org](https://lmsys.org/blog/2025-08-27-gpt-oss/)
-- [2025-07] 🔥 SpecForge is released together with Llama4-Eagle3 checkpoints. Check out our blog at [LMSYS.org](https://lmsys.org/blog/2025-07-25-spec-forge/)
+- Local CPU packaging and test gates pass in the current release snapshot;
+  accelerator-only cases remain explicitly skipped on CPU.
+- The pinned Ling native ReplaySSM route has a bounded H100 functional pass:
+  67 committed state rounds matched bitwise and a separate three-request
+  target-only comparison matched 144/144 generated token IDs. The route is
+  single-request TP1/static, with Triton, radix cache disabled, CUDA graphs
+  disabled, and float32 SSM state.
+- The H100 result does not certify all GPUs, models, cache modes, concurrency,
+  exported artifacts, quality, or speedup. The earlier SM120/RTX5090 native
+  ReplaySSM state-parity failure remains unresolved and native replay is
+  disabled there. Synthetic reload or token checks do not erase that failure.
 
-## ✨ Acknowledgements
+For a new target or backend combination, record the target/tokenizer revision,
+algorithm, draft configuration, backend revision, runtime, feature parity,
+finite training updates, export reload, and serving/state results before calling
+the combination supported.
 
-<img src="./assets/acknowledgements.png" alt="acknowledgements"></img>
+## Packaging and publication status
 
-We would like to express our sincere gratitude to the official EAGLE team, especially Hongyang Zhang and Yuhui Li, for their invaluable contributions and support. Our thanks also go to the NVIDIA team—particularly Avery H and Izzy Putterman—and to the Google team, especially Ying Wang, for their insightful discussions and generous assistance throughout the project.
+The Python namespace and distribution name remain `specforge` for local
+compatibility with the existing trainer and CLI. Publication is intentionally
+disabled pending maintainer approval of the new product identity. CI is
+configured for the private repository but currently manually disabled; no
+package publication, deployment, or remote workflow is implied by this README.
 
-We are especially grateful to Meituan for their strong backing and meaningful contributions, which played a vital role in driving this project forward.
+## Credits and licenses
 
-This project has also been inspired by many outstanding open-source projects from the LLM community, including [EAGLE](https://github.com/SafeAILab/EAGLE), [BaldEagle](https://github.com/NickL77/BaldEagle), and [TensorRT-Model-Optimizer](https://github.com/NVIDIA/TensorRT-Model-Optimizer) and others. Their contributions and shared knowledge have greatly benefited our work.
+Upstream copyright headers and licenses are preserved. See [LICENSE](LICENSE)
+and [THIRDPARTY_NOTICES.md](THIRDPARTY_NOTICES.md) for the source inventory,
+borrowed boundaries, pinned references, and attribution requirements.
 
-## 💡 Special Thanks to Voltage Park
+Read the detailed boundaries before running a target:
 
-We would like to extend our sincere thanks to [Voltage Park](https://www.voltagepark.com/), our official infrastructure partner. As part of a formal collaboration with the SGLang team, Voltage Park provided critical GPU resources that empowered us to train and evaluate large-scale speculative decoding models efficiently and reliably. This partnership was instrumental in making SpecForge possible. We deeply appreciate Voltage Park’s mission to make cutting-edge AI infrastructure more accessible, and we look forward to continued collaboration as we push the boundaries of open-source LLM serving and optimization.
-
-## 📃 Citation
-
-```bibtex
-@article{li2026specforge,
-  title={{SpecForge}: A flexible and efficient open-source training framework for speculative decoding},
-  author={Li, Shenggui and Wang, Chao and Zhu, Yikai and Wang, Yubo and Yin, Fan and Shi, Shuai and Chen, Yefei and Dong, Xiaomin and Chen, Qiaoling and Pan, Jin and others},
-  journal={arXiv preprint arXiv:2603.18567},
-  year={2026}
-}
-
-@misc{specforge2025,
-  title={SpecForge: Train speculative decoding models effortlessly},
-  author={Shenggui Li, Yikai Zhu, Chao Wang, Fan Yin, Shuai Shi, Yubo Wang, Yi Zhang, Yingyi Huang, Haoshuai Zheng, Yineng Zhang},
-  year={2025},
-  publisher={GitHub},
-  howpublished={\url{https://github.com/sgl-project/specforge}},
-}
-```
+- [Public workflow](docs/PUBLIC_WORKFLOW.md)
+- [Support matrix](docs/PUBLIC_SUPPORT.md)
+- [CPU and release checks](docs/PUBLIC_RELEASE.md)
+- [Native Ling replay](docs/NATIVE_LING_REPLAY.md)
