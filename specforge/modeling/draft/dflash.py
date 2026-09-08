@@ -358,6 +358,7 @@ def normalize_draft_head_checkpoint_keys(
 @register_draft
 class DFlashDraftModel(Qwen3PreTrainedModel):
     config_class = Qwen3Config
+    decoder_layer_class = Qwen3DFlashDecoderLayer
     _no_split_modules = ["Qwen3DFlashDecoderLayer"]
 
     def __init__(
@@ -371,14 +372,18 @@ class DFlashDraftModel(Qwen3PreTrainedModel):
         kernels = dflash_kernels or DEFAULT_DFLASH_KERNELS
         self.layers = nn.ModuleList(
             [
-                Qwen3DFlashDecoderLayer(config, layer_idx, kernels)
+                self.decoder_layer_class(config, layer_idx, kernels)
                 for layer_idx in range(config.num_hidden_layers)
             ]
         )
         dflash_config = getattr(config, "dflash_config", {}) or {}
         self.target_layer_ids = dflash_config.get(
             "target_layer_ids",
-            build_target_layer_ids(config.num_target_layers, config.num_hidden_layers),
+            getattr(config, "target_layer_ids", None)
+            or build_target_layer_ids(
+                getattr(config, "target_num_hidden_layers", config.num_target_layers),
+                config.num_hidden_layers,
+            ),
         )
         self.norm = kernels.make_rms_norm(config.hidden_size, config.rms_norm_eps)
         self.rotary_emb = Qwen3RotaryEmbedding(config)

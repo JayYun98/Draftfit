@@ -497,6 +497,17 @@ class DFlashTrainStrategy(DraftTrainStrategy):
         }
 
 
+class DFlash2TrainStrategy(DFlashTrainStrategy):
+    """DFlash2 block-parallel strategy with the candidate-selector loss."""
+
+    name = "dflash2"
+
+    def __init__(self, dflash2_model: nn.Module) -> None:
+        self.dflash2_model = dflash2_model
+        # Reuse the DFlash strategy's branch-free batch plumbing.
+        self.dflash_model = dflash2_model
+
+
 class DSparkTrainStrategy(DraftTrainStrategy):
     """DSpark strategy over DFlash with target hidden-state supervision."""
 
@@ -634,6 +645,7 @@ __all__ = [
     "Eagle3TrainStrategy",
     "PEagleTrainStrategy",
     "DFlashTrainStrategy",
+    "DFlash2TrainStrategy",
     "DSparkTrainStrategy",
     "DominoTrainStrategy",
     "StepOutput",

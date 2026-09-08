@@ -171,7 +171,7 @@ def _config_for_role(cfg: Config, role: str) -> Config:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(prog="specforge")
+    parser = argparse.ArgumentParser(prog="dspark")
     sub = parser.add_subparsers(dest="command", required=True)
     train = sub.add_parser("train", help="train a draft model from a typed config")
     train.add_argument("-c", "--config", required=True, help="YAML or JSON run config")
@@ -201,6 +201,58 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="dotted overrides, e.g. training.learning_rate=1e-4",
     )
     sub.add_parser("algorithms", help="list registered draft methods and feature requirements")
+    data = sub.add_parser("data", help="prepare local user data for training")
+    data_sub = data.add_subparsers(dest="data_command", required=True)
+    data_prepare = data_sub.add_parser(
+        "prepare",
+        help="normalize OpenAI messages or ShareGPT rows to canonical JSONL",
+    )
+    data_prepare.add_argument(
+        "--input",
+        "--data-path",
+        dest="input_path",
+        required=True,
+        help="local .json or .jsonl input file",
+    )
+    data_prepare.add_argument(
+        "--output",
+        "--output-path",
+        dest="output_path",
+        required=True,
+        help="fresh canonical training .jsonl output file",
+    )
+    from specforge.data.prepare import LOCAL_DATA_FORMATS
+
+    data_prepare.add_argument(
+        "--format",
+        "--data-format",
+        dest="data_format",
+        choices=LOCAL_DATA_FORMATS,
+        default="auto",
+        help="input format (default: auto-detect)",
+    )
+    data_prepare.add_argument(
+        "--split-eval",
+        action="store_true",
+        help="write a deterministic five-percent held-out sibling JSONL",
+    )
+    data_prepare.add_argument(
+        "--eval-output",
+        help="optional evaluation output path (requires --split-eval)",
+    )
+    data_prepare.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="split seed (default: 42)",
+    )
+    data_prepare.add_argument(
+        "--max-rows",
+        "--sample-size",
+        dest="max_rows",
+        type=int,
+        help="cap input rows before conversion",
+    )
     target = sub.add_parser("target", help="inspect and prepare a target without downloading weights")
     target_sub = target.add_subparsers(dest="target_command", required=True)
     inspect_target = target_sub.add_parser(
@@ -296,10 +348,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         ),
     )
     benchmark.add_argument("--model", required=True)
-    benchmark.add_argument(
+    benchmark_source = benchmark.add_mutually_exclusive_group(required=True)
+    benchmark_source.add_argument(
         "--dataset",
         choices=("gsm8k", "math500", "humaneval", "mbpp", "mt-bench"),
-        required=True,
+    )
+    benchmark_source.add_argument(
+        "--data-path",
+        dest="messages_jsonl",
+        help="local held-out messages JSONL instead of a hosted benchmark preset",
     )
     benchmark.add_argument("--max-new-tokens", type=int, default=2048)
     benchmark.add_argument("--temperature", type=float, default=0.0)
@@ -341,6 +398,23 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.command == "algorithms":
         from specforge.target_project import algorithm_catalog
         print(json.dumps(algorithm_catalog(), indent=2))
+        return 0
+    if args.command == "data":
+        from specforge.data.prepare import prepare_dataset
+
+        try:
+            result = prepare_dataset(
+                args.input_path,
+                args.output_path,
+                data_format=args.data_format,
+                split_eval=args.split_eval,
+                eval_output_path=args.eval_output,
+                seed=args.seed,
+                max_rows=args.max_rows,
+            )
+        except (OSError, TypeError, ValueError) as exc:
+            parser.error(str(exc))
+        print(json.dumps(result.as_dict(), indent=2, ensure_ascii=False))
         return 0
     if args.command == "target":
         if args.target_command == "prepare":

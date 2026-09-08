@@ -1,5 +1,24 @@
 # Customize a speculative draft, without reimplementing the target
 
+Use `dspark` for the product CLI; `specforge` remains a compatibility alias in
+older examples below. Convert local OpenAI/ShareGPT data with `dspark data prepare
+--input data.jsonl --output train.jsonl --split-eval --eval-output holdout.jsonl`.
+Splits are approximate five percent, grouping identical prompt contexts to avoid
+leakage. Unsupported semantic fields fail explicitly instead of being dropped.
+
+For DFlash2 select `--strategy dflash2` in target preparation. Its draft includes
+grouped convolution and a candidate selector; use full vocabulary, eager/SDPA/flex
+attention, and homogeneous full or sliding layers. Adjust
+`training.dflash2_selector_loss_alpha` (positive and finite). HF export is for
+weights-only fine-tuning reload; SGLang export converts to its serving schema and
+requires unit input embedding scale. Actual backend/GPU certification is separate.
+
+Measure held-out text conversations with `dspark benchmark --model /path/to/target
+--data-path holdout.jsonl --output-json result.json`. This contacts the specified
+server; use a trusted endpoint. Tool schemas/calls are rejected by this text-only
+benchmark. Compare identical prompts and settings in target-only and draft-enabled
+runs; do not infer speedup from acceptance alone.
+
 See [CPU installation/release checks](PUBLIC_RELEASE.md) and
 [supported versus unverified combinations](PUBLIC_SUPPORT.md).
 
@@ -13,7 +32,7 @@ short functional tests; repeating it is not an onboarding requirement.
 
 Build a wheel from this checkout with `python -m pip wheel --no-deps . -w dist`.
 In an **already provisioned, compatible training environment**, install that wheel
-with `python -m pip install --no-deps /absolute/path/to/specforge-<version>-py3-none-any.whl`.
+with `python -m pip install --no-deps /absolute/path/to/dspark_train_platform-<version>-py3-none-any.whl`.
 `--no-deps` does not provision missing dependencies or make an arbitrary machine
 compatible. The package metadata's general SGLang/Torch pins are not the verified
 Ling runtime: do not let a routine dependency install replace the Ling image's

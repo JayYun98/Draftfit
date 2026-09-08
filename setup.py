@@ -19,7 +19,8 @@ class BuildWithAssets(build_py):
                     copyfile(source, target)
         for name in (
             "LICENSE", "THIRDPARTY_NOTICES.md", "licenses/torchspec-LICENSE",
-            "licenses/angelspec-LICENSE", "docs/PUBLIC_WORKFLOW.md", "docs/PUBLIC_RELEASE.md",
+            "licenses/angelspec-LICENSE", "licenses/z-lab-dflash-LICENSE",
+            "docs/PUBLIC_WORKFLOW.md", "docs/PUBLIC_RELEASE.md",
             "docs/PUBLIC_SUPPORT.md", "docs/SOURCE_ATTRIBUTION.md",
             "docs/RUNTIME_PROFILES.md", "docs/NATIVE_LING_REPLAY.md",
         ):

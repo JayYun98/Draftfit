@@ -6,6 +6,7 @@ changes are integration code and do not replace upstream copyright headers.
 | Source | Pinned workspace revision | Used for |
 |---|---|---|
 | [TorchSpec](https://github.com/lightseekorg/TorchSpec) | `bd64d93` | resource/checkpoint design reference and FSDP2 boundary |
+| [z-lab/dflash](https://github.com/z-lab/dflash) | `07ebd93` | DFlash2 grouped convolution and candidate selector |
 | [AngelSpec](https://github.com/Tencent/AngelSpec) | `d3412be` | packing/objective design reference |
 | [SGLang](https://github.com/sgl-project/sglang) | `8ba213f` | pinned target serving and capture backend |
 | [mlx-dspark](https://github.com/ARahim3/mlx-dspark) | `4143092` | MLX inference reference, not a trainer dependency |
@@ -18,6 +19,11 @@ changes are integration code and do not replace upstream copyright headers.
   `specforge/torchspec_bridge.py`; Ray actors and DCP state wrappers are not
   copied. The reference project's full MIT notice is bundled in
   `licenses/torchspec-LICENSE`.
+- z-lab/dflash DFlash2 grouped-convolution, candidate-selector, configuration,
+  and serving-state boundaries were reviewed at `07ebd93`. The local model and
+  training wrapper adapt those boundaries to SpecForge's existing Qwen3 DFlash
+  seams; no z-lab runtime dependency is added. The source notice is bundled in
+  `licenses/z-lab-dflash-LICENSE`.
 - AngelSpec `angelspec/training/data_fetcher.py` and
   `angelspec/tests/test_packing_safety.py` were reviewed at `d3412be`. The
   strict validation ideas and anchor-policy behavior were adapted into the

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import os
 from typing import List, Literal, Optional
 from urllib.parse import urlparse
@@ -554,6 +555,8 @@ class DeploymentConfig(StrictConfigModel):
 
 
 class TrainingConfig(StrictConfigModel):
+    # Keep this extensible for externally registered algorithms; the immutable
+    # algorithm registry performs the supported-name validation at resolution.
     strategy: str = "eagle3"
     num_epochs: int = Field(default=1, gt=0)
     max_steps: Optional[int] = Field(default=None, gt=0)
@@ -605,6 +608,7 @@ class TrainingConfig(StrictConfigModel):
     dspark_ce_loss_alpha: float = 0.1
     dspark_l1_loss_alpha: float = 0.9
     dspark_confidence_head_alpha: float = 1.0
+    dflash2_selector_loss_alpha: float = Field(default=1.0, gt=0.0)
     #: P-EAGLE COD sampling/model knobs.
     num_depths: int = Field(default=8, gt=0)
     down_sample_ratio: float = 0.8
@@ -633,6 +637,10 @@ class TrainingConfig(StrictConfigModel):
 
     @model_validator(mode="after")
     def _validate_training_shape(self):
+        if not math.isfinite(self.dflash2_selector_loss_alpha):
+            raise ValueError(
+                "training.dflash2_selector_loss_alpha must be finite"
+            )
         if not 0.0 <= self.dpace_alpha <= 1.0:
             raise ValueError("training.dpace_alpha must be in [0, 1]")
         if not 0.0 < self.down_sample_ratio <= 1.0:

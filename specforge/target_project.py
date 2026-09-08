@@ -181,7 +181,7 @@ def prepare_project(
         value = getattr(draft, name, None)
         if isinstance(value, bool) or not isinstance(value, int) or value < 1:
             raise ValueError(f"draft requires positive {name}; supply an explicit compatible --draft-config")
-    if strategy in ("dspark", "dflash", "domino"):
+    if strategy in ("dspark", "dflash", "dflash2", "domino"):
         for name, expected in (("hidden_size", text_metadata.get("hidden_size")),
                                ("vocab_size", text_metadata.get("padded_vocab_size") or text_metadata.get("vocab_size"))):
             if getattr(draft, name) != expected:

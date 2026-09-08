@@ -199,3 +199,6 @@ wandb/
 
 # macOS
 .DS_Store
+
+# Local agent plans and experiment coordination, not product source.
+.planning/

@@ -1,6 +1,10 @@
+import hashlib
+import json
+import tempfile
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
+from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
@@ -20,6 +24,205 @@ class SGLangBenchmarkTest(unittest.TestCase):
                 sglang._load_prompts("gsm8k", max_samples=None)
         with self.assertRaisesRegex(ValueError, "--max-samples must be positive"):
             sglang._load_prompts("gsm8k", max_samples=0)
+
+    def test_messages_jsonl_drops_answer_and_preserves_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "held-out.jsonl"
+            path.write_text(
+                json.dumps(
+                    {
+                        "messages": [
+                            {"role": "system", "content": "rules"},
+                            {"role": "user", "content": "first"},
+                            {"role": "assistant", "content": "history"},
+                            {"role": "user", "content": "follow-up"},
+                            {"role": "assistant", "content": "held-out answer"},
+                        ]
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            prompts = sglang._load_messages_jsonl(path, max_samples=None)
+
+        self.assertEqual(
+            prompts,
+            [
+                [
+                    {"role": "system", "content": "rules"},
+                    {"role": "user", "content": "first"},
+                    {"role": "assistant", "content": "history"},
+                    {"role": "user", "content": "follow-up"},
+                ]
+            ],
+        )
+
+    def test_messages_jsonl_rejects_non_openai_rows_before_server(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bad.jsonl"
+            path.write_text(
+                json.dumps(
+                    {
+                        "messages": [
+                            {"from": "human", "value": "question"},
+                            {"from": "gpt", "value": "answer"},
+                        ]
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(ValueError, "line 1"):
+                sglang._load_messages_jsonl(path, max_samples=None)
+
+    def test_messages_jsonl_rejects_unsupported_schema_before_tokenizer(self):
+        rows = [
+            {
+                "messages": [
+                    {"role": "user", "content": "question"},
+                    {"role": "assistant", "content": "answer"},
+                ],
+                "tools": [{"type": "function"}],
+            },
+            {
+                "messages": [
+                    {"role": "user", "content": "question"},
+                    {
+                        "role": "assistant",
+                        "content": "history",
+                        "tool_calls": [{"type": "function"}],
+                    },
+                    {"role": "user", "content": "follow-up"},
+                    {"role": "assistant", "content": "answer"},
+                ],
+            },
+            {
+                "messages": [
+                    {"role": "user", "content": "question"},
+                    {
+                        "role": "assistant",
+                        "content": "history",
+                        "function_call": {"name": "lookup"},
+                    },
+                    {"role": "user", "content": "follow-up"},
+                    {"role": "assistant", "content": "answer"},
+                ],
+            },
+            {
+                "messages": [
+                    {"role": "user", "content": "question"},
+                    {"role": "assistant", "content": "answer"},
+                ],
+                "system": "rules kept outside messages",
+            },
+        ]
+        args = SimpleNamespace(
+            model="/models/Inkling",
+            trust_remote_code=False,
+            dataset=None,
+            messages_jsonl=None,
+            max_samples=None,
+            num_prompts=1,
+            concurrency=1,
+            enable_thinking=False,
+            base_url="http://127.0.0.1:30000",
+            timeout_seconds=30,
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            for row in rows:
+                path = Path(directory) / "bad.jsonl"
+                path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+                args.messages_jsonl = str(path)
+                with (
+                    mock.patch("transformers.AutoTokenizer.from_pretrained") as tokenizer,
+                    mock.patch("requests.get") as get,
+                    mock.patch("requests.post") as post,
+                ):
+                    with self.assertRaisesRegex(ValueError, "line 1"):
+                        sglang._run_sglang(args)
+                tokenizer.assert_not_called()
+                get.assert_not_called()
+                post.assert_not_called()
+
+    def test_local_messages_jsonl_mocked_server_and_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "held-out.jsonl"
+            path.write_text(
+                json.dumps(
+                    {
+                        "messages": [
+                            {"role": "system", "content": "rules"},
+                            {"role": "user", "content": "first"},
+                            {"role": "assistant", "content": "history"},
+                            {"role": "user", "content": "follow-up"},
+                            {"role": "assistant", "content": "do not prompt this"},
+                        ]
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            source_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+            args = SimpleNamespace(
+                model="/models/Inkling",
+                trust_remote_code=False,
+                dataset=None,
+                messages_jsonl=str(path),
+                max_samples=None,
+                num_prompts=1,
+                concurrency=1,
+                enable_thinking=False,
+                max_new_tokens=16,
+                temperature=0.0,
+                top_p=1.0,
+                top_k=1,
+                base_url="http://127.0.0.1:30000",
+                timeout_seconds=30,
+            )
+            rendered = []
+
+            class FakeTokenizer:
+                def apply_chat_template(self, messages, **kwargs):
+                    rendered.append(messages)
+                    return "rendered"
+
+            response = mock.Mock()
+            response.raise_for_status.return_value = None
+            response.json.return_value = {
+                "meta_info": {
+                    "completion_tokens": 2,
+                    "spec_verify_ct": 1,
+                    "spec_accept_length": 3.0,
+                }
+            }
+            flush_response = mock.Mock()
+            flush_response.raise_for_status.return_value = None
+            with (
+                mock.patch(
+                    "transformers.AutoTokenizer.from_pretrained",
+                    return_value=FakeTokenizer(),
+                ),
+                mock.patch("requests.get", return_value=flush_response),
+                mock.patch("requests.post", return_value=response) as post,
+            ):
+                result = sglang._run_sglang(args)
+
+        self.assertEqual(post.call_count, 2)  # one warmup plus one measured request
+        self.assertEqual(rendered[0][-1]["content"], "follow-up")
+        self.assertNotIn(
+            "do not prompt this", [message["content"] for message in rendered[0]]
+        )
+        self.assertEqual(result.dataset, "messages-jsonl")
+        self.assertEqual(result.output_tokens, 2)
+        self.assertEqual(result.metadata["source"]["kind"], "messages_jsonl")
+        self.assertEqual(
+            result.metadata["source"]["sha256"],
+            source_sha256,
+        )
+        self.assertEqual(result.metadata["generation"]["max_new_tokens"], 16)
 
     def test_sglang_path_excludes_warmup_from_reported_totals(self):
         args = SimpleNamespace(

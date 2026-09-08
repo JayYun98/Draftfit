@@ -2,6 +2,17 @@
 
 ## Isolated CPU environment
 
+The distribution is `dspark-train-platform`; `dspark` is its primary command.
+Legacy `specforge` imports and the command alias remain available. Do not install
+the upstream SpecForge distribution alongside it in the same environment: both
+own the same Python namespace. Use a dedicated environment when migrating.
+
+Training resume still loads trusted Python checkpoint payloads. Only resume
+checkpoints you created or explicitly trust. Export uses the restricted tensor/
+primitive loader and refuses arbitrary pickle objects without an unsafe fallback.
+Prefer safetensors draft exports for sharing weights; neither loader is a resource
+isolation sandbox. Full-resume loading is a separate hardening boundary.
+
 Run these contributor commands from the source checkout: the CPU lock and test
 suite are not runtime wheel assets. Exported wheel recipes include the public
 guides and original LICENSE, but do not provision a CPU or GPU environment.
@@ -43,7 +54,7 @@ replacing the environment's backend:
 
 ```sh
 .venv-cpu/bin/python -m pip wheel --no-deps --no-build-isolation . -w dist
-.venv-cpu/bin/python -m pip install --no-deps dist/specforge-0.2.0-py3-none-any.whl
+.venv-cpu/bin/python -m pip install --no-deps dist/dspark_train_platform-0.2.0-py3-none-any.whl
 .venv-cpu/bin/python -m specforge.assets list
 .venv-cpu/bin/python -I scripts/check_public_install.py
 ```
@@ -77,10 +88,10 @@ with a direct clean wheel, so a working checkout alone cannot satisfy the gate.
 
 ## Decisions still required from the maintainer
 
-1. Public distribution/repository name, owner/contact, version and URLs. Current
-   metadata intentionally retains upstream `specforge`, SGLang authorship and
-   homepage. The stale upstream PyPI environment URL has been removed and the
-   workflow refuses a fork's publication under inherited distribution names.
+1. Review the `dspark-train-platform` distribution identity and `dspark` command
+   before publication. The internal `specforge` namespace and legacy command remain
+   for checkpoint/import compatibility, and upstream authorship remains credited.
+   Publication is still opt-in; changing metadata does not publish a package.
 2. Complete per-file attribution review before claiming license clearance.
    See [source inventory](SOURCE_ATTRIBUTION.md). Preserve existing notices.
 3. Decide the exact supported model/backend set from [support evidence](PUBLIC_SUPPORT.md),

@@ -187,6 +187,19 @@ def build_dflash_draft(
     return _finish_registered_draft(cfg, draft_config, draft_model)
 
 
+def build_dflash2_draft(cfg: Config, draft_config: PretrainedConfig):
+    """Build the registered DFlash2 draft without a new runtime dependency."""
+
+    from specforge.modeling.auto import AutoDraftModel
+
+    draft_config._attn_implementation = cfg.training.attention_backend
+    draft_model = AutoDraftModel.from_config(
+        draft_config,
+        torch_dtype=_torch_dtype(cfg),
+    )
+    return _finish_registered_draft(cfg, draft_config, draft_model)
+
+
 def resolve_eagle_capture_layers(
     cfg: Config, draft_config: Any, target_config: Any
 ) -> List[int]:
@@ -411,6 +424,28 @@ def build_dflash_model(
     )
 
 
+def build_dflash2_model(
+    cfg: Config,
+    draft_model: Any,
+    _draft_config: Any,
+    _target_config: Any,
+    tokenizer: Any,
+) -> AlgorithmModelParts:
+    from specforge.algorithms.common.dflash_family_model import OnlineDFlash2Model
+
+    return _build_dflash_family_model(
+        cfg,
+        draft_model,
+        tokenizer,
+        lambda common: OnlineDFlash2Model(
+            **common,
+            loss_type=cfg.training.loss_type,
+            dpace_alpha=cfg.training.dpace_alpha,
+            selector_loss_alpha=cfg.training.dflash2_selector_loss_alpha,
+        ),
+    )
+
+
 def build_domino_model(
     cfg: Config,
     draft_model: Any,
@@ -472,6 +507,10 @@ def dflash_min_loss_tokens(_cfg: Config, draft_config: Any) -> int:
     return 2
 
 
+def dflash2_strategy_kwargs(cfg: Config) -> Dict[str, Any]:
+    return {"selector_loss_alpha": cfg.training.dflash2_selector_loss_alpha}
+
+
 def populate_dflash_generated_config(
     payload: Dict[str, Any], target_config: Any, _cfg: Config
 ) -> None:
@@ -490,6 +529,49 @@ def populate_dflash_generated_config(
     payload["use_sliding_window"] = False
     payload["dflash_config"] = {
         "target_layer_ids": build_target_layer_ids(target_layers, 1)
+    }
+
+
+def populate_dflash2_generated_config(
+    payload: Dict[str, Any], target_config: Any, cfg: Config
+) -> None:
+    """Populate the genuine DFlash2 schema for a target-derived draft."""
+
+    from math import gcd
+    from specforge.modeling.draft.dflash import build_target_layer_ids
+
+    target_layers = getattr(target_config, "num_hidden_layers", None)
+    if not isinstance(target_layers, int) or isinstance(target_layers, bool) or target_layers < 1:
+        raise ValueError(
+            "DFlash2 auto-generation requires target num_hidden_layers, got "
+            f"{target_layers!r}"
+        )
+    draft_layers = int(payload["num_hidden_layers"])
+    target_layer_ids = list(cfg.model.target_layer_ids or [])
+    if not target_layer_ids:
+        target_layer_ids = build_target_layer_ids(target_layers, draft_layers)
+    hidden_size = int(payload["hidden_size"])
+    vocab_size = int(payload["vocab_size"])
+    group_size = max(1, gcd(hidden_size, 16))
+    payload["target_num_hidden_layers"] = target_layers
+    payload["num_target_layers"] = len(target_layer_ids)
+    payload["block_size"] = 16
+    payload["layer_types"] = ["full_attention"] * draft_layers
+    payload["sliding_window"] = None
+    payload["use_sliding_window"] = False
+    payload["is_causal"] = False
+    payload["dflash_config"] = {
+        "target_layer_ids": target_layer_ids,
+        "block_size": 16,
+        "conv_kernel_size": 2,
+        "conv_group_size": group_size,
+        "selector_rank": min(256, hidden_size),
+        "selector_top_k": min(16, vocab_size),
+        "mask_token_id": (
+            cfg.model.mask_token_id
+            if cfg.model.mask_token_id is not None
+            else vocab_size - 1
+        ),
     }
 
 
@@ -551,10 +633,66 @@ def apply_dflash_overrides(cfg: Config, draft_config: Any) -> None:
     resolve_dflash_attention_layout(draft_config)
 
 
+def apply_dflash2_overrides(cfg: Config, draft_config: Any) -> None:
+    """Apply overrides, then rebuild DFlash2's derived selector dimensions."""
+
+    from specforge.modeling.draft.dflash import build_target_layer_ids
+    from specforge.modeling.draft.dflash2 import DFlash2Config
+
+    requested_layers = cfg.model.draft_num_hidden_layers
+    layer_types = list(getattr(draft_config, "layer_types", ()) or ())
+    if requested_layers is not None:
+        if len(set(layer_types)) > 1:
+            raise ValueError(
+                "model.draft_num_hidden_layers cannot resize a mixed "
+                "DFlash2 layer_types layout"
+            )
+        draft_config.num_hidden_layers = requested_layers
+        draft_config.layer_types = [
+            layer_types[0] if layer_types else "full_attention"
+        ] * requested_layers
+
+    target_depth = int(
+        getattr(
+            draft_config,
+            "target_num_hidden_layers",
+            getattr(draft_config, "num_target_layers", 0),
+        )
+    )
+    target_layer_ids = list(cfg.model.target_layer_ids or [])
+    if not target_layer_ids:
+        target_layer_ids = list(
+            getattr(draft_config, "target_layer_ids", None)
+            or (getattr(draft_config, "dflash_config", None) or {}).get(
+                "target_layer_ids", []
+            )
+        )
+    if requested_layers is not None and not cfg.model.target_layer_ids:
+        target_layer_ids = build_target_layer_ids(target_depth, requested_layers)
+    if not target_layer_ids:
+        raise ValueError("DFlash2 draft config does not define target_layer_ids")
+    method_config = dict(getattr(draft_config, "dflash_config", None) or {})
+    method_config["block_size"] = int(draft_config.block_size)
+    method_config["target_layer_ids"] = target_layer_ids
+    draft_config.target_layer_ids = target_layer_ids
+    draft_config.num_target_layers = len(target_layer_ids)
+    draft_config.dflash_config = method_config
+
+    # ``resolve_draft_config`` mutates the already-constructed HF config for
+    # depth/block overrides. Reconstructing here is the small revalidation
+    # boundary that refreshes layer_types, target taps, and selector fields.
+    refreshed = DFlash2Config.from_dict(draft_config.to_dict())
+    draft_config.__dict__.clear()
+    draft_config.__dict__.update(refreshed.__dict__)
+
+
 __all__ = [
     "AlgorithmModelParts",
     "apply_dflash_overrides",
+    "apply_dflash2_overrides",
     "build_dflash_model",
+    "build_dflash2_draft",
+    "build_dflash2_model",
     "build_domino_model",
     "build_dspark_model",
     "build_eagle3_draft",
@@ -564,10 +702,12 @@ __all__ = [
     "build_peagle_model",
     "build_registered_draft",
     "dflash_min_loss_tokens",
+    "dflash2_strategy_kwargs",
     "dflash_needs_input_tools",
     "domino_strategy_kwargs",
     "eagle3_strategy_kwargs",
     "populate_dflash_generated_config",
+    "populate_dflash2_generated_config",
     "populate_dspark_generated_config",
     "resolve_dflash_capture_layers",
     "resolve_eagle_capture_layers",

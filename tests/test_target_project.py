@@ -40,7 +40,7 @@ class TargetProjectTest(unittest.TestCase):
 
     def test_catalog_is_derived_from_registry(self):
         catalog = algorithm_catalog()
-        self.assertEqual({x["algorithm"] for x in catalog}, {"dspark", "dflash", "eagle3", "peagle", "domino"})
+        self.assertEqual({x["algorithm"] for x in catalog}, {"dspark", "dflash", "dflash2", "eagle3", "peagle", "domino"})
         dspark = next(x for x in catalog if x["algorithm"] == "dspark")
         self.assertIn("target_last_hidden_states", dspark["features"][0]["required_tensors"])
 
@@ -48,7 +48,7 @@ class TargetProjectTest(unittest.TestCase):
         from specforge.training.model_loading import load_draft_config_source
         from specforge.modeling.auto import AutoDraftModel
         with patch("specforge.modeling.target.target_utils.load_target_config", side_effect=AssertionError("must not load target")):
-            for strategy in ("dspark", "dflash"):
+            for strategy in ("dspark", "dflash", "dflash2"):
                 with self.subTest(strategy=strategy):
                     result = self.prepare(strategy, strategy=strategy, hidden_states="./features", overrides=["model.target_layer_ids=[1,3,5]", "model.draft_num_hidden_layers=2"])
                     cfg = Config.from_file(result["config"])

@@ -323,7 +323,7 @@ class TestPackageArchitecture(unittest.TestCase):
         with open(REPO_ROOT / "pyproject.toml", "rb") as project_file:
             project = tomllib.load(project_file)
         self.assertEqual(
-            {"specforge": "specforge.cli:main"},
+            {"dspark": "specforge.cli:main", "specforge": "specforge.cli:main"},
             project["project"]["scripts"],
         )
 

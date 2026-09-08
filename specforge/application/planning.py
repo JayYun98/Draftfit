@@ -80,12 +80,13 @@ def _validate_algorithm_capabilities(
     training = cfg.training
     if cfg.model.target_layer_ids is not None and algorithm.name not in {
         "dflash",
+        "dflash2",
         "domino",
         "dspark",
     }:
         raise ValueError(
             "model.target_layer_ids is supported only by DFlash-family "
-            "strategies (dflash, domino, dspark)"
+            "strategies (dflash, dflash2, domino, dspark)"
         )
     if training.attention_backend not in capabilities.attention_backends:
         raise ValueError(

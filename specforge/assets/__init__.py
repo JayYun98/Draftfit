@@ -8,6 +8,7 @@ DOCUMENTS = (
     "THIRDPARTY_NOTICES.md",
     "licenses/torchspec-LICENSE",
     "licenses/angelspec-LICENSE",
+    "licenses/z-lab-dflash-LICENSE",
     "docs/PUBLIC_WORKFLOW.md",
     "docs/PUBLIC_RELEASE.md",
     "docs/PUBLIC_SUPPORT.md",
@@ -24,7 +25,7 @@ def _root():
     checkout = Path(__file__).resolve().parents[2]
     if (checkout / "pyproject.toml").is_file() and (checkout / "configs").is_dir():
         return checkout
-    raise FileNotFoundError("Recipe assets are missing; reinstall a complete SpecForge wheel.")
+    raise FileNotFoundError("Recipe assets are missing; reinstall a complete dspark-train-platform wheel.")
 
 
 def _walk(node, prefix):

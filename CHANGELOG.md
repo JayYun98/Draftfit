@@ -12,9 +12,18 @@ one-to-one commit mappings.
   frozen target model and a separately trained speculative draft.
 - Kept target execution in the existing backend boundary; no target-architecture
   port or competing target runtime was added.
-- Retained the `specforge` Python namespace and distribution name for local
-  compatibility. Package publication remains disabled while the private
-  repository identity is reviewed.
+- Adopted the `dspark-train-platform` distribution and `dspark` command, retaining
+  `specforge` imports and the command alias for compatibility. Package publication
+  remains opt-in; no package was published by changing this identity.
+- Reorganized the README around user-data fine-tuning instead of transient
+  contributor environment and experiment status.
+- Added installed-package conversation preparation for OpenAI/ShareGPT inputs,
+  overwrite refusal and deterministic train/holdout splitting.
+- Added held-out local-data throughput benchmarking, preserving conversation
+  context while excluding the final reference answer, with input/config metadata.
+- Integrated DFlash2 grouped convolution, candidate-selector loss, target-derived
+  recipes and HF/SGLang export layouts. CPU tensor/round-trip checks are separate
+  from still-required real GPU training and serving validation.
 
 ### Target-aware customization
 

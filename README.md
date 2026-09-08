@@ -1,268 +1,148 @@
 # DSpark Train Platform
 
-DSpark Train Platform is a configuration-first toolkit for adapting a
-speculative draft model to a target model chosen by the user. It inspects target
-metadata, generates an editable run/draft pair, prepares offline or online
-features, trains or fine-tunes the draft, records provenance, and exports a
-checkpoint for independent serving validation.
+Train a speculative decoding draft for **your target model, your data, and your workload**.
 
-The private repository is `JayYun98/dspark-train-platform`.
+Adapt an existing draft or train one from scratch, then measure it against the frozen target on held-out prompts. Built for individuals customizing inference as well as teams running distributed training. Better acceptance can improve speed; the actual gain depends on the workload, draft cost, hardware, and serving backend.
 
-The target stays frozen. The platform does not port target architectures into
-the trainer and does not turn a recipe into a support claim. A generated
-configuration is a starting point; capture, training, export, serving, and
-state checks are separate gates.
+## How it works
 
-## What is implemented
+1. **Prepare your data.** Normalize conversations and keep a separate evaluation set.
+2. **Choose your target and method.** Generate an editable configuration or start from an existing draft checkpoint.
+3. **Train.** Consume saved target features, or stream them from a live inference server to separate training workers.
+4. **Export and measure.** Reload the draft and compare correctness and throughput with target-only inference.
 
-The live registry currently contains these draft methods:
+The target stays frozen. The inference backend runs its architecture; this platform trains the draft. Dense, MoE, hybrid and recurrent targets need compatible capture and serving implementations—not another target implementation in the trainer. A generated recipe is not a compatibility guarantee.
 
-| Method | Metadata-derived draft | Offline features | Online capture | Boundary |
-| --- | --- | --- | --- | --- |
-| DSpark | Yes | Yes | Yes | Requires target last-hidden features and auxiliary taps |
-| DFlash | Yes | Yes | Yes | Requires algorithm-compatible hidden features and mask token |
-| EAGLE3 | Yes | Yes | Yes | Requires the method's target features and vocabulary contract |
-| PEagle | Yes | No | Yes | Streaming-only; flex attention is required |
-| Domino | No | Yes | Yes | Supply a compatible draft JSON explicitly |
+## Setup
 
-“Implemented” means code and configuration paths exist. It does not mean every
-target, backend, GPU, sequence length, cache mode, export, or workload has been
-validated.
+Use a Linux GPU environment matching your target backend. Start with the [runtime profiles](docs/RUNTIME_PROFILES.md) and their capture requirements; installing this package does not patch an inference server.
 
-The following are not public capabilities of this repository: DFlash2, DFly,
-DFlare, MTP, and multimodal training. Changing `training.strategy` does not
-convert an incompatible draft, feature cache, or target contract.
+```sh
+git clone https://github.com/JayYun98/dspark-train-platform.git
+cd dspark-train-platform
 
-## Target boundary
+# In an already provisioned training environment, preserve its backend versions:
+python -m pip install --no-deps --no-build-isolation -e .
+dspark algorithms
+```
 
-The user configures the target with `model.target_model_path` and, when needed,
-an exact `model.target_revision`. For local targets, use `--local-only`; for a
-Hub target, pin the revision used for the weights, tokenizer, capture backend,
-and serving check.
-
-Online runs use the deployment configuration and a compatible target/capture
-backend, which can be managed locally or externally.
-The target's architecture and recurrent state remain the responsibility of
-that backend.
-
-`target inspect` is metadata-only: it reads configuration and tokenizer
-metadata without downloading weights or executing remote modeling code. Its
-recommendations are hypotheses. Verify tokenizer masks, embedding/head names,
-feature taps, normalization, state semantics, and backend revision before
-spending GPU time.
+`--no-deps` assumes the required dependencies are already installed. For CPU-only preparation and contributor checks, see the [installation guide](docs/PUBLIC_RELEASE.md).
 
 ## Quick start
 
-### CPU preparation
-
-The locked profile is for onboarding and release checks, not inference or GPU
-training. It is verified on Linux with Python 3.12 and uv 0.9.18:
+Convert your OpenAI `messages` or ShareGPT conversations into training JSONL,
+with a deterministic held-out split:
 
 ```sh
-uv venv --seed .venv-cpu
-uv pip sync requirements-cpu.lock --python .venv-cpu/bin/python \
-  --torch-backend cpu --require-hashes
-.venv-cpu/bin/python -m tests.public_cpu
+dspark data prepare --input ./my-conversations.jsonl \
+  --output ./data/train.jsonl --split-eval --eval-output ./data/holdout.jsonl
 ```
 
-Current local gate: 218 tests ran, 211 passed and seven accelerator-only cases
-were skipped on macOS with the existing CPU dependencies. A prior clean Linux
-locked run passed 202 of 209 tests with seven skips.
-A fresh macOS locked install remains blocked by the documented Torch wheel
-hash mismatch; hash checking is not bypassed.
+The converter validates text conversations locally and refuses to overwrite files.
+Splitting requires at least two distinct prompt contexts. Repeated contexts stay
+in the same split; unsupported semantic fields are rejected rather than dropped.
 
-The lock and CPU tests are source-checkout assets. They are not a complete GPU
-environment and are not copied into a serving image. After dependencies are
-provisioned for the intended environment, build and inspect a local wheel:
+Inspect a downloaded target, or use a Hugging Face model ID with an exact revision:
 
 ```sh
-python -m pip wheel --no-deps --no-build-isolation . -w dist
-python -m pip install --no-deps dist/specforge-<version>-py3-none-any.whl
-python -m specforge.assets list
-python -I scripts/check_public_install.py
+dspark target inspect /path/to/target --local-only
+dspark target inspect ORG/MODEL --revision EXACT_COMMIT
 ```
 
-`--no-deps` does not make an arbitrary machine compatible or replace a pinned
-GPU backend.
-
-### Recipes without a training dependency
-
-Recipe access uses the Python standard library and can run without Torch,
-SGLang, a GPU, or a source checkout:
+Prepare a DSpark run from conversation JSONL. Each training row contains a `conversations` array with `role` and `content` fields, including an assistant response. The chat template must produce the correct assistant loss mask.
 
 ```sh
-python -m specforge.assets list
-python -m specforge.assets export ./my-draft-project
-cd ./my-draft-project
-```
-
-Export requires a new destination and refuses to overwrite it. The exported
-project preserves `configs/` and `examples/configs/` so its references remain
-usable.
-
-### Inspect and prepare a target
-
-The command surface is:
-
-```sh
-specforge algorithms
-specforge target inspect ORG/MODEL --revision EXACT_COMMIT
-specforge target inspect /path/to/target --local-only
-```
-
-Generate an editable offline project from target metadata and pre-captured
-features:
-
-```sh
-specforge target prepare /path/to/target --local-only \
-  --strategy dspark \
-  --hidden-states /path/to/features \
-  --output-dir ./my-custom-draft \
+dspark target prepare /path/to/target --local-only \
+  --strategy dspark --train-data /path/to/train.jsonl \
+  --output-dir ./my-draft \
   --set model.draft_num_hidden_layers=5
+
+dspark train -c ./my-draft/train.json --plan
+dspark train -c ./my-draft/train.json
 ```
 
-For managed online capture plus training, replace `--hidden-states` with raw
-conversation JSONL:
+The generated online configuration assigns the live target to **GPU 0** and draft training to **GPU 1**. It requires capture-enabled SGLang and Mooncake transport. Review the plan and target-specific settings before launch. Preparation refuses to overwrite an existing project.
+
+### Fine-tune an existing draft
+
+Provide its checkpoint during preparation so its existing architecture is used instead of generic defaults:
 
 ```sh
-specforge target prepare /path/to/target --local-only \
-  --strategy dspark \
-  --train-data /path/to/data.jsonl \
-  --output-dir ./my-online-draft
+dspark target prepare /path/to/target --local-only \
+  --strategy dspark --train-data /path/to/train.jsonl \
+  --draft-checkpoint /path/to/draft-export \
+  --output-dir ./my-finetune
+dspark train -c ./my-finetune/train.json
 ```
 
-The generated directory contains `train.json`, `draft.json`, `inspection.json`,
-and a manifest. Preparation validates the target/data contract before writing
-and refuses overwrites. Conversation JSONL uses a `conversations` array per
-row; it is not a top-level `messages` document. This is structural validation,
-not proof that tokenization masks or backend features are correct.
+This is a weights-only warm start with a new optimizer and schedule. To continue an interrupted run instead, set `training.resume_from=/path/to/training-checkpoint`. Do not combine warm start and resume. Optimizer resume requires the same trainer world size.
 
-### Plan and run
+### Train from saved features
 
-Inspect the resolved process plan first:
-
-```sh
-specforge train -c ./my-custom-draft/train.json --plan
-```
-
-Then start a short smoke run in a new output directory before increasing the
-budget:
-
-```sh
-specforge train -c examples/configs/qwen3-8b-dflash-offline.yaml \
-  training.max_steps=5 training.save_interval=5 \
-  output_dir=./outputs/first-smoke
-```
-
-Offline recipes require previously captured features. Online/disaggregated
-recipes require a compatible capture server, transport, and deployment
-configuration. `--plan` validates configuration and launch assembly; it does
-not load real weights or prove a kernel, backend, or serving state path.
-
-### Warm start versus resume
-
-Use a draft export for a weights-only warm start:
-
-```sh
-specforge train -c ./my-custom-draft/train.json \
-  model.draft_checkpoint_path=/path/to/draft-export
-```
-
-This starts a new optimizer, schedule, step counter, and data progression.
-
-Use a training checkpoint to resume the training run:
-
-```sh
-specforge train -c ./my-custom-draft/train.json \
-  training.resume_from=/path/to/training-checkpoint
-```
-
-This restores the checkpoint payload and its training state. Do not set both
-options. Cross-world-size optimizer resharding and cold-host infrastructure
-recovery are not supported claims.
+Replace `--train-data` with `--hidden-states /path/to/features` to create an offline run. Caches must match the target revision, tokenizer, capture layers and draft method. See [the workflow guide](docs/PUBLIC_WORKFLOW.md) for capture requirements and overrides.
 
 ### Export
 
-Export the completed checkpoint with the exact draft configuration used to
-train it:
-
 ```sh
-specforge export --to hf \
+dspark export --to hf \
   --checkpoint /path/to/completed-checkpoint \
-  --draft-config /path/to/draft.json \
+  --draft-config ./my-draft/draft.json \
   --output-dir ./exports/my-draft
 ```
 
-Some methods additionally require `--vocab-mapping`, `--embedding-source`, or
-`--embedding-key`; check `specforge export --help`. A successful conversion is
-not an inference compatibility result. Reload the exact artifact in its target
-serving backend and compare target-only and speculative tokens/state on held-out
-prompts.
+Check `dspark export --help` for method-specific embedding or vocabulary inputs. Export success is separate from serving compatibility: reload the exact artifact and compare it against target-only inference before deployment.
 
-## Validation commands
+## Draft methods and target support
 
-The dependency-light validation surface includes:
+Run `dspark algorithms` for available methods and feature contracts. DSpark,
+DFlash, DFlash2, EAGLE3, PEagle and Domino have integrated training paths; PEagle
+is streaming-only and Domino needs an explicit compatible draft configuration.
+
+### DFlash2
+
+Select `--strategy dflash2` during preparation. The implementation includes grouped
+convolution and candidate-selector training, adapted from TorchSpec—not a DFlash
+alias. Tune `training.dflash2_selector_loss_alpha` and the generated draft config.
+It requires the full target vocabulary and homogeneous full or sliding attention;
+USP attention and vocabulary pruning are unsupported.
+
+Use `export --to hf` for fine-tuning reload, or `export --to sglang` for the serving
+layout (requires `input_embedding_scale=1.0`). CPU tensor updates and export-schema
+checks do not certify an inference backend. Real DFlash2 GPU training and serving
+validation remain required before deploying that combination.
+
+Compatibility is a combination of **target revision + draft method + capture backend + serving backend + runtime**, not a list of architecture names. The [support matrix](docs/PUBLIC_SUPPORT.md) and [model validation matrix](docs/MODEL_VALIDATION.md) distinguish real-weight tests from synthetic checks and recipes. Bounded Ling results are not universal support or a speedup promise. Native Ling replay on RTX5090 remains disabled following a state-parity failure.
+
+## Customization and evaluation
+
+Benchmark your held-out text conversations against an already-running server:
 
 ```sh
-specforge validate parity --offline offline.json --online online.json
-specforge validate tokens --expected target.json --actual speculative.json
-specforge validate state --expected baseline.json --actual replay.json
-specforge validate replay --expected baseline-state.json --actual replay-state.json
-specforge validate acceptance --summary serving-summary.json
+dspark benchmark --model /path/to/target \
+  --data-path ./data/holdout.jsonl --num-prompts 100 \
+  --max-new-tokens 128 --concurrency 1 \
+  --base-url http://127.0.0.1:30000 --output-json ./baseline.json
 ```
 
-Functional correctness, acceptance length, quality, and speed are different
-results. Report them separately. Do not infer quality or speedup from a passing
-configuration, tensor comparison, or short smoke run.
+Run again against the same target with your exported draft enabled, writing a
+different output file. Keep prompts, generation settings, concurrency and hardware
+fixed. The benchmark preserves conversation context and removes the final assistant
+reference answer; it sends your prompts to the configured server. Use only a
+trusted endpoint. It does not start a server or certify token/state correctness.
+This benchmark accepts text-only conversations; tool schemas and tool-call
+messages are rejected until their rendering contract is supported.
 
-## Current bounded evidence
+Edit `train.json` and `draft.json` to tune draft depth, feature taps, block size, supported attention options and training settings. Check finite updates and checkpoint recovery with a short run before scaling the budget. Choose settings using held-out results rather than architecture alone.
 
-| Target | What was actually tested |
-| --- | --- |
-| Ling-3.0-tiny | Real DSpark offline and online training, recovery/export, bounded serving/state checks |
-| Llama-3.2-1B | Real-weight TP2 feature capture; not complete training/serving certification |
-| LFM2.5-1.2B-Instruct | Real-weight CUDA load and chat smoke only |
-| Qwen3-30B-A3B FP8 architecture | Dummy-weight MoE capture only |
-| Tiny Llama fixture / reduced draft configs | Synthetic EAGLE3/DFlash capture and algorithm update/reload checks |
+For deployment, check token correctness, cache/state behavior and measured throughput separately. A falling loss or longer acceptance length alone does not establish a speedup.
 
-See the [model and training matrix](docs/MODEL_VALIDATION.md) for exact scope,
-offline TP2 capture versus DP2 draft training, GPU0/GPU1 online training,
-checkpoint steps, failures, and unknown revisions.
+## Development and provenance
 
-- Local CPU packaging and test gates pass in the current release snapshot;
-  accelerator-only cases remain explicitly skipped on CPU.
-- The pinned Ling native ReplaySSM route has a bounded H100 functional pass:
-  67 committed state rounds matched bitwise and a separate three-request
-  target-only comparison matched 144/144 generated token IDs. The route is
-  single-request TP1/static, with Triton, radix cache disabled, CUDA graphs
-  disabled, and float32 SSM state.
-- The H100 result does not certify all GPUs, models, cache modes, concurrency,
-  exported artifacts, quality, or speedup. The earlier SM120/RTX5090 native
-  ReplaySSM state-parity failure remains unresolved and native replay is
-  disabled there. Synthetic reload or token checks do not erase that failure.
+The distribution is `dspark-train-platform`, with the `dspark` command. The internal `specforge` namespace and legacy command remain compatible with existing scripts and checkpoints. This is a maintained derivative, not a claim that its underlying engine was written from scratch.
 
-For a new target or backend combination, record the target/tokenizer revision,
-algorithm, draft configuration, backend revision, runtime, feature parity,
-finite training updates, export reload, and serving/state results before calling
-the combination supported.
+The platform builds on SpecForge's training engine and adapts selected ideas and implementations from [TorchSpec](https://github.com/lightseekorg/TorchSpec), [AngelSpec](https://github.com/Tencent/AngelSpec), and DSpark-related projects. Upstream licenses and attribution remain intact. See [third-party notices](THIRDPARTY_NOTICES.md) and [source attribution](docs/SOURCE_ATTRIBUTION.md).
 
-## Packaging and publication status
-
-The Python namespace and distribution name remain `specforge` for local
-compatibility with the existing trainer and CLI. Publication is intentionally
-disabled pending maintainer approval of the new product identity. CI is
-configured for the private repository but currently manually disabled; no
-package publication, deployment, or remote workflow is implied by this README.
-
-## Credits and licenses
-
-Upstream copyright headers and licenses are preserved. See [LICENSE](LICENSE)
-and [THIRDPARTY_NOTICES.md](THIRDPARTY_NOTICES.md) for the source inventory,
-borrowed boundaries, pinned references, and attribution requirements.
-
-Read the detailed boundaries before running a target:
-
-- [Public workflow](docs/PUBLIC_WORKFLOW.md)
-- [Support matrix](docs/PUBLIC_SUPPORT.md)
-- [CPU and release checks](docs/PUBLIC_RELEASE.md)
-- [Native Ling replay](docs/NATIVE_LING_REPLAY.md)
+- [Detailed workflow](docs/PUBLIC_WORKFLOW.md)
+- [Runtime profiles](docs/RUNTIME_PROFILES.md)
+- [Contributor and release checks](docs/PUBLIC_RELEASE.md)
+- [License](LICENSE)

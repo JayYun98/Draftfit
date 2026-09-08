@@ -3,11 +3,11 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "specforge"
+name = "dspark-train-platform"
 dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
-description = "DSpark Train Platform: config-driven speculative draft training, based on SpecForge"
+description = "Train and fine-tune speculative decoding drafts on your own data"
 authors = [{name = "SGLang Team"}]
 maintainers = [{name = "JayYun98"}]
 urls = {Homepage = "https://github.com/JayYun98/dspark-train-platform", Upstream = "https://github.com/sgl-project/SpecForge"}
@@ -33,6 +33,7 @@ dependencies = [
 ]
 
 [project.scripts]
+dspark = "specforge.cli:main"
 specforge = "specforge.cli:main"
 
 [tool.setuptools.packages.find]
