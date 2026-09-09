@@ -16,6 +16,18 @@ Use `specforge algorithms` for the live registry and feature tensor contracts.
 | Domino | No: explicit draft JSON | Yes | Yes | Compatible draft architecture/config supplied by user |
 
 “Yes” means an implementation exists, not that every target has passed.
+
+### DFlash2 serving runtime
+
+Do not reuse the old Ling capture image as DFlash2 serving evidence: the locally
+pinned Ling/SGLang sources do not contain `DFlash2DraftModel`. SGLang source
+[`db272201`](https://github.com/sgl-project/sglang/blob/db272201a2dbd72e5699e443240a851f1313ad45/python/sglang/srt/models/dflash.py)
+contains that architecture and candidate-selector support. This is a source
+compatibility prerequisite, not a tested image or a validated deployment.
+Pin the actual image digest and source revision before the GPU gate; verify
+convolution/selector weight loading and exact tokens with the exported artifact.
+The selector requires a dense FP16/BF16/FP32 target output head in this revision.
+
 DFly, DFlare, MTP and multimodal training are not public capabilities
 of this fork. Switching a strategy name does not convert weights or features.
 
