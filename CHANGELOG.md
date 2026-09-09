@@ -24,6 +24,8 @@ one-to-one commit mappings.
 - Integrated DFlash2 grouped convolution, candidate-selector loss, target-derived
   recipes and HF/SGLang export layouts. CPU tensor/round-trip checks are separate
   from still-required real GPU training and serving validation.
+- Restricted checkpoint export and full-resume deserialization to tensors and
+  primitives, including rank-local state; arbitrary pickle execution is refused.
 
 ### Target-aware customization
 

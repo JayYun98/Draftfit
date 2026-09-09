@@ -7,11 +7,11 @@ Legacy `specforge` imports and the command alias remain available. Do not instal
 the upstream SpecForge distribution alongside it in the same environment: both
 own the same Python namespace. Use a dedicated environment when migrating.
 
-Training resume still loads trusted Python checkpoint payloads. Only resume
-checkpoints you created or explicitly trust. Export uses the restricted tensor/
-primitive loader and refuses arbitrary pickle objects without an unsafe fallback.
-Prefer safetensors draft exports for sharing weights; neither loader is a resource
-isolation sandbox. Full-resume loading is a separate hardening boundary.
+Training resume and export use the restricted tensor/primitive checkpoint loader,
+including per-rank optimizer and RNG payloads. Arbitrary pickle objects are
+rejected without an unsafe fallback. Prefer safetensors draft exports for sharing
+weights; restricted loading is not a resource-isolation sandbox. Legacy checkpoints
+containing custom Python objects must be converted in a trusted environment.
 
 Run these contributor commands from the source checkout: the CPU lock and test
 suite are not runtime wheel assets. Exported wheel recipes include the public

@@ -16,6 +16,25 @@ class _UnexpectedCheckpointObject:
 
 
 class ExportCheckpointSecurityTest(unittest.TestCase):
+    def test_resume_rejects_objects_in_shared_and_rank_payloads(self):
+        from specforge.training.checkpoint import CheckpointManager
+
+        with tempfile.TemporaryDirectory() as directory:
+            manager = CheckpointManager(directory, "security")
+            checkpoint = Path(manager.checkpoint_dir(1))
+            checkpoint.mkdir()
+            shared = checkpoint / "training_state.pt"
+            torch.save({"bad": _UnexpectedCheckpointObject()}, shared)
+            with self.assertRaises(pickle.UnpicklingError):
+                manager.load(1)
+            with self.assertRaises(pickle.UnpicklingError):
+                manager.read_resume_state(str(checkpoint))
+            torch.save({"global_step": 1, "world_size": 1}, shared)
+            torch.save({"bad": _UnexpectedCheckpointObject()},
+                       checkpoint / "training_state_rank0.pt")
+            with self.assertRaises(pickle.UnpicklingError):
+                manager.read_resume_state(str(checkpoint))
+
     def test_export_loader_accepts_normal_checkpoint_payload(self):
         from specforge.export.checkpoint_io import resolve_training_state
 

@@ -222,7 +222,7 @@ class CheckpointManager:
         if target is None:
             raise FileNotFoundError(f"no checkpoint to load under {self.output_dir}")
         return torch.load(
-            self._state_path(target), map_location=map_location, weights_only=False
+            self._state_path(target), map_location=map_location, weights_only=True
         )
 
     @classmethod
@@ -248,7 +248,7 @@ class CheckpointManager:
             state = torch.load(
                 os.path.join(path, STATE_FILE),
                 map_location=map_location,
-                weights_only=False,
+                weights_only=True,
             )
             if not isinstance(state, dict):
                 raise ValueError(
@@ -321,7 +321,7 @@ class CheckpointManager:
         rank_path = os.path.join(path, cls._rank_file(rank))
         if os.path.exists(rank_path) and (saved_world is None or saved_world == world):
             state["backend"] = torch.load(
-                rank_path, map_location=map_location, weights_only=False
+                rank_path, map_location=map_location, weights_only=True
             )
             if not isinstance(state["backend"], dict):
                 raise ValueError(
