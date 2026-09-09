@@ -140,6 +140,27 @@ finite updates, export reload, and serving/state checks.
 
 ## Release conclusion
 
+### Additional bounded DFlash2 CUDA evidence (2026-09-09)
+
+Qwen/Qwen3-0.6B revision `c1899de289a04d12100db370d81485cdf75e47ca`
+was loaded with real weights on one RTX3090 24GB. Transformers5.8.1,
+Torch2.8.0+cu128 and SDPA were used; this is **not** the locked Torch2.11
+production environment. A one-layer DFlash2 draft consumed HF teacher taps
+3/15 (post-layer features, shape1x48x2048), block size4, eight uniform anchors.
+
+- Twenty updates on one repeated chat sample reduced loss17.8324→0.9034.
+  This establishes an optimization smoke, not held-out quality or speedup.
+- Saving model/AdamW/RNG and replaying the next step yielded identical loss
+  and bitwise-identical weights (maximum difference0).
+- HF export reloaded exact BF16 weights; SGLang schema export succeeded.
+- Existing checkpoint regression suite passed18/18, including CUDA cases,
+  after installing the runtime image's missing C compiler.
+
+The DFlash2 loop used the platform model/loss/export components directly, not
+the CLI distributed trainer. No SGLang feature capture, live serving, TP2,
+2GPU online training, or DFlash2 state parity was exercised by this run.
+The small artifacts were retained privately; target weights were not backed up.
+
 The defensible release claim is: **the fork has working metadata/configuration
 and bounded real Ling functionality on pinned H100/H200 routes, including
 online GPU0/GPU1 DSpark training, offline TP2 capture plus two-rank training,
