@@ -359,6 +359,7 @@ def _managed_local_environment(cfg: Config) -> dict[str, str]:
         "MOONCAKE_MASTER_SERVER_ADDR": f"127.0.0.1:{mooncake.rpc_port}",
         "MOONCAKE_LOCAL_HOSTNAME": mooncake.local_hostname,
         "MOONCAKE_PROTOCOL": mooncake.protocol,
+        "DISAGG_STORE_ID": deployment.store_id or cfg.run_id,
         "DISAGG_SERVER_URLS": ",".join(server_urls),
     }
     if mooncake.rdma_devices:

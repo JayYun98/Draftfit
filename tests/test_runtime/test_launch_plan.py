@@ -577,10 +577,16 @@ class LaunchPlanTest(unittest.TestCase):
                     {"port": 30000, "cuda_visible_devices": ["0"], "tp_size": 1},
                 ]).model_dump()
                 raw["model"].update(target_backend=backend, target_revision="a" * 40, cache_dir="/tmp/model-cache")
+                if backend == "transformers":
+                    raw["deployment"]["disaggregated"]["store_id"] = "explicit-capture-store"
                 cfg = Config.model_validate(raw)
                 with mock.patch("specforge.training.capture_contract.resolve_server_capture_contract", return_value=CAPTURE_CONTRACT):
                     plan = build_launch_plan(cfg, config_path="run.yaml", env={})
                 argv = plan.services[1].command.argv
+                expected_store = cfg.deployment.disaggregated.store_id or cfg.run_id
+                self.assertEqual(plan.services[1].command.env["DISAGG_STORE_ID"], expected_store)
+                for command in plan.commands:
+                    self.assertEqual(command.env["DISAGG_STORE_ID"], expected_store)
                 self.assertEqual(argv[:3], (sys.executable, "-m", "specforge.inference.teacher_server"))
                 self.assertEqual(argv[argv.index("--target-backend") + 1], backend)
                 self.assertEqual(argv[argv.index("--revision") + 1], "a" * 40)
