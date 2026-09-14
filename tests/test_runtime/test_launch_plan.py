@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -26,6 +27,7 @@ from specforge.launch_plan import (
     ReadinessSpec,
     ServiceSpec,
     _http_ready,
+    _managed_preflight,
 )
 from specforge.launch_plan import build_launch_plan as _build_launch_plan
 from specforge.launch_plan import run_commands
@@ -1443,6 +1445,38 @@ class LaunchPlanTest(unittest.TestCase):
                 self.assertRaisesRegex(RuntimeError, "is unavailable"),
             ):
                 run_commands(plan, popen=mock.Mock())
+
+    def test_managed_preflight_distinguishes_live_listener_from_time_wait(self):
+        with (
+            tempfile.TemporaryDirectory() as parent,
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener,
+            mock.patch("specforge.launch_plan.shutil.which", return_value="mooncake_master"),
+            mock.patch("specforge.launch_plan.importlib.util.find_spec", return_value=object()),
+        ):
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", 0))
+            listener.listen(1)
+            listener.settimeout(2)
+            address = listener.getsockname()
+            original = _managed_plan(os.path.join(parent, "attempt"))
+            plan = LaunchPlan(**{**original.__dict__, "managed_ports": (address[1],)})
+            with self.assertRaisesRegex(RuntimeError, "is unavailable"):
+                _managed_preflight(plan)
+            # Active close on the accepted server socket leaves its local port
+            # in TIME_WAIT once the client's FIN is acknowledged.
+            with socket.create_connection(address, timeout=2) as client:
+                connection, _ = listener.accept()
+                with connection:
+                    connection.settimeout(2)
+                    connection.shutdown(socket.SHUT_WR)
+                    self.assertEqual(client.recv(1), b"")
+                    client.shutdown(socket.SHUT_WR)
+                    self.assertEqual(connection.recv(1), b"")
+            listener.close()
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as plain_probe:
+                with self.assertRaises(OSError):
+                    plain_probe.bind(address)
+            _managed_preflight(plan)
 
     def test_http_readiness_allows_generation_latency_with_bounded_probe(self):
         for budget, expected in ((300, 5.0), (0.5, 0.5)):

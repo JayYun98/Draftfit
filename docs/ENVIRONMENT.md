@@ -67,7 +67,7 @@ engine, not a gradient-training backend.
 | --- | --- | --- |
 | SGLang | Existing pinned capture profiles, including bounded Ling support | See model validation records |
 | Transformers | Single-device Llama/Qwen2/Qwen3 text decoders; eager/SDPA | Actual tiny CPU capture → disk → loader → DSpark/DFlash2 update |
-| vLLM | Experimental native `extract_hidden_states` + `ExampleHiddenStatesConnector`; same dense families, TP1/PP1, single process | Boundary tests only; real GPU parity pending |
+| vLLM | Experimental native `extract_hidden_states` + `ExampleHiddenStatesConnector`; same dense families, TP1/PP1, single process | Real Qwen3-0.6B FP32 parity/training gate passed; BF16 parity failed. See [bounded evidence](MODEL_VALIDATION.md#native-teacher-two-gpu-functional-evidence-2026-09-14). |
 
 Both new adapters also run in our owned online teacher service. The configuration
 and supervisor select the engine; our producer, Mooncake store, channel and trainer
@@ -98,8 +98,9 @@ vLLM still stages extraction through private temporary files before Mooncake.
 This is not the direct vLLM worker-to-Mooncake optimization in TorchSpec.
 CPU tests exercise real tiny HF → HTTP → producer → channel → loader → DFlash2
 update, variable lengths and lost-response cleanup with an injected raw store.
-Real Mooncake/GPU parity, concurrency throughput and recovery soak remain required
-before labeling the new backends first-tier production support.
+Real Mooncake and bounded Qwen3-0.6B GPU gates have now run; BF16 vLLM parity
+remains failed. Broader parity, concurrency throughput, serving and recovery soak
+remain required before labeling the new backends first-tier production support.
 
 Use the CPU profile above for local Transformers tests, or a provisioned GPU
 Transformers environment. For vLLM, provision a separate compatible vLLM runtime

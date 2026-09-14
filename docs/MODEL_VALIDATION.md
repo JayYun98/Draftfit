@@ -139,6 +139,42 @@ does not mean the final wheel was rerun on a GPU, and it does not certify every
 new model or draft export. New-model gates still require real feature parity,
 finite updates, export reload, and serving/state checks.
 
+## Native teacher two-GPU functional evidence (2026-09-14)
+
+The owned HF/vLLM teacher service was tested with real
+`Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca`, two RTX3090 24GB
+GPUs, NVIDIA 580.126.09, Torch2.11.0+cu130, Transformers5.8.1, vLLM0.22.1 and
+`mooncake-transfer-engine-cuda13==0.3.13.post1`. Teacher GPU0 and draft GPU1
+exchanged actual hard-pinned Mooncake TCP tensors; no injected store was used.
+The direct gate also keeps a frozen HF reference/head on GPU1. See the
+[pinned environment and commands](OWNED_GPU_ENVIRONMENT.md).
+
+| Gate | Result | Limit |
+| --- | --- | --- |
+| HF BF16 auxiliary/final feature parity | PASS, max absolute error0 on four prompts | Identical short tokens, taps3/24 |
+| HF BF16 DSpark / DFlash2 | PASS,20 updates each, exact next-step resume and HF export/reload | Loss3.4334→2.2918 /18.5969→1.3090 on repeated fixtures |
+| vLLM BF16 feature parity | FAIL, max error32; layer relativeL2 about0.00394/0.00614 | Original elementwise atol0.125/rtol0.025 not relaxed |
+| vLLM FP32 feature parity + deterministic trainer | PASS,20 DSpark/DFlash2 updates, exact next-step resume and HF export/reload | TF32 disabled, deterministic algorithms, same four prompts |
+| Managed HF and vLLM CLI | PASS, two DSpark updates and step2 checkpoint each, teacher0/trainer1 | BF16 functional training, not cross-engine BF16 parity or restart proof |
+| CUDA checkpoint/export + launch regression | PASS,85 tests, no skips | Focused runtime suite, not the full public release suite |
+
+An initial FP32 run without deterministic trainer settings failed bitwise
+next-step replay. The deterministic rerun matched both loss and weights exactly;
+this does not retroactively pass the original run. FP32 parity success and small
+BF16 relative errors suggest precision/kernel differences rather than a layer
+index mismatch, but do not establish BF16 equivalence.
+
+An immediate managed-run restart initially rejected a closed metadata port in
+TIME_WAIT. The preflight now uses SO_REUSEADDR plus bind/listen, with a real socket
+regression confirming that active listeners are still rejected. Teacher namespace
+and max-length headroom omissions were also fixed before the corresponding runs.
+
+Capture/training wall-clock intervals overlap in the direct test; actual GPU
+kernel overlap and throughput were not profiled. No serving, acceptance/speed
+A/B, large target, multi-rank resume, or other architecture is certified by this
+campaign. The published claim remains bounded functional support, not first-tier
+production support for all three backends.
+
 ## Release conclusion
 
 ### Additional bounded DFlash2 CUDA evidence (2026-09-09)

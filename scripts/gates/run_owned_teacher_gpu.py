@@ -32,6 +32,8 @@ def arguments(argv=None):
     parser.add_argument("--revision", required=True, help="immutable Hugging Face commit SHA")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--steps", type=int, default=20)
+    parser.add_argument("--dtype", choices=("bfloat16", "float32"), default="bfloat16")
+    parser.add_argument("--deterministic", action="store_true", help="require deterministic trainer operations for exact resume")
     parser.add_argument("--algorithms", nargs="+", choices=("dspark", "dflash2"), default=["dspark", "dflash2"])
     parser.add_argument("--teacher-memory-fraction", type=float, default=0.4)
     parser.add_argument("--startup-timeout", type=int, default=900)
@@ -79,7 +81,13 @@ def stop_owned_group(process):
 
 def main(argv=None):
     args = arguments(argv)
+    if args.deterministic:
+        os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     import torch
+    if args.deterministic:
+        torch.use_deterministic_algorithms(True)
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
     from transformers import AutoModelForCausalLM, AutoTokenizer, Qwen3Config
     from specforge.offline_capture.transformers import OfflineTransformersCapture
     from specforge.inference.adapters.server_capture import TeacherServerCaptureAdapter, ServerCaptureSchema
@@ -103,9 +111,10 @@ def main(argv=None):
         raise RuntimeError("vLLM teacher must use the audited vllm==0.22.1 runtime")
     torch.cuda.set_device(1)
     torch.manual_seed(7)
+    dtype = getattr(torch, args.dtype)
     tokenizer = AutoTokenizer.from_pretrained(args.model, revision=args.revision)
     reference_model = AutoModelForCausalLM.from_pretrained(args.model, revision=args.revision,
-        dtype=torch.bfloat16, attn_implementation="sdpa").to("cuda:1").eval().requires_grad_(False)
+        dtype=dtype, attn_implementation="sdpa").to("cuda:1").eval().requires_grad_(False)
     if reference_model.config.model_type != "qwen3":
         raise ValueError("this bounded gate only covers dense Qwen3")
     taps = [3, reference_model.config.num_hidden_layers - 4]
@@ -142,13 +151,13 @@ def main(argv=None):
         port = sock.getsockname()[1]
     command = [args.teacher_python, "-m", "specforge.inference.teacher_server",
         "--target-backend", args.backend, "--model-path", args.model, "--revision", args.revision,
-        "--dtype", "bfloat16", "--capture-method", "dflash", "--aux-layer-ids", *map(str, taps),
+        "--dtype", args.dtype, "--capture-method", "dflash", "--aux-layer-ids", *map(str, taps),
         "--host", "127.0.0.1", "--port", str(port), "--max-model-len", "256",
         "--device", "cuda:0", "--gpu-memory-utilization", str(args.teacher_memory_fraction)]
     visible = os.environ.get("CUDA_VISIBLE_DEVICES", "0").split(",")[0]
     environment = {**os.environ, "CUDA_VISIBLE_DEVICES": visible, "DISAGG_STORE_ID": run_id,
                    "VLLM_WORKER_MULTIPROC_METHOD": "spawn"}
-    report = dict(passed=False, backend=args.backend, model=args.model, revision=args.revision,
+    report = dict(passed=False, backend=args.backend, model=args.model, revision=args.revision, dtype=args.dtype,
         scope="two-GPU functional transport/training, four repeated prompts; no serving speedup claim",
         teacher_gpu=0, trainer_gpu=1, torch=torch.__version__,
         gpu_names=[torch.cuda.get_device_name(i) for i in range(2)], teacher_command=command,
@@ -206,7 +215,18 @@ def main(argv=None):
                 parity[key] = dict(max_abs=float((actual-desired).abs().max()), atol=atol, rtol=rtol,
                                     finite=bool(torch.isfinite(actual).all()),
                                     within_tolerance=bool(torch.allclose(actual, desired, atol=atol, rtol=rtol)))
+                segments = zip(taps, actual.split(reference_model.config.hidden_size, dim=-1),
+                               desired.split(reference_model.config.hidden_size, dim=-1)) if name == "hidden_states" else [("final_norm", actual, desired)]
+                parity[key]["layers"] = {}
+                for tap, observed, wanted in segments:
+                    parity[key]["layers"][str(tap)] = dict(
+                        max_expected=float(wanted.abs().max()),
+                        max_abs=float((observed-wanted).abs().max()),
+                        relative_l2=float((observed-wanted).norm() / wanted.norm().clamp_min(1e-30)),
+                        cosine=float(torch.nn.functional.cosine_similarity(observed.flatten(), wanted.flatten(), dim=0)))
                 if not parity[key]["finite"] or not parity[key]["within_tolerance"]:
+                    torch.save(dict(actual=actual, expected=desired, input_ids=probe["input_ids"],
+                                    taps=taps, feature=name, prompt_index=prompt_index), args.output / "parity-failure.pt")
                     raise AssertionError(f"{key} teacher/HF parity failed")
         index = len(prompts)
         for algorithm in args.algorithms:
@@ -224,7 +244,7 @@ def main(argv=None):
                     mask_token_id=values["mask_token_id"], enable_confidence_head=True, confidence_head_alpha=1.0))
                 draft = DSparkDraftModel(Qwen3Config(**values))
                 wrapper_type = OnlineDSparkModel
-            draft = draft.to(device="cuda:1", dtype=torch.bfloat16)
+            draft = draft.to(device="cuda:1", dtype=dtype)
             wrapper = wrapper_type(draft, reference_model.lm_head, reference_model.get_input_embeddings(),
                 mask_token_id=values["mask_token_id"], block_size=4, attention_backend="sdpa",
                 num_anchors=4, anchor_sampling="uniform", objective_chunk_blocks=4)
@@ -277,12 +297,17 @@ def main(argv=None):
             torch.cuda.set_rng_state(state["cuda_rng"], 1)
             resumed_loss = step(current)
             resume_exact = expected_loss == resumed_loss and all(torch.equal(expected_state[n], t.cpu()) for n, t in draft.state_dict().items())
+            report.setdefault("resume_diagnostics", {})[algorithm] = dict(
+                expected_loss=expected_loss, resumed_loss=resumed_loss,
+                max_weight_difference=max(float((expected_state[n].float() - t.detach().cpu().float()).abs().max())
+                                          for n, t in draft.state_dict().items()),
+                deterministic_algorithms=torch.are_deterministic_algorithms_enabled())
             if not resume_exact:
                 raise AssertionError("same-state next-step resume diverged")
             config_path = directory / "draft_config.json"
             draft.config.to_json_file(config_path)
             export_to_hf(str(checkpoint), str(config_path), str(directory / "hf"))
-            restored = type(draft).from_pretrained(directory / "hf", dtype=torch.bfloat16)
+            restored = type(draft).from_pretrained(directory / "hf", dtype=dtype)
             if not all(torch.equal(t.cpu(), restored.state_dict()[n]) for n, t in state["draft_state_dict"].items()):
                 raise AssertionError("export/reload changed draft weights")
             report["algorithms"][algorithm] = dict(steps=args.steps, losses=losses,

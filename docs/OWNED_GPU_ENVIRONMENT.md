@@ -1,6 +1,8 @@
 # Native teacher GPU campaign environment
 
-Metadata checked 2026-09-14; no instance, install or model download performed.
+Environment checked and bounded GPU campaign executed 2026-09-14.
+See [model validation](MODEL_VALIDATION.md#native-teacher-two-gpu-functional-evidence-2026-09-14)
+for passes and retained failures; this is not blanket production certification.
 
 ## Image and hardware
 
@@ -40,7 +42,7 @@ campaign_python=$(command -v python3)
 campaign_python=$("$campaign_python" -c 'import sys; print(sys.executable)')
 "$campaign_python" -c 'import sys; print(sys.executable, sys.version)'
 uv pip freeze --python "$campaign_python" > image-packages.txt
-rg -v '^transformers==' image-packages.txt > image-constraints.txt
+"$campaign_python" -c 'import importlib.metadata as m; names={d.metadata["Name"] for d in m.distributions()}-{"transformers"}; print("\n".join(n+"=="+m.version(n) for n in sorted(names)))' > image-constraints.txt
 uv pip install --python "$campaign_python" -c image-constraints.txt \
   -e . 'vllm==0.22.1' 'transformers==5.8.1' \
   'mooncake-transfer-engine-cuda13==0.3.13.post1'
@@ -50,7 +52,10 @@ uv pip check --python "$campaign_python"
 command -v mooncake_master
 ```
 
-If `rg` is absent, use `grep -v` for the one-line constraints filter. Do not run
+The installed metadata may contain stale build-wheel URLs and duplicate distro
+package versions. Preserve the raw inventory, but constrain each installed name
+to the version selected by Python instead of replaying nonexistent wheel paths.
+Do not run
 `uv sync` against the CPU lock or install stock SGLang into this image. If an
 ordinary `mooncake-transfer-engine` distribution is already present, resolve that
 conflict first: both packages install the same `mooncake` namespace.
@@ -72,7 +77,7 @@ GPU 1 owns the trainer. Run the two backends sequentially with unique namespaces
 and fresh control/output directories. Keep prompt length and batch size small
 initially (128 tokens, batch 1); increase only after correctness passes.
 
-### Implemented two-GPU functional gate (not yet GPU-executed)
+### Two-GPU functional gate
 
 `run_owned_teacher_gpu.py` requires an already-running Mooncake master. Set
 `MOONCAKE_METADATA_SERVER`, `MOONCAKE_MASTER_SERVER_ADDR`, and `MOONCAKE_PROTOCOL=tcp`
@@ -90,6 +95,7 @@ process. It currently uses four repeated prompts capped at 96 tokens.
   --backend vllm --teacher-python "$campaign_python" \
   --model Qwen/Qwen3-0.6B --revision c1899de289a04d12100db370d81485cdf75e47ca \
   --output ./evidence/native-vllm --steps 20 --algorithms dspark dflash2 \
+  --dtype float32 --deterministic \
   --teacher-memory-fraction 0.4 --startup-timeout 900
 ```
 
@@ -97,8 +103,11 @@ Each output directory must be new. Separate teacher environments can be supplied
 through `--teacher-python`; both environments need compatible Mooncake bindings.
 Inspect `result.json` and `teacher.log`, including cleanup errors. This functional
 gate does not establish serving speedup, GPU kernel overlap or held-out quality.
+The native vLLM BF16 cross-engine elementwise parity gate failed; do not silently
+drop the FP32 option or increase its tolerances. Deterministic trainer operations
+and disabled TF32 are required for the evidenced exact FP32 next-step resume.
 
-### Separate managed supervisor gate (local plan validated; GPU not executed)
+### Separate managed supervisor gate
 
 The checked-in `scripts/gates/fixtures/owned-managed-{transformers,vllm}.yaml`
 configs use the same four conversation rows, two DSpark updates, target taps

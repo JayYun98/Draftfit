@@ -993,7 +993,11 @@ def _managed_preflight(plan: LaunchPlan) -> None:
     for port in plan.managed_ports:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
             try:
+                probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 probe.bind(("127.0.0.1", port))
+                # Reuse closed connections, but require exclusive listening:
+                # some platforms allow a reusable bind beside a live listener.
+                probe.listen(1)
             except OSError as exc:
                 raise RuntimeError(
                     f"managed_local port 127.0.0.1:{port} is unavailable: {exc}"
