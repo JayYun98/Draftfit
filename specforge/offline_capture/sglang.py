@@ -2,21 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import List, Optional
 
 import torch
 
 
-@dataclass
-class OfflineCaptureBatch:
-    """Generic batched auxiliary and final target states."""
-
-    hidden_states: torch.Tensor
-    last_hidden_states: torch.Tensor
-    input_ids: torch.Tensor
-    attention_mask: torch.Tensor
-    loss_mask: torch.Tensor
+from specforge.inference.capture import TeacherCaptureBatch as OfflineCaptureBatch
 
 
 class OfflineSGLangCapture:

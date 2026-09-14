@@ -21,13 +21,27 @@ Import-light (stdlib only) so the assertions are unit-testable without a GPU.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, FrozenSet, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Mapping, Optional, Tuple
+
+if TYPE_CHECKING:
+    import torch
 
 from specforge.runtime.contracts import FeatureSpec, TargetRepr
 
 
 class CaptureMismatchError(AssertionError):
     """Raised when extracted features do not match the requested CaptureConfig."""
+
+
+@dataclass
+class TeacherCaptureBatch:
+    """Backend-neutral tensors shared by offline and live teacher execution."""
+
+    hidden_states: torch.Tensor
+    last_hidden_states: torch.Tensor
+    input_ids: torch.Tensor
+    attention_mask: torch.Tensor
+    loss_mask: torch.Tensor
 
 
 @dataclass(frozen=True)

@@ -34,6 +34,9 @@ def load_tests(loader, tests, pattern):
         "tests.test_teacher_training",
         "tests.test_scripts.test_prepare_hidden_states",
         "tests.test_capture_manifest",
+        "tests.test_runtime.test_teacher_server",
+        "tests.test_runtime.test_owned_teacher_stream",
+        "tests.test_runtime.test_feature_dataloader",
     ]
     suite = loader.loadTestsFromNames(modules)
     suite.addTests(loader.discover("tests/test_config", top_level_dir="."))

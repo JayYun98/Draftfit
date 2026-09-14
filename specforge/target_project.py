@@ -41,7 +41,7 @@ def algorithm_catalog():
 def prepare_project(
     source: str, output_dir: str, *, strategy="dspark", revision="main",
     local_only=False, train_data=None, hidden_states=None, draft_config=None,
-    draft_checkpoint=None, overrides=(),
+    draft_checkpoint=None, overrides=(), target_backend="sglang",
 ):
     """Validate metadata/configs first, then write into a NEW project directory.
 
@@ -80,6 +80,11 @@ def prepare_project(
 
     raw = spec.scaffold_config(strategy=strategy)
     model = raw["model"]
+    model["target_backend"] = target_backend
+    if target_backend != "sglang":
+        for key in list(model):
+            if key.startswith("sglang_"):
+                del model[key]
     model["target_revision"] = None if is_local else spec.revision
     model["draft_model_config"] = draft_config
     model["draft_checkpoint_path"] = draft_checkpoint
@@ -107,14 +112,15 @@ def prepare_project(
     else:
         raw["data"].pop("hidden_states_path", None)
         raw["data"]["train_data_path"] = str(Path(train_data).expanduser().absolute())
-        model.update(
-            sglang_attention_backend="triton", sglang_linear_attn_backend="triton",
-            sglang_linear_attn_verify_backend="triton", sglang_disable_cuda_graph=True,
-            sglang_enable_deterministic_inference=True, sglang_disable_radix_cache=True,
-            sglang_context_length=1024 + SGLANG_CAPTURE_CONTEXT_HEADROOM,
-            sglang_max_total_tokens=1024 + SGLANG_CAPTURE_CONTEXT_HEADROOM,
-            sglang_max_running_requests=1,
-        )
+        if target_backend == "sglang":
+            model.update(
+                sglang_attention_backend="triton", sglang_linear_attn_backend="triton",
+                sglang_linear_attn_verify_backend="triton", sglang_disable_cuda_graph=True,
+                sglang_enable_deterministic_inference=True, sglang_disable_radix_cache=True,
+                sglang_context_length=1024 + SGLANG_CAPTURE_CONTEXT_HEADROOM,
+                sglang_max_total_tokens=1024 + SGLANG_CAPTURE_CONTEXT_HEADROOM,
+                sglang_max_running_requests=1,
+            )
         raw["deployment"] = {
             "mode": "disaggregated",
             "disaggregated": {

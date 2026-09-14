@@ -64,7 +64,7 @@ dspark train -c ./my-draft/train.json --plan
 dspark train -c ./my-draft/train.json
 ```
 
-The generated online configuration assigns the live target to **GPU 0** and draft training to **GPU 1**. It requires capture-enabled SGLang and Mooncake transport. Review the plan and target-specific settings before launch. Preparation refuses to overwrite an existing project.
+The generated online configuration assigns the live target to **GPU 0** and draft training to **GPU 1**. SGLang is the default teacher; select `--teacher-backend transformers` or `--teacher-backend vllm` for the experimental platform-owned teacher services. All three use the same Mooncake transport and draft trainer, not a TorchSpec/AngelSpec subprocess. Review the plan and backend environment before launch. Preparation refuses to overwrite an existing project.
 
 ### Fine-tune an existing draft
 
@@ -88,7 +88,9 @@ Offline teachers can use **Hugging Face Transformers**, **vLLM**, or SGLang;
 all feed the same PyTorch draft trainer. The new Transformers/vLLM adapters are
 experimental, single-device text paths for Llama/Qwen2/Qwen3—not universal model
 or serving support. See [teacher setup](docs/ENVIRONMENT.md#offline-teachers).
-Live teacher/trainer streaming still uses the validated SGLang/Mooncake path.
+Native HF/vLLM online capture now uses the same producer/channel/consumer flow;
+its CPU live-HTTP tests are not real GPU certification. The existing bounded
+SGLang/Ling validation remains separate evidence.
 
 ### Export
 

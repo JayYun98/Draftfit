@@ -192,6 +192,18 @@ class FeatureDataLoader:
 
         if not spec_sets:
             return
+        def batch_shape(spec, ref):
+            shape = tuple(spec.shape)
+            # Refs contain one sequence, not a fixed-length training batch.
+            # Only the declared token axis varies; hidden width/rank stay exact.
+            if ref.num_tokens > 0:
+                if len(shape) >= 2 and shape[:2] == (1, ref.num_tokens):
+                    return (1, None, *shape[2:])
+                if shape and shape[0] == ref.num_tokens:
+                    return (None, *shape[1:])
+            return shape
+
+        first_ref = next(ref for ref in refs if ref.feature_specs)
         first_specs = next(ref.feature_specs for ref in refs if ref.feature_specs)
         for ref in refs:
             if not ref.feature_specs:
@@ -200,7 +212,7 @@ class FeatureDataLoader:
                 expected = first_specs[name]
                 if (
                     spec.dtype != expected.dtype
-                    or tuple(spec.shape) != tuple(expected.shape)
+                    or batch_shape(spec, ref) != batch_shape(expected, first_ref)
                     or spec.target_repr != expected.target_repr
                     or spec.target_meta != expected.target_meta
                     or spec.required != expected.required

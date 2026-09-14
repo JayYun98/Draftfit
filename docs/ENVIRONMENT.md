@@ -69,10 +69,37 @@ engine, not a gradient-training backend.
 | Transformers | Single-device Llama/Qwen2/Qwen3 text decoders; eager/SDPA | Actual tiny CPU capture → disk → loader → DSpark/DFlash2 update |
 | vLLM | Experimental native `extract_hidden_states` + `ExampleHiddenStatesConnector`; same dense families, TP1/PP1, single process | Boundary tests only; real GPU parity pending |
 
-Neither new adapter implements live server-to-Mooncake streaming yet. Setting
-`model.target_backend=transformers` or `vllm` is accepted for offline runs and
-rejected for online runs. Both reuse the existing offline algorithm contracts;
+Both new adapters also run in our owned online teacher service. The configuration
+and supervisor select the engine; our producer, Mooncake store, channel and trainer
+remain the execution path. There is no installed TorchSpec/AngelSpec trainer.
 PEagle remains streaming-only. Export/serving support is a separate check.
+
+For online capture, select the backend during project preparation:
+
+```sh
+dspark target prepare /path/to/target --local-only --strategy dspark \
+  --teacher-backend transformers --train-data ./data/train.jsonl \
+  --output-dir ./online-draft
+dspark train -c ./online-draft/train.json --plan
+dspark train -c ./online-draft/train.json
+```
+
+Use `--teacher-backend vllm` in its separate pinned runtime. Native managed
+teachers require one CUDA GPU per service; the draft trainer uses GPU 1 by
+default. `model.hf_attn_implementation` selects eager/SDPA; vLLM memory fraction
+is `model.vllm_gpu_memory_utilization`. SGLang-specific tuning is rejected for
+these services. All managed services stay on loopback and are stopped by the
+existing supervisor. They capture prompt features, not general chat completions.
+
+The native sink requires hard-pinned Mooncake objects and the same attempt/store
+namespace as the producer. It returns metadata only after successful tensor writes;
+response-loss retries use stable generation keys and producer-owned cleanup.
+vLLM still stages extraction through private temporary files before Mooncake.
+This is not the direct vLLM worker-to-Mooncake optimization in TorchSpec.
+CPU tests exercise real tiny HF → HTTP → producer → channel → loader → DFlash2
+update, variable lengths and lost-response cleanup with an injected raw store.
+Real Mooncake/GPU parity, concurrency throughput and recovery soak remain required
+before labeling the new backends first-tier production support.
 
 Use the CPU profile above for local Transformers tests, or a provisioned GPU
 Transformers environment. For vLLM, provision a separate compatible vLLM runtime

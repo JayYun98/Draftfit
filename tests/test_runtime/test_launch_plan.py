@@ -568,6 +568,38 @@ class LaunchPlanTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValidationError, message):
                     Config.model_validate(raw)
 
+    def test_owned_teacher_launch_routes_and_preflight_skip_sglang(self):
+        from specforge.launch_plan import _managed_preflight
+
+        with tempfile.TemporaryDirectory() as root:
+            for backend in ("transformers", "vllm"):
+                raw = _managed_config(os.path.join(root, backend), servers=[
+                    {"port": 30000, "cuda_visible_devices": ["0"], "tp_size": 1},
+                ]).model_dump()
+                raw["model"].update(target_backend=backend, target_revision="a" * 40, cache_dir="/tmp/model-cache")
+                cfg = Config.model_validate(raw)
+                with mock.patch("specforge.training.capture_contract.resolve_server_capture_contract", return_value=CAPTURE_CONTRACT):
+                    plan = build_launch_plan(cfg, config_path="run.yaml", env={})
+                argv = plan.services[1].command.argv
+                self.assertEqual(argv[:3], (sys.executable, "-m", "specforge.inference.teacher_server"))
+                self.assertEqual(argv[argv.index("--target-backend") + 1], backend)
+                self.assertEqual(argv[argv.index("--revision") + 1], "a" * 40)
+                self.assertIn("--aux-layer-ids", argv)
+                self.assertIn("--cache-dir", argv)
+                self.assertNotIn("--enable-spec-capture", argv)
+                self.assertNotIn("--mem-fraction-static", argv)
+                self.assertIn("--attn-implementation" if backend == "transformers" else "--gpu-memory-utilization", argv)
+                with mock.patch("specforge.launch_plan.shutil.which", return_value="mooncake_master"), mock.patch(
+                    "specforge.launch_plan.importlib.util.find_spec", side_effect=lambda name: object() if name == "mooncake.store" else None,
+                ) as lookup, mock.patch("specforge.launch_plan.socket.socket"):
+                    _managed_preflight(plan)
+                lookup.assert_called_once_with("mooncake.store")
+                for fields, message in (({"tp_size": 2, "cuda_visible_devices": ["0", "1"]}, "tp_size=1"), ({"attention_backend": "flashinfer"}, "SGLang server overrides"), ({"mem_fraction_static": 0.5}, "SGLang server overrides")):
+                    invalid = cfg.model_dump()
+                    invalid["deployment"]["disaggregated"]["managed_local"]["capture_servers"][0].update(fields)
+                    with self.assertRaisesRegex(ValidationError, message):
+                        Config.model_validate(invalid)
+
     def test_managed_local_accepts_minimum_context_and_configures_radix_cache(self):
         with tempfile.TemporaryDirectory() as root:
             cfg = _managed_config(os.path.join(root, "attempt"))

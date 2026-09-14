@@ -5,12 +5,27 @@ does not load or execute a target model in a trainer or producer process.
 
 ## Responsibility
 
-`SGLangServerCaptureAdapter` sends model inputs and capture metadata to a
-patched SGLang server. The server performs prefill and writes captured tensors
+`TeacherServerCaptureAdapter` sends model inputs and capture metadata to a
+teacher service: patched SGLang or our own Transformers/vLLM process. The service performs prefill and writes captured tensors
 directly to Mooncake. Its response contains only sample ids and feature
 key/shape/dtype metadata. The adapter validates those feature specifications,
 adopts the server-written objects into the producer store, and returns
 `SampleRef`s for `RolloutWorker` to commit.
+
+`SGLangServerCaptureAdapter` remains an import alias with the historical SGLang
+default. Native teacher responses also identify their backend/model/revision;
+the adapter rejects an unexpected teacher before committing any refs. The trainer
+never imports TorchSpec or AngelSpec. Their separated inference/training design
+informs this implementation, not an external execution wrapper.
+
+The owned `teacher_server` is a loopback-only, bounded, serialized capture API,
+not an OpenAI chat server. `CaptureSink` reuses our Mooncake raw-buffer transport
+and the established generation/attempt key contract. It requires hard pinning;
+the producer/consumer keep existing ownership, backpressure and acknowledgment
+rules. Transformers runs decoder block hooks directly. vLLM currently uses its
+native extraction connector's private temporary files, then publishes raw
+tensors to Mooncake. That intermediate disk hop is explicit, not a claimed
+direct vLLM-to-Mooncake connector or a zero-copy end-to-end path.
 
 Algorithm registrations own the requested capture layout, target
 representation, collator, and optional modality-specific `ServerInputAdapter`.
@@ -36,10 +51,11 @@ pass through the controller or the producer process.
 
 ## Offline capture
 
-The separate `specforge.offline_capture` package is used only by
-`scripts/prepare_hidden_states.py`. It contains the version-pinned local SGLang
-internals needed to generate precomputed EAGLE3 features. It is not imported by
-online application or training assembly.
+`specforge.offline_capture` retains the extraction implementation import paths
+for compatibility. The preparation script and native teacher service share the
+HF/vLLM extractors and backend-neutral `TeacherCaptureBatch`. SGLang internals
+remain isolated in its backend module. None of these engines is loaded inside
+the trainer or control-plane process.
 
 ## Endpoints
 

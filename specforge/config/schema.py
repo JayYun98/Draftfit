@@ -51,9 +51,10 @@ class ModelConfig(StrictConfigModel):
     draft_num_hidden_layers: Optional[int] = Field(default=None, gt=0)
     #: Optional DFlash block-size override (auto-generated default: 16).
     draft_block_size: Optional[int] = Field(default=None, gt=0)
-    #: Offline teacher provenance; the trainer consumes the same feature schema.
-    #: Live streaming still requires the external SGLang capture server.
+    #: Teacher implementation; all backends share the feature transport schema.
     target_backend: Literal["sglang", "transformers", "vllm"] = "sglang"
+    hf_attn_implementation: Literal["eager", "sdpa"] = "sdpa"
+    vllm_gpu_memory_utilization: float = Field(default=0.8, gt=0.0, le=1.0)
     #: Retained for offline/config migration only. The server-only online path
     #: transports complete feature records and does not shard target outputs in
     #: the trainer.
@@ -84,7 +85,7 @@ class ModelConfig(StrictConfigModel):
     #: Explicit tokenizer padding ID for released targets whose tokenizer
     #: metadata omits it or whose padding row is outside the unpadded vocab.
     tokenizer_pad_token_id: Optional[int] = Field(default=None, ge=0)
-    #: SGLang target-engine tuning. Ignored by hf/custom backends.
+    #: SGLang target-engine tuning; nondefault values require SGLang online.
     sglang_attention_backend: str = "flashinfer"
     sglang_linear_attn_backend: Optional[str] = None
     sglang_linear_attn_verify_backend: Optional[str] = None
@@ -771,10 +772,18 @@ class Config(StrictConfigModel):
                 "colocated online training is no longer supported"
             )
         if mode == "online" and self.model.target_backend != "sglang":
-            raise ValueError(
-                "online training uses an external SGLang capture server and "
-                "requires model.target_backend=sglang"
-            )
+            if self.model.input_modality != "text":
+                raise ValueError("owned teacher servers support text only")
+            changed = [
+                name for name, field in type(self.model).model_fields.items()
+                if name.startswith("sglang_") and getattr(self.model, name) != field.default
+            ]
+            if changed:
+                raise ValueError(f"SGLang options do not apply to owned teacher servers: {changed}")
+        if mode == "online":
+            for field, backend in (("hf_attn_implementation", "transformers"), ("vllm_gpu_memory_utilization", "vllm")):
+                if self.model.target_backend != backend and getattr(self.model, field) != type(self.model).model_fields[field].default:
+                    raise ValueError(f"model.{field} requires model.target_backend={backend}")
         if role != "all" and deployment != "disaggregated":
             raise ValueError(
                 "training.role=auto/producer/consumer requires "
@@ -877,6 +886,12 @@ class Config(StrictConfigModel):
                 "deployment.disaggregated.consumer_state_dir for SQLite/WAL"
             )
         if managed_local is not None:
+            if self.model.target_backend != "sglang":
+                for server in managed_local.capture_servers:
+                    if server.tp_size != 1:
+                        raise ValueError("owned teacher servers require tp_size=1")
+                    if server.mem_fraction_static is not None or server.attention_backend is not None:
+                        raise ValueError("owned teacher servers use model.hf_attn_implementation/model.vllm_gpu_memory_utilization; SGLang server overrides are unsupported")
             if mode != "online":
                 raise ValueError("managed_local supports online capture only")
             if self.deployment.trainer.nnodes != 1:

@@ -28,3 +28,26 @@ already suffice; otherwise backend or platform implementation work is required.
 This boundary was checked against the in-tree bridge, CLI caller, Mooncake
 wrapper, SGLang adapter imports, patch README/Dockerfile and package discovery.
 It does not claim that every third-party source line has received legal review.
+
+## Owned online teachers
+
+The platform is an in-tree derivative with its own composition, not a CLI over
+TorchSpec/AngelSpec. `training/disaggregated.py` assembles our producer/channel/
+consumer; `runtime/` owns task leases, backpressure, acknowledgments and cleanup;
+algorithm providers own model/loss/feature contracts. Renaming the import package
+would not change that ownership and is not required for independent operation.
+
+The backend-specific producer constraint has been removed: `teacher_server.py`
+runs our HF/vLLM extraction services, `capture_sink.py` maintains our existing
+SGLang-patch wire format, and `TeacherServerCaptureAdapter` connects all three
+to the same trainer. TorchSpec `bd64d936` and AngelSpec `d3412bed` were examined
+for engine separation and feature delivery; neither becomes an installed training
+runtime. The sink is adapted from our versioned SGLang patch with its source
+headers retained. HF/vLLM remain actual inference dependencies, as PyTorch remains
+the tensor/training dependency. This is source integration, not a claim of having
+written those underlying engines or inherited all upstream support guarantees.
+
+The first native service scope is single-host, TP1, Llama/Qwen2/Qwen3 text capture.
+vLLM's intermediate extraction files remain a performance limit. Real GPU parity,
+long-running recovery and supported serving combinations must be validated before
+promoting either new online backend to first-tier production support.

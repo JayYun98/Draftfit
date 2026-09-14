@@ -13,6 +13,16 @@ from specforge.target_project import algorithm_catalog, prepare_project
 
 
 class TargetProjectTest(unittest.TestCase):
+    def test_owned_teacher_preparation_does_not_inherit_sglang_tuning(self):
+        for backend in ("transformers", "vllm"):
+            result = self.prepare(backend, train_data=str(self.data), target_backend=backend)
+            config = Config.from_file(result["config"])
+            self.assertEqual(config.model.target_backend, backend)
+            self.assertEqual(config.mode, "online")
+            self.assertEqual(config.model.sglang_attention_backend, "flashinfer")
+            self.assertIsNone(config.model.sglang_linear_attn_backend)
+            self.assertEqual(config.deployment.disaggregated.managed_local.capture_servers[0].cuda_visible_devices, ["0"])
+
     def test_metadata_validation_without_model_construction(self):
         from specforge.application.project_validation import validate_draft_metadata
 

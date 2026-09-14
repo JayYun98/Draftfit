@@ -18,7 +18,7 @@ import tempfile
 
 import torch
 
-from .sglang import OfflineCaptureBatch
+from specforge.inference.capture import TeacherCaptureBatch as OfflineCaptureBatch
 
 
 def _load_norm(model, config, revision, cache_dir=None):

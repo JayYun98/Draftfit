@@ -342,6 +342,15 @@ class TestFeatureDataLoader(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "mixed target model versions"):
             next(iter(loader))
 
+    def test_variable_token_count_does_not_hide_incompatible_feature_width(self):
+        store = LocalFeatureStore("widths")
+        refs = [store.put({"hidden_state": torch.ones(1, length, width)},
+                          sample_id=str(length), metadata={"num_tokens": length})
+                for length, width in ((2, 4), (3, 5))]
+        loader = FeatureDataLoader(store, refs=refs, batch_size=2)
+        with self.assertRaisesRegex(ValueError, "incompatible feature spec"):
+            next(iter(loader))
+
     def test_refs_mode_is_reiterable_across_epochs(self):
         # offline: a fixed ref set must re-iterate every epoch (no epoch-drain).
         with tempfile.TemporaryDirectory() as d:

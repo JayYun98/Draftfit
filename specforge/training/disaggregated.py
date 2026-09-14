@@ -591,7 +591,7 @@ def _build_online(
     if cfg.training.role == "producer":
         from specforge.inference.adapters.server_capture import (
             ServerCaptureSchema,
-            SGLangServerCaptureAdapter,
+            TeacherServerCaptureAdapter,
         )
         from specforge.launch import build_disagg_online_producer
         from specforge.training.model_loading import resolve_draft_config
@@ -642,7 +642,7 @@ def _build_online(
             attention_mask_feature=layout.attention_mask_feature,
         )
         adapters = [
-            SGLangServerCaptureAdapter(
+            TeacherServerCaptureAdapter(
                 url,
                 store,
                 run_id=cfg.run_id,
@@ -650,6 +650,8 @@ def _build_online(
                 schema=capture_schema,
                 request_input_adapter=input_adapter,
                 target_model_version=cfg.model.target_model_path,
+                backend=cfg.model.target_backend,
+                target_revision=cfg.model.target_revision,
             )
             for url in _server_urls(cfg)
         ]

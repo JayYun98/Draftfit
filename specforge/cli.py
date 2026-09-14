@@ -265,6 +265,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     prepare_target.add_argument("source", help="Hugging Face target repo or local model directory")
     prepare_target.add_argument("--output-dir", required=True)
     prepare_target.add_argument("--strategy", default="dspark")
+    prepare_target.add_argument("--teacher-backend", choices=("sglang", "transformers", "vllm"), default="sglang")
     prepare_target.add_argument("--revision", default="main")
     prepare_target.add_argument("--local-only", action="store_true")
     prepare_data = prepare_target.add_mutually_exclusive_group(required=True)
@@ -314,7 +315,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     sweep.add_argument("--model-spec", required=True, help="JSON from target inspect")
     sweep.add_argument("--output", required=True)
     sweep.add_argument("--max-runs", type=int, default=24)
-    distributed = sub.add_parser("distributed", help="plan a TorchSpec-style launch")
+    distributed = sub.add_parser("distributed", help="plan platform distributed training")
     distributed_sub = distributed.add_subparsers(dest="distributed_command", required=True)
     distributed_plan = distributed_sub.add_parser("plan")
     distributed_plan.add_argument("--nodes", type=int, default=1)
@@ -426,6 +427,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     train_data=args.train_data, hidden_states=args.hidden_states,
                     draft_config=args.draft_config, draft_checkpoint=args.draft_checkpoint,
                     overrides=args.overrides,
+                    target_backend=args.teacher_backend,
                 )
             except (OSError, ValueError, TypeError, KeyError, ImportError) as exc:
                 parser.error(str(exc))

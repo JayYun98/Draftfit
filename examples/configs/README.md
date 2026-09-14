@@ -169,7 +169,9 @@ should make their training strategy and topology explicit.
 | `model.draft_checkpoint_path` | `null` | Weights-only warm start for a new run. Do not combine it with `training.resume_from`. |
 | `model.draft_num_hidden_layers` | `null` | Positive fresh-architecture override where the strategy permits it. EAGLE3 remains one layer; P-EAGLE and DFlash may override their generated defaults. |
 | `model.draft_block_size` | `null` | Positive DFlash block-size override; generated DFlash configs default to 16. |
-| `model.target_backend` | `sglang` | `sglang` is the only accepted value; retired `hf`/`custom` names fail at config load. Offline feature consumers do not instantiate a target inference backend. |
+| `model.target_backend` | `sglang` | `sglang`, `transformers`, or `vllm`. Native HF/vLLM online teachers use the owned loopback capture service, currently text TP1. Retired `hf`/`custom` names fail. Offline consumers do not instantiate a teacher. |
+| `model.hf_attn_implementation` | `sdpa` | Owned Transformers teacher attention: `sdpa` or `eager`. Nondefault settings require the Transformers online backend. |
+| `model.vllm_gpu_memory_utilization` | `0.8` | Owned vLLM teacher GPU memory fraction, strictly between zero and one. Nondefault settings require the vLLM online backend. |
 | `model.input_modality` | `text` | The provider modality. The unified runtime supports text only; VLM modalities such as `qwen2_5_vl` are rejected. |
 | `model.shard_target_output` | `false` | Retained for config migration; leave it false on the server-only online path. |
 | `model.trust_remote_code` | `false` | Enable only for model repositories that require custom loading code. |
@@ -447,7 +449,7 @@ unless tuning throughput or memory pressure.
 - Offline feature consumers require `training.tp_size: 1`. Non-USP ranks each
   consume a disjoint data shard; USP peers share a sequence within their SP
   group while draft-DP groups remain disjoint.
-- Online disaggregated runs require `model.target_backend: sglang` and
+- Online disaggregated runs accept `model.target_backend: sglang`, `transformers`, or `vllm` and require
   `backend: mooncake`. When both step fields are omitted, the producer publishes
   the finite prompt plan's optimizer horizon and the consumer trains to EOF;
   `max_steps` remains an optional hard cap. Every trainer rank is data parallel,

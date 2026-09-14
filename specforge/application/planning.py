@@ -148,11 +148,6 @@ def _validate_training_topology(
                 "online training requires deployment.mode=disaggregated; "
                 "colocated online training is no longer supported"
             )
-        if cfg.model.target_backend != "sglang":
-            raise ValueError(
-                "online training uses an external SGLang capture server and "
-                "requires model.target_backend=sglang"
-            )
         deployment = cfg.deployment.disaggregated
         if deployment is None or deployment.backend != "mooncake":
             raise ValueError(

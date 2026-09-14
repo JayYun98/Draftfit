@@ -532,6 +532,27 @@ def _managed_local_services(
                 },
             )
         )
+        if cfg.model.target_backend != "sglang":
+            argv = [
+                sys.executable, "-m", "specforge.inference.teacher_server",
+                "--target-backend", cfg.model.target_backend,
+                "--model-path", cfg.model.target_model_path,
+                "--dtype", cfg.model.torch_dtype,
+                "--capture-method", contract.method,
+                "--aux-layer-ids", *[str(layer) for layer in contract.aux_layer_ids],
+                "--max-model-len", str(cfg.data.max_length),
+                "--host", "127.0.0.1", "--port", str(server.port),
+            ]
+            if cfg.model.target_revision is not None:
+                argv.extend(("--revision", cfg.model.target_revision))
+            if cfg.model.trust_remote_code:
+                argv.append("--trust-remote-code")
+            if cfg.model.cache_dir:
+                argv.extend(("--cache-dir", cfg.model.cache_dir))
+            if cfg.model.target_backend == "transformers":
+                argv.extend(("--device", "cuda:0", "--attn-implementation", cfg.model.hf_attn_implementation))
+            else:
+                argv.extend(("--gpu-memory-utilization", str(cfg.model.vllm_gpu_memory_utilization)))
         service_env = {
             **shared_env,
             device_visibility_env: ",".join(server.cuda_visible_devices),
@@ -704,10 +725,6 @@ def build_launch_plan(
             raise ValueError(
                 "online launch planning requires disaggregated producer/consumer "
                 "mode; colocated online training is no longer supported"
-            )
-        if cfg.model.target_backend != "sglang":
-            raise ValueError(
-                "online launch planning requires an external SGLang capture server"
             )
     base_env = os.environ if env is None else env
     distributed = _distributed_state(base_env)
@@ -961,17 +978,16 @@ def _managed_preflight(plan: LaunchPlan) -> None:
         mooncake_available = False
     if not mooncake_available:
         raise RuntimeError("managed_local requires the mooncake Python package")
-    try:
-        patched_sglang = (
-            importlib.util.find_spec("sglang.srt.spec_capture_sink") is not None
-        )
-    except ModuleNotFoundError:
-        patched_sglang = False
-    if not patched_sglang:
-        raise RuntimeError(
-            "managed_local requires patched SGLang spec capture; run "
-            "scripts/apply_sglang_spec_capture_patch.sh"
-        )
+    if any("sglang.launch_server" in service.command.argv for service in plan.services):
+        try:
+            patched_sglang = importlib.util.find_spec("sglang.srt.spec_capture_sink") is not None
+        except ModuleNotFoundError:
+            patched_sglang = False
+        if not patched_sglang:
+            raise RuntimeError(
+                "managed_local requires patched SGLang spec capture; run "
+                "scripts/apply_sglang_spec_capture_patch.sh"
+            )
 
     for port in plan.managed_ports:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:

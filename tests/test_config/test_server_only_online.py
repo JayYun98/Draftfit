@@ -47,14 +47,28 @@ class ServerOnlyOnlineConfigTest(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError, "colocated online training"):
             Config.model_validate(_online_payload(topology="local_colocated"))
 
-    def test_online_requires_the_sglang_server_backend(self):
-        # New offline teachers do not imply a working live capture server.
-        for backend in ("hf", "custom", "transformers", "vllm"):
+    def test_online_accepts_owned_teacher_servers_and_rejects_retired_names(self):
+        for backend in ("transformers", "vllm"):
+            resolved = resolve_run(Config.model_validate(_online_payload(backend=backend)))
+            self.assertEqual(resolved.config.model.target_backend, backend)
+        for backend in ("hf", "custom"):
             with (
                 self.subTest(backend=backend),
                 self.assertRaisesRegex(ValidationError, "target_backend"),
             ):
                 Config.model_validate(_online_payload(backend=backend))
+
+    def test_owned_teachers_reject_sglang_tuning(self):
+        for backend in ("transformers", "vllm"):
+            raw = _online_payload(backend=backend)
+            raw["model"]["sglang_quantization"] = "fp8"
+            with self.assertRaisesRegex(ValidationError, "SGLang options"):
+                Config.model_validate(raw)
+        for backend, field, value in (("vllm", "hf_attn_implementation", "eager"), ("transformers", "vllm_gpu_memory_utilization", 0.9)):
+            raw = _online_payload(backend=backend)
+            raw["model"][field] = value
+            with self.assertRaisesRegex(ValidationError, "requires model.target_backend"):
+                Config.model_validate(raw)
 
     def test_vlm_is_explicitly_unsupported(self):
         config = Config.model_validate(_online_payload(modality="qwen2_5_vl"))

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 
-from .sglang import OfflineCaptureBatch
+from specforge.inference.capture import TeacherCaptureBatch as OfflineCaptureBatch
 
 
 class OfflineTransformersCapture:

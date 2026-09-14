@@ -110,8 +110,8 @@ def _capture_result_for_task(
     return matches[0]
 
 
-class SGLangServerCaptureAdapter:
-    """RefSource over a live spec-capture SGLang server.
+class TeacherServerCaptureAdapter:
+    """RefSource over the platform's live teacher capture contract.
 
     Implements ``produce_refs`` (not ``generate_features``): the returned
     ``SampleRef``s point at tensors the SERVER already wrote to the Mooncake
@@ -138,7 +138,13 @@ class SGLangServerCaptureAdapter:
         post_fn: Optional[Callable[..., Any]] = None,
         target_model_version: str = "unknown",
         capture_manifest_hash: Optional[str] = None,
+        backend: str = "sglang",
+        target_revision: Optional[str] = None,
     ) -> None:
+        if backend not in {"sglang", "transformers", "vllm"}:
+            raise ValueError(f"unsupported teacher backend: {backend!r}")
+        self.backend = backend
+        self.target_revision = target_revision
         required_store_api = (
             "adopt",
             "discard_external_attempts",
@@ -306,7 +312,7 @@ class SGLangServerCaptureAdapter:
                 "target_repr": capture.target_repr,
                 "vocab_map_version": capture.vocab_map_version,
                 "capture_contract_hash": self.capture_manifest_hash,
-                "transport": "sglang_server_capture",
+                "transport": f"{self.backend}_server_capture",
                 "server": self.base_url,  # which server captured it (provenance)
                 "generation": gen,  # the zero-copy get() locator
             },
@@ -375,8 +381,7 @@ class SGLangServerCaptureAdapter:
                         task_id=task.task_id,
                         reason=(
                             "server_capture: response carries no spec_capture "
-                            "result — is the server patched and launched with "
-                            "--enable-spec-capture?"
+                            "result — check the teacher capture service and its runtime profile"
                         ),
                         retryable=False,
                     )
@@ -391,6 +396,14 @@ class SGLangServerCaptureAdapter:
                     )
                 )
                 continue
+            if self.backend != "sglang":
+                expected_teacher = {"backend": self.backend, "target_model": self.target_model_version}
+                if self.target_revision is not None:
+                    expected_teacher["target_revision"] = self.target_revision
+                if any(result.get(key) != value for key, value in expected_teacher.items()):
+                    raise CaptureMismatchError(
+                        f"teacher identity mismatch: expected {expected_teacher!r}"
+                    )
             expected_identity = {
                 "sample_id": self._sample_id(task),
                 "store_id": str(self.store.store_id),
@@ -480,10 +493,14 @@ class SGLangServerCaptureAdapter:
     def health(self) -> Dict[str, Any]:
         return {
             "healthy": self._healthy,
-            "backend": "sglang_server_capture",
+            "backend": f"{self.backend}_server_capture",
             "base_url": self.base_url,
             "strategy": self.strategy,
         }
+
+
+# Historical imports keep the same wire contract and SGLang default.
+SGLangServerCaptureAdapter = TeacherServerCaptureAdapter
 
 
 _DTYPE_BYTES = {
@@ -511,4 +528,5 @@ __all__ = [
     "ServerCaptureSchema",
     "ServerCaptureFailure",
     "SGLangServerCaptureAdapter",
+    "TeacherServerCaptureAdapter",
 ]
