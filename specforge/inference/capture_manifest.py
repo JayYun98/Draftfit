@@ -63,6 +63,8 @@ def build_capture_manifest(
     max_length: int | None = None,
     is_preformatted: bool | None = None,
     draft_config: Mapping[str, Any] | None = None,
+    capture_backend: str | None = None,
+    capture_settings: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a deterministic, JSON-serializable capture contract."""
 
@@ -114,6 +116,10 @@ def build_capture_manifest(
         },
         "contract": contract,
     }
+    if capture_backend is not None:
+        manifest["producer"] = {"backend": _non_empty(capture_backend, "capture_backend")}
+        if capture_settings is not None:
+            manifest["producer"]["settings"] = dict(capture_settings)
     manifest["contract_hash"] = _hash(contract)
     manifest["manifest_hash"] = _hash(manifest)
     return manifest

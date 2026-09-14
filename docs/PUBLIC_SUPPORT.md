@@ -10,12 +10,14 @@ Use `specforge algorithms` for the live registry and feature tensor contracts.
 | --- | --- | --- | --- | --- |
 | DSpark | Yes | Yes | Yes | Target last-hidden features as well as auxiliary taps |
 | DFlash | Yes | Yes | Yes | Algorithm-compatible hidden features and mask token |
-| DFlash2 | Yes | Yes | Yes | Full vocabulary, grouped convolution/selector; eager/SDPA/flex; real GPU gate pending |
+| DFlash2 | Yes | Yes | Yes | Full vocabulary, grouped convolution/selector; eager/SDPA/flex; bounded CUDA training passed, live serving pending |
 | EAGLE3 | Yes | Yes | Yes | Fixed one draft layer; shared vocab mapping for disaggregated online |
 | PEagle | Yes | No | Yes | Flex attention; algorithm-specific layout and vocabulary contract |
 | Domino | No: explicit draft JSON | Yes | Yes | Compatible draft architecture/config supplied by user |
 
 “Yes” means an implementation exists, not that every target has passed.
+See [model validation](MODEL_VALIDATION.md) for the bounded real-teacher DFlash2
+training/resume/export evidence; it is not a live-serving or speedup result.
 
 ### DFlash2 serving runtime
 

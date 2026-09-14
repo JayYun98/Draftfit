@@ -27,8 +27,10 @@ Or on the exact base image after uploading this repository:
 
 ```sh
 bash scripts/apply_sglang_spec_capture_patch.sh --target ling-8ba213f
-python -m pip install --no-deps accelerate==1.14.0 yunchang==0.6.4
-python -m pip install --no-deps --no-build-isolation -e .
+# Bootstrap uv only; preserve the backend's Python/CUDA dependencies.
+python -m pip install --no-deps uv==0.9.18
+uv pip install --python "$(command -v python)" --no-deps accelerate==1.14.0 yunchang==0.6.4
+uv pip install --python "$(command -v python)" --no-deps --no-build-isolation -e .
 ```
 
 The installer checks the real source SHA and all patch hunks before changes;

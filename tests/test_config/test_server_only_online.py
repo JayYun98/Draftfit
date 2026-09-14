@@ -48,9 +48,8 @@ class ServerOnlyOnlineConfigTest(unittest.TestCase):
             Config.model_validate(_online_payload(topology="local_colocated"))
 
     def test_online_requires_the_sglang_server_backend(self):
-        # The retired in-process backends are no longer schema values at all,
-        # so the rejection is the enum itself rather than the online validator.
-        for backend in ("hf", "custom"):
+        # New offline teachers do not imply a working live capture server.
+        for backend in ("hf", "custom", "transformers", "vllm"):
             with (
                 self.subTest(backend=backend),
                 self.assertRaisesRegex(ValidationError, "target_backend"),
@@ -81,8 +80,10 @@ class ServerOnlyOnlineConfigTest(unittest.TestCase):
                 "data": {"hidden_states_path": "features"},
             }
 
-        config = Config.model_validate(_offline_payload("sglang"))
-        self.assertEqual(config.mode, "offline")
+        for backend in ("sglang", "transformers", "vllm"):
+            config = Config.model_validate(_offline_payload(backend))
+            self.assertEqual(config.mode, "offline")
+            self.assertEqual(resolve_run(config).algorithm.name, "eagle3")
         for backend in ("hf", "custom"):
             with (
                 self.subTest(backend=backend),

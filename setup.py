@@ -23,6 +23,10 @@ class BuildWithAssets(build_py):
             "docs/PUBLIC_WORKFLOW.md", "docs/PUBLIC_RELEASE.md",
             "docs/PUBLIC_SUPPORT.md", "docs/SOURCE_ATTRIBUTION.md",
             "docs/RUNTIME_PROFILES.md", "docs/NATIVE_LING_REPLAY.md",
+            "docs/MODEL_VALIDATION.md", "docs/PERSONAL_INFERENCE.md",
+            "docs/TARGET_EXTENSION.md", "docs/PERFORMANCE_GATE.md",
+            "docs/RELEASE_GATES.md",
+            "docs/CODE_OWNERSHIP.md", "docs/ENVIRONMENT.md",
         ):
             target = Path(self.build_lib) / "specforge/assets/_data" / name
             target.parent.mkdir(parents=True, exist_ok=True)

@@ -1,11 +1,23 @@
-"""Dependency-lazy offline target-feature preparation utilities.
-
-Online training never imports this package: it captures through an external
-SGLang server and the server-capture adapter.  The local SGLang integration
-here exists only for the standalone hidden-state preparation script.
-"""
+"""Dependency-lazy offline teachers; online serving is a separate boundary."""
 
 from importlib import import_module
+
+
+def load_offline_capture(model_path, *, backend="sglang", **kwargs):
+    """Select a real capture implementation without importing other engines."""
+    if backend == "sglang":
+        from .sglang import load_offline_capture as load
+
+        return load(model_path, **kwargs)
+    if backend == "transformers":
+        from .transformers import OfflineTransformersCapture
+
+        return OfflineTransformersCapture.from_pretrained(model_path, **kwargs)
+    if backend == "vllm":
+        from .vllm import OfflineVLLMCapture
+
+        return OfflineVLLMCapture.from_pretrained(model_path, **kwargs)
+    raise ValueError(f"unsupported offline teacher backend: {backend!r}")
 
 __all__ = [
     "OfflineCaptureBatch",

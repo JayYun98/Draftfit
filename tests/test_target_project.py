@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from specforge.cli import main
@@ -12,6 +13,26 @@ from specforge.target_project import algorithm_catalog, prepare_project
 
 
 class TargetProjectTest(unittest.TestCase):
+    def test_metadata_validation_without_model_construction(self):
+        from specforge.application.project_validation import validate_draft_metadata
+
+        arguments = dict(
+            strategy="dspark", target_depth=8,
+            target_metadata={"hidden_size": 32, "vocab_size": 60, "padded_vocab_size": 64},
+            draft=SimpleNamespace(hidden_size=32, vocab_size=64, num_hidden_layers=2, num_attention_heads=4),
+            layers=[1, 3, 5], mask_token_id=63,
+        )
+        validate_draft_metadata(**arguments)
+        for change, message in (
+            ({"layers": [1, 1]}, "capture layers"),
+            ({"layers": [True]}, "capture layers"),
+            ({"layers": [8]}, "capture layers"),
+            ({"mask_token_id": 64}, "mask_token_id"),
+            ({"draft": SimpleNamespace(hidden_size=16, vocab_size=64, num_hidden_layers=2, num_attention_heads=4)}, "hidden_size must match"),
+        ):
+            with self.subTest(change=change), self.assertRaisesRegex(ValueError, message):
+                validate_draft_metadata(**(arguments | change))
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -128,6 +149,21 @@ class TargetProjectTest(unittest.TestCase):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
             main(["target", "prepare", str(self.target), "--output-dir", str(self.root / "bad"), "--hidden-states", "features", "--strategy", "unknown"])
         self.assertEqual(error.exception.code, 2)
+
+    def test_source_parent_overrides_and_remote_code_fail_before_resolution(self):
+        for override in (
+            'model={"target_model_path": "other/target"}',
+            'data={"hidden_states_path": "other-features"}',
+            'model.trust_remote_code=true',
+        ):
+            with self.subTest(override=override), patch(
+                "specforge.training.model_loading.resolve_draft_config",
+                side_effect=AssertionError("must reject before resolving remote draft config"),
+            ) as resolve:
+                with self.assertRaisesRegex(ValueError, "command arguments|metadata-only"):
+                    self.prepare(hidden_states="features", overrides=[override])
+                resolve.assert_not_called()
+                self.assertFalse((self.root / "project").exists())
 
     def test_inspection_pins_metadata_fetches_before_reading_remote_files(self):
         from specforge.target_inspector import inspect_target

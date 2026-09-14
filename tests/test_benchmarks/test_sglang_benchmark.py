@@ -12,6 +12,49 @@ from specforge.benchmarks import sglang
 
 
 class SGLangBenchmarkTest(unittest.TestCase):
+    def test_output_is_reserved_before_inference_and_preserved_on_conflict(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "baseline.json"
+            path.write_text("baseline")
+            with mock.patch.object(sglang, "_run_sglang") as run:
+                for output in (path, Path(directory) / "missing" / "result.json"):
+                    with self.assertRaises(OSError):
+                        sglang.run(SimpleNamespace(output_json=str(output)))
+                run.assert_not_called()
+            self.assertEqual(path.read_text(), "baseline")
+
+    def test_failed_measurement_or_write_cleans_only_owned_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            args = SimpleNamespace(output_json=str(path))
+            result = sglang.BenchmarkResult("sglang", "test", 1, 1, 1, 1)
+            with mock.patch.object(sglang, "_run_sglang", side_effect=RuntimeError("server")):
+                with self.assertRaises(RuntimeError):
+                    sglang.run(args)
+            self.assertFalse(path.exists())
+            with (mock.patch.object(sglang, "_run_sglang", return_value=result),
+                  mock.patch.object(sglang.os, "fsync", side_effect=OSError("disk"))):
+                with self.assertRaises(OSError):
+                    sglang.run(args)
+            self.assertFalse(path.exists())
+            def replace_then_fail(_args):
+                path.unlink()
+                path.write_text("another writer")
+                raise RuntimeError("server")
+            with mock.patch.object(sglang, "_run_sglang", side_effect=replace_then_fail):
+                with self.assertRaises(RuntimeError):
+                    sglang.run(args)
+            self.assertEqual(path.read_text(), "another writer")
+
+    def test_output_success_is_valid_json(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "result.json"
+            result = sglang.BenchmarkResult("sglang", "test", 1, 1, 1, 1)
+            with (mock.patch.object(sglang, "_run_sglang", return_value=result),
+                  redirect_stdout(StringIO())):
+                self.assertEqual(sglang.run(SimpleNamespace(output_json=str(path))), 0)
+            self.assertEqual(json.loads(path.read_text())["output_tokens"], 1)
+
     def test_mt_bench_prompts_preserve_turns(self):
         rows = [{"prompt": ["first", "second"]}]
         with mock.patch("datasets.load_dataset", return_value=rows):

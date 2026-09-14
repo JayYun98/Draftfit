@@ -32,12 +32,16 @@ jobs:
       with:
         python-version: '3.11'
 
+    - uses: astral-sh/setup-uv@v6
+      with:
+        version: '0.9.18'
+
     - name: Refuse accidental upstream identity publication
       env:
         CONFIRMED_NAME: ${{ inputs.distribution_name }}
         APPROVED_NAME: ${{ vars.SPECFORGE_PYPI_PROJECT }}
       run: |
-        python - <<'PY'
+        uv run --no-project --python 3.11 python - <<'PY'
         import os, pathlib, tomllib
         metadata = tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']
         name = metadata['name']
@@ -48,7 +52,12 @@ jobs:
                 raise SystemExit('Fork still uses upstream distribution identity')
         PY
 
-    - run: pip install build twine && python -m build && python -m twine check dist/*
+    - name: Build and validate distributions
+      run: |
+        uv venv --python 3.11
+        uv pip install --python .venv/bin/python setuptools==80.10.2 wheel==0.45.1
+        uv build --python .venv/bin/python --no-build-isolation --offline
+        uv tool run --python .venv/bin/python --from twine==6.2.0 twine check dist/*
 
     # publish to PyPI if executed on the main branch
     - name: Publish package to PyPI

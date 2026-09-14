@@ -6,3 +6,6 @@ include THIRDPARTY_NOTICES.md
 recursive-include licenses *-LICENSE
 include docs/PUBLIC_WORKFLOW.md docs/PUBLIC_RELEASE.md docs/PUBLIC_SUPPORT.md
 include docs/SOURCE_ATTRIBUTION.md docs/RUNTIME_PROFILES.md docs/NATIVE_LING_REPLAY.md
+include docs/MODEL_VALIDATION.md docs/PERSONAL_INFERENCE.md docs/TARGET_EXTENSION.md
+include docs/PERFORMANCE_GATE.md docs/RELEASE_GATES.md
+include docs/CODE_OWNERSHIP.md docs/ENVIRONMENT.md

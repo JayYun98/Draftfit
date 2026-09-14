@@ -1,4 +1,4 @@
-"""Generate offline draft-training features with local SGLang capture.
+"""Generate offline draft-training features with a selected local teacher.
 
 The local target exists only for this preprocessing command. Online training
 consumes features from an external server and never loads a target model in the
@@ -48,6 +48,7 @@ import json
 import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Mapping, Optional
@@ -76,9 +77,11 @@ from specforge.distributed import (
 from specforge.offline_capture import OfflineSGLangCapture, load_offline_capture
 from specforge.inference.capture_manifest import (
     build_capture_manifest,
+    load_capture_manifest,
     write_capture_manifest,
 )
 from specforge.utils import (
+    get_local_device,
     load_tokenizer,
     print_args_with_dots,
     print_with_rank,
@@ -106,6 +109,16 @@ def parse_args():
     model_group = parser.add_argument_group("model")
     model_group.add_argument("--target-model-path", type=str, required=True)
     model_group.add_argument("--target-revision", type=str, default=None)
+    model_group.add_argument(
+        "--target-backend", choices=("sglang", "transformers", "vllm"),
+        default="sglang", help="Feature producer; the later trainer is shared",
+    )
+    model_group.add_argument(
+        "--torch-dtype", choices=("float32", "float16", "bfloat16"), default=None,
+    )
+    model_group.add_argument(
+        "--hf-attention-implementation", choices=("eager", "sdpa"), default="sdpa",
+    )
     model_group.add_argument(
         "--strategy",
         type=str,
@@ -141,6 +154,7 @@ def parse_args():
     inference_group = parser.add_argument_group("inference")
     inference_group.add_argument("--tp-size", type=int, default=1)
     inference_group.add_argument("--batch-size", type=int, default=32)
+    inference_group.add_argument("--vllm-gpu-memory-utilization", type=float, default=0.4)
 
     others_group = parser.add_argument_group("others")
     others_group.add_argument("--cache-dir", type=str, default="./cache")
@@ -356,6 +370,7 @@ def resolve_offline_capture_plan(
     strategy = getattr(args, "strategy", "eagle3")
     model = {
         "target_model_path": args.target_model_path,
+        "target_backend": getattr(args, "target_backend", "sglang"),
         "target_revision": getattr(args, "target_revision", None),
         "draft_model_config": getattr(args, "draft_model_config", None),
         "trust_remote_code": args.trust_remote_code,
@@ -404,6 +419,23 @@ def build_capture_plan_manifest(
         getattr(draft_config, "vocab_size", None),
     )
     target_feature = capture_plan.layout.last_hidden_feature
+    backend = getattr(args, "target_backend", "sglang")
+    dtype = getattr(args, "torch_dtype", None) or getattr(target_model_config, "dtype", None)
+    settings = {
+        "dtype": str(dtype).removeprefix("torch.") if dtype is not None else "auto",
+        "num_samples": getattr(args, "num_samples", None),
+        "data_sha256": None,
+    }
+    data_path = getattr(args, "data_path", None)
+    if data_path is not None and Path(data_path).is_file():
+        with open(data_path, "rb") as stream:
+            settings["data_sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
+    if backend == "transformers":
+        settings["attention_implementation"] = getattr(args, "hf_attention_implementation", "sdpa")
+    elif backend == "vllm":
+        settings["vllm_version"] = "0.22.1"
+    else:
+        settings["attention_backend"] = getattr(args, "sglang_attention_backend", "flashinfer")
     return build_capture_manifest(
         strategy=capture_plan.strategy,
         capture_method=capture_plan.capture_method,
@@ -421,6 +453,8 @@ def build_capture_plan_manifest(
         max_length=args.max_length,
         is_preformatted=args.is_preformatted,
         draft_config=draft_payload,
+        capture_backend=backend,
+        capture_settings=settings,
     )
 
 
@@ -429,18 +463,42 @@ def build_target_model(
     model_config: AutoConfig,
     capture_layers: List[int],
     capture_method: str = "eagle3",
-) -> OfflineSGLangCapture:
+):
     """Build the local target used only by this preprocessing command."""
+    backend = getattr(args, "target_backend", "sglang")
+    if backend not in ("sglang", "transformers", "vllm"):
+        raise ValueError(f"unsupported offline teacher backend: {backend!r}")
+    if backend != "sglang" and getattr(args, "tp_size", 1) != 1:
+        raise ValueError(f"{backend} offline capture currently requires --tp-size 1")
+    if backend == "vllm" and int(os.environ.get("WORLD_SIZE", "1")) != 1:
+        raise ValueError("vllm offline capture currently requires a single process")
+    dtype = getattr(model_config, "dtype", getattr(model_config, "torch_dtype", None))
+    if getattr(args, "torch_dtype", None):
+        dtype = getattr(torch, args.torch_dtype)
+    elif isinstance(dtype, str):
+        if dtype not in ("float32", "float16", "bfloat16"):
+            raise ValueError(f"unsupported target dtype: {dtype!r}")
+        dtype = getattr(torch, dtype)
+    if backend == "sglang":
+        kwargs = _sglang_kwargs(args)
+    elif backend == "transformers":
+        kwargs = dict(
+            device=get_local_device(), cache_dir=getattr(args, "cache_dir", None),
+            attn_implementation=getattr(args, "hf_attention_implementation", "sdpa"),
+        )
+    else:
+        kwargs = dict(
+            max_model_len=args.max_length + 1,
+            gpu_memory_utilization=args.vllm_gpu_memory_utilization,
+            cache_dir=getattr(args, "cache_dir", None),
+        )
     target_model = load_offline_capture(
         args.target_model_path,
+        backend=backend,
         revision=getattr(args, "target_revision", None),
-        torch_dtype=(
-            model_config.dtype
-            if hasattr(model_config, "dtype")
-            else model_config.torch_dtype
-        ),
+        torch_dtype=dtype,
         trust_remote_code=args.trust_remote_code,
-        **_sglang_kwargs(args),
+        **kwargs,
     )
     target_model.set_capture_layers(
         capture_layers,
@@ -715,11 +773,11 @@ class HiddenStatesGenerator:
                     output_path, current_batch_indices
                 )
                 exists_tensor = torch.tensor(
-                    exists_list, dtype=torch.bool, device="cuda"
+                    exists_list, dtype=torch.bool, device=get_local_device()
                 )
             else:
                 exists_tensor = torch.tensor(
-                    [False] * batch_size, dtype=torch.bool, device="cuda"
+                    [False] * batch_size, dtype=torch.bool, device=get_local_device()
                 )
             dist.broadcast(exists_tensor, src=tp_rank_0_global, group=tp_group)
 
@@ -756,7 +814,7 @@ class HiddenStatesGenerator:
                 continue
 
             filtered_batch_gpu = {
-                k: v.cuda(non_blocking=True) for k, v in filtered_batch.items()
+                k: v.to(get_local_device(), non_blocking=True) for k, v in filtered_batch.items()
             }
             captured = self.model.capture(
                 **filtered_batch_gpu,
@@ -817,7 +875,8 @@ class HiddenStatesGenerator:
             del aux_hidden_states_list, last_hidden_states_list, filtered_batch
 
             if batch_idx % 5 == 0:  # Make GC and cache clearing more frequent
-                torch.cuda.empty_cache()
+                if get_local_device().type == "cuda":
+                    torch.cuda.empty_cache()
                 gc.collect()
 
             if self.show_progress:
@@ -839,6 +898,11 @@ class HiddenStatesGenerator:
 
 
 def main():
+    with ExitStack() as cleanup:
+        _main(cleanup)
+
+
+def _main(cleanup):
     args = parse_args()
     if args.num_io_threads is None:
         cpu_cores = os.cpu_count() or 1
@@ -854,6 +918,7 @@ def main():
         cache_dir=args.cache_dir,
         trust_remote_code=args.trust_remote_code,
     )
+    args.target_revision = getattr(target_model_config, "_commit_hash", None) or args.target_revision
     capture_plan = resolve_offline_capture_plan(args, target_model_config)
     capture_manifest = build_capture_plan_manifest(
         args,
@@ -875,9 +940,12 @@ def main():
         args.output_path,
         "capture_manifest.json",
     )
+    if Path(manifest_path).exists() and load_capture_manifest(manifest_path) != capture_manifest:
+        raise ValueError("capture manifest differs; use a new output directory instead of mixing teacher features")
 
     # Initialize distributed environment (TP + DP)
     init_distributed(timeout=args.dist_timeout, tp_size=args.tp_size)
+    cleanup.callback(destroy_distributed)
     print_args_with_dots(args)
     if dist.get_rank() == 0:
         write_capture_manifest(manifest_path, capture_manifest)
@@ -898,6 +966,9 @@ def main():
         capture_layers=list(capture_plan.capture_layers),
         capture_method=capture_plan.capture_method,
     )
+    close = getattr(target_model, "close", None)
+    if callable(close):
+        cleanup.callback(close)
     target_text_config = getattr(
         target_model_config, "text_config", target_model_config
     )
@@ -937,7 +1008,7 @@ def main():
         args.target_model_path, trust_remote_code=args.trust_remote_code,
         revision=args.target_revision,
     )
-    cache_params_string = f"{args.data_path}-{args.max_length}-{args.chat_template}-{args.target_model_path}-{args.num_samples}-{args.is_preformatted}"
+    cache_params_string = capture_manifest["manifest_hash"]
     if args.target_revision is not None:
         cache_params_string += f"-{args.target_revision}"
     cache_key = hashlib.md5(cache_params_string.encode()).hexdigest()
@@ -1033,9 +1104,8 @@ def main():
             )
 
     finally:
-        # The finally block ensures destroy_distributed is always called
+        # ExitStack also closes teacher resources on dataset/capture failures.
         print_with_rank("All hidden states generated or job finished.")
-        destroy_distributed()
 
 
 if __name__ == "__main__":

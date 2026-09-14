@@ -44,11 +44,12 @@ updates and save/reload behavior, not real target-family compatibility.
 | --- | --- | --- |
 | DSpark | Metadata-derived draft; offline features; online capture | Real Ling online and offline paths below; no blanket target support |
 | DFlash | Metadata-derived draft; offline features; online capture | Tiny dense live capture and synthetic update/reload; no real target training gate |
+| DFlash2 | Grouped convolution and candidate selector; offline/online implementation | Real Qwen3-0.6B CUDA training/resume/export below; no live-serving or speedup claim |
 | EAGLE3 | Metadata-derived draft; offline features; online capture | Tiny dense live capture/HF parity and one training step; shared-vocabulary requirement remains |
 | P-EAGLE | Metadata-derived draft; online capture | Synthetic CUDA train/checkpoint/reload smoke only; its FULL_SHARD training path is not certified |
 | Domino | Explicit compatible draft JSON; offline features; online capture | Synthetic update/reload only; changing the strategy name does not convert weights/features |
 
-DFlash2, DFly, DFlare, MTP, and multimodal training are not public capabilities
+DFly, DFlare, MTP, and multimodal training are not public capabilities
 of this fork. “Implemented” in the table means code exists, not that every
 model/runtime combination has passed GPU validation.
 

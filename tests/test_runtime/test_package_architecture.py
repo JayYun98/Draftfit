@@ -664,6 +664,18 @@ class TestPackageArchitecture(unittest.TestCase):
             extras = tomllib.load(project_file)["project"]["optional-dependencies"]
         self.assertEqual(["openai"], extras["data"])
 
+    def test_custom_inference_backend_is_not_replaced_by_default_install(self):
+        with open(REPO_ROOT / "pyproject.toml", "rb") as handle:
+            metadata = tomllib.load(handle)
+        self.assertFalse(any(name.lower().startswith("sglang")
+                             for name in metadata["project"]["dependencies"]))
+        self.assertEqual(metadata["project"]["optional-dependencies"]["sglang"],
+                         ["sglang==0.5.14; sys_platform == 'linux'"])
+        self.assertEqual((REPO_ROOT / ".python-version").read_text().strip(), "3.12")
+        workflow = (REPO_ROOT / ".github/workflows/public-cpu.yaml").read_text()
+        for required in ("uv pip sync", "--require-hashes", "uv build", "uv run --no-project"):
+            self.assertIn(required, workflow)
+
     def test_launch_builders_use_generic_draft_model_parameter(self):
         functions = {
             node.name: node

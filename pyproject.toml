@@ -24,7 +24,6 @@ dependencies = [
     "psutil",
     "pyyaml",
     "safetensors",
-    "sglang==0.5.14",
     "requests",
     "tensorboard",
     "typing-extensions",
@@ -42,6 +41,8 @@ exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
 
 [project.optional-dependencies]
 data = ["openai"]
+# Stock backend only. Custom capture images must preserve their own build.
+sglang = ["sglang==0.5.14; sys_platform == 'linux'"]
 dev = [
     "pre-commit",
 ]
@@ -50,3 +51,6 @@ liger = ["liger-kernel"]
 
 [tool.setuptools.dynamic]
 version = {file = "version.txt"}
+
+[tool.uv]
+required-version = ">=0.9.18"

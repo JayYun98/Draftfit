@@ -21,14 +21,14 @@ jobs:
           version: '0.9.18'
       - name: Install locked CPU dependencies (no inference server)
         run: |
-          uv venv --seed
+          uv venv --python 3.12
           uv pip sync requirements-cpu.lock --torch-backend cpu --require-hashes
       - name: Run offline public regression gate
-        run: .venv/bin/python -m tests.public_cpu
+        run: uv run --no-project --python .venv/bin/python python -m tests.public_cpu
       - name: Install wheel and exercise CLI outside checkout
         run: |
-          .venv/bin/python -m pip wheel --no-deps --no-build-isolation . -w dist
-          .venv/bin/python -m pip install --no-deps dist/*.whl
-          .venv/bin/python -I scripts/check_public_install.py
+          uv build --python .venv/bin/python --no-build-isolation --offline --wheel --out-dir dist
+          uv pip install --python .venv/bin/python --offline --no-deps dist/*.whl
+          uv run --no-project --python .venv/bin/python python -I scripts/check_public_install.py
       - name: Check whitespace
         run: git diff --check

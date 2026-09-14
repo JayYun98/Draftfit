@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -13,6 +14,40 @@ from specforge.assets import DOCUMENTS, export_assets, list_assets
 
 
 class AssetTests(unittest.TestCase):
+    def test_ling_docker_copy_inputs_build_versioned_complete_wheel(self):
+        root = Path(__file__).resolve().parents[2]
+        dockerfile = root / "patches/sglang/ling-8ba213f/Dockerfile"
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source"
+            source.mkdir()
+            # Exercise the actual COPY list, without pulling the CUDA base image.
+            for line in dockerfile.read_text().splitlines():
+                if not line.startswith("COPY "):
+                    continue
+                _, *inputs, destination = shlex.split(line)
+                for name in inputs:
+                    original = root / name
+                    target = source / destination
+                    if original.is_dir():
+                        shutil.copytree(original, target, dirs_exist_ok=True,
+                                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "_data"))
+                    else:
+                        target.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(original, target / original.name)
+            wheels = Path(temporary) / "wheels"
+            result = subprocess.run(
+                ["uv", "build", "--python", sys.executable, "--offline",
+                 "--no-build-isolation", "--wheel", "--out-dir", str(wheels), str(source)],
+                capture_output=True, text=True, timeout=120,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            version = (root / "version.txt").read_text().strip()
+            wheel = wheels / f"dspark_train_platform-{version}-py3-none-any.whl"
+            with zipfile.ZipFile(wheel) as archive:
+                for name in DOCUMENTS:
+                    self.assertEqual(archive.read("specforge/assets/_data/" + name),
+                                     (root / name).read_bytes())
+
     def test_source_export_does_not_overwrite(self):
         with tempfile.TemporaryDirectory() as temporary:
             destination = Path(temporary) / "recipes"
@@ -37,10 +72,10 @@ class AssetTests(unittest.TestCase):
                 shutil.copyfile(root / name, source / name)
             wheel_dir = temporary / "wheels"
             result = subprocess.run(
-                [sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation",
-                 "--wheel-dir", str(wheel_dir), str(source)],
+                ["uv", "build", "--python", sys.executable, "--no-build-isolation",
+                 "--offline", "--wheel", "--out-dir", str(wheel_dir), str(source)],
                 capture_output=True, text=True, timeout=120,
-                env={**os.environ, "PIP_NO_INDEX": "1", "PIP_DISABLE_PIP_VERSION_CHECK": "1"},
+                env={**os.environ, "UV_PYTHON_DOWNLOADS": "never"},
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             wheel = next(wheel_dir.glob("*.whl"))
@@ -51,17 +86,19 @@ class AssetTests(unittest.TestCase):
             # missing MANIFEST entries otherwise remain invisible to wheel tests.
             sdist_dir = temporary / "sdist"
             result = subprocess.run(
-                [sys.executable, "-c", "from setuptools.build_meta import build_sdist;"
-                 "import sys;build_sdist(sys.argv[1])", str(sdist_dir)],
+                ["uv", "build", "--python", sys.executable, "--no-build-isolation",
+                 "--offline", "--sdist", "--out-dir", str(sdist_dir), str(source)],
                 cwd=source, capture_output=True, text=True, timeout=120,
+                env={**os.environ, "UV_PYTHON_DOWNLOADS": "never"},
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             rebuilt_dir = temporary / "rebuilt"
             result = subprocess.run(
-                [sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation",
-                 "--wheel-dir", str(rebuilt_dir), str(next(sdist_dir.glob("*.tar.gz")))],
+                ["uv", "build", "--python", sys.executable, "--no-build-isolation",
+                 "--offline", "--wheel", "--out-dir", str(rebuilt_dir),
+                 str(next(sdist_dir.glob("*.tar.gz")))],
                 capture_output=True, text=True, timeout=120,
-                env={**os.environ, "PIP_NO_INDEX": "1", "PIP_DISABLE_PIP_VERSION_CHECK": "1"},
+                env={**os.environ, "UV_PYTHON_DOWNLOADS": "never"},
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             wheel = next(rebuilt_dir.glob("*.whl"))

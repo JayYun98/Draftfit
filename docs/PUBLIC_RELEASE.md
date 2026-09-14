@@ -24,7 +24,7 @@ the existing Ling environment unchanged. Python 3.12 and uv 0.9.18:
 uv venv --seed .venv-cpu
 uv pip sync requirements-cpu.lock --python .venv-cpu/bin/python \
   --torch-backend cpu --require-hashes
-.venv-cpu/bin/python -m tests.public_cpu
+uv run --no-project --python .venv-cpu/bin/python python -m tests.public_cpu
 ```
 
 The lock includes transitive versions and hashes; Torch uses CPU wheels on
@@ -53,10 +53,10 @@ After a successful dependency gate, build/install the local wheel without
 replacing the environment's backend:
 
 ```sh
-.venv-cpu/bin/python -m pip wheel --no-deps --no-build-isolation . -w dist
-.venv-cpu/bin/python -m pip install --no-deps dist/dspark_train_platform-0.2.0-py3-none-any.whl
-.venv-cpu/bin/python -m specforge.assets list
-.venv-cpu/bin/python -I scripts/check_public_install.py
+uv build --python .venv-cpu/bin/python --no-build-isolation
+uv pip install --python .venv-cpu/bin/python --no-deps dist/dspark_train_platform-0.2.0-py3-none-any.whl
+uv run --no-project --python .venv-cpu/bin/python python -m specforge.assets list
+uv run --no-project --python .venv-cpu/bin/python python -I scripts/check_public_install.py
 ```
 
 Use the actual wheel version if changed. The general package dependencies and

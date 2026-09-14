@@ -22,11 +22,18 @@ def load_tests(loader, tests, pattern):
         "tests.test_scripts.test_ling_replay_validator",
         "tests.test_packaging.test_release_workflow",
         "tests.test_data.test_prepare",
+        "tests.test_data.test_personal_workflow",
         "tests.test_benchmarks.test_sglang_benchmark",
+        "tests.test_benchmarks.test_compare",
         "tests.test_utils.test_dflash_mask",
         "tests.test_utils.test_dflash_losses",
         "tests.test_dflash2_integration",
         "tests.test_runtime.test_export_checkpoint_security",
+        "tests.test_offline_capture.test_transformers",
+        "tests.test_offline_capture.test_vllm",
+        "tests.test_teacher_training",
+        "tests.test_scripts.test_prepare_hidden_states",
+        "tests.test_capture_manifest",
     ]
     suite = loader.loadTestsFromNames(modules)
     suite.addTests(loader.discover("tests/test_config", top_level_dir="."))

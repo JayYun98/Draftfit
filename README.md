@@ -21,12 +21,15 @@ Use a Linux GPU environment matching your target backend. Start with the [runtim
 git clone https://github.com/JayYun98/dspark-train-platform.git
 cd dspark-train-platform
 
-# In an already provisioned training environment, preserve its backend versions:
-python -m pip install --no-deps --no-build-isolation -e .
+# In an activated, provisioned training environment, preserve backend versions:
+uv pip install --python "${VIRTUAL_ENV:?Activate the runtime environment}/bin/python" --no-deps --no-build-isolation -e .
 dspark algorithms
 ```
 
-`--no-deps` assumes the required dependencies are already installed. For CPU-only preparation and contributor checks, see the [installation guide](docs/PUBLIC_RELEASE.md).
+`--no-deps` assumes the required dependencies are already installed. Environment
+creation, installation and builds use [uv profiles](docs/ENVIRONMENT.md). Activate
+the selected environment before running the CLI examples below. For CPU-only
+preparation and contributor checks, use the hashed CPU profile in that guide.
 
 ## Quick start
 
@@ -81,6 +84,12 @@ This is a weights-only warm start with a new optimizer and schedule. To continue
 
 Replace `--train-data` with `--hidden-states /path/to/features` to create an offline run. Caches must match the target revision, tokenizer, capture layers and draft method. See [the workflow guide](docs/PUBLIC_WORKFLOW.md) for capture requirements and overrides.
 
+Offline teachers can use **Hugging Face Transformers**, **vLLM**, or SGLang;
+all feed the same PyTorch draft trainer. The new Transformers/vLLM adapters are
+experimental, single-device text paths for Llama/Qwen2/Qwen3—not universal model
+or serving support. See [teacher setup](docs/ENVIRONMENT.md#offline-teachers).
+Live teacher/trainer streaming still uses the validated SGLang/Mooncake path.
+
 ### Export
 
 ```sh
@@ -108,8 +117,9 @@ USP attention and vocabulary pruning are unsupported.
 
 Use `export --to hf` for fine-tuning reload, or `export --to sglang` for the serving
 layout (requires `input_embedding_scale=1.0`). CPU tensor updates and export-schema
-checks do not certify an inference backend. Real DFlash2 GPU training and serving
-validation remain required before deploying that combination.
+checks do not certify an inference backend. Bounded real-teacher CUDA training,
+resume and export have been exercised; validate the exact runtime and live
+serving artifact before deploying a combination.
 
 Compatibility is a combination of **target revision + draft method + capture backend + serving backend + runtime**, not a list of architecture names. The [support matrix](docs/PUBLIC_SUPPORT.md) and [model validation matrix](docs/MODEL_VALIDATION.md) distinguish real-weight tests from synthetic checks and recipes. Bounded Ling results are not universal support or a speedup promise. Native Ling replay on RTX5090 remains disabled following a state-parity failure.
 
@@ -132,17 +142,35 @@ trusted endpoint. It does not start a server or certify token/state correctness.
 This benchmark accepts text-only conversations; tool schemas and tool-call
 messages are rejected until their rendering contract is supported.
 
+Output JSON paths must be new and their parent directory must exist. The command
+reserves the path before inference and refuses to overwrite prior measurements.
+Handled inference/write failures remove its incomplete report; an abrupt process
+kill may leave an empty or partial file, which is not a completed measurement.
+
 Edit `train.json` and `draft.json` to tune draft depth, feature taps, block size, supported attention options and training settings. Check finite updates and checkpoint recovery with a short run before scaling the budget. Choose settings using held-out results rather than architecture alone.
 
 For deployment, check token correctness, cache/state behavior and measured throughput separately. A falling loss or longer acceptance length alone does not establish a speedup.
 
 ## Development and provenance
 
+For the personal-agent workflow and the boundary between existing training tools
+and future trace-driven updates, see [Personal inference optimization](docs/PERSONAL_INFERENCE.md).
+Reviewed conversation exports work today; automatic OTel/OpenCodex ingestion and
+continual deployment are not yet implemented.
+
 The distribution is `dspark-train-platform`, with the `dspark` command. The internal `specforge` namespace and legacy command remain compatible with existing scripts and checkpoints. This is a maintained derivative, not a claim that its underlying engine was written from scratch.
+
+The modified engine is shipped in this distribution, not installed from upstream
+SpecForge. Custom SGLang and Mooncake remain explicit external runtimes; see
+[code ownership and module boundaries](docs/CODE_OWNERSHIP.md).
 
 The platform builds on SpecForge's training engine and adapts selected ideas and implementations from [TorchSpec](https://github.com/lightseekorg/TorchSpec), [AngelSpec](https://github.com/Tencent/AngelSpec), and DSpark-related projects. Upstream licenses and attribution remain intact. See [third-party notices](THIRDPARTY_NOTICES.md) and [source attribution](docs/SOURCE_ATTRIBUTION.md).
 
 - [Detailed workflow](docs/PUBLIC_WORKFLOW.md)
+- [Add a target through configuration](docs/TARGET_EXTENSION.md)
+- [Compare personal-workload measurements](docs/PERFORMANCE_GATE.md)
+- [Production release gates](docs/RELEASE_GATES.md)
 - [Runtime profiles](docs/RUNTIME_PROFILES.md)
+- [Model environment selection and agent skills](docs/MODEL_ENVIRONMENTS.md)
 - [Contributor and release checks](docs/PUBLIC_RELEASE.md)
 - [License](LICENSE)

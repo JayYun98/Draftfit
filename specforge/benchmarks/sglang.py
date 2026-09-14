@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import random
 import statistics
 import time
@@ -392,12 +393,29 @@ def _print_result(result: BenchmarkResult) -> None:
 
 def run(args) -> int:
     random.seed(42)
-    result = _run_sglang(args)
-    _print_result(result)
-    if args.output_json:
-        with open(args.output_json, "w", encoding="utf-8") as output_file:
-            json.dump(asdict(result), output_file, indent=2, sort_keys=True)
+    path = Path(args.output_json).expanduser() if args.output_json else None
+    # Reserve before tokenizer/server work; exclusive creation protects baselines.
+    output_file = path.open("x", encoding="utf-8") if path else None
+    try:
+        result = _run_sglang(args)
+        if output_file is not None:
+            json.dump(asdict(result), output_file, indent=2, sort_keys=True, allow_nan=False)
             output_file.write("\n")
+            output_file.flush()
+            os.fsync(output_file.fileno())
+    except BaseException:
+        if output_file is not None:
+            try:
+                ours, current = os.fstat(output_file.fileno()), path.stat()
+                if (ours.st_dev, ours.st_ino) == (current.st_dev, current.st_ino):
+                    path.unlink()
+            except FileNotFoundError:
+                pass
+        raise
+    finally:
+        if output_file is not None:
+            output_file.close()
+    _print_result(result)
     return 0
 
 

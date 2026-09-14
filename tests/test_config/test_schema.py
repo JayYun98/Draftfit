@@ -330,7 +330,7 @@ class ConfigSchemaTest(unittest.TestCase):
             Config.model_validate(producer_payload)
 
     def test_unknown_backend_rejected(self):
-        bad = {**MINIMAL, "model": {**MINIMAL["model"], "target_backend": "vllm"}}
+        bad = {**MINIMAL, "model": {**MINIMAL["model"], "target_backend": "unknown"}}
         with self.assertRaises(ValidationError):
             Config.model_validate(bad)
 

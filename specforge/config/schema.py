@@ -51,10 +51,9 @@ class ModelConfig(StrictConfigModel):
     draft_num_hidden_layers: Optional[int] = Field(default=None, gt=0)
     #: Optional DFlash block-size override (auto-generated default: 16).
     draft_block_size: Optional[int] = Field(default=None, gt=0)
-    #: Online capture always runs on an external SGLang server; the in-process
-    #: HF/custom target backends were removed with the server-only cutover, so
-    #: configs naming them fail at load instead of being silently ignored.
-    target_backend: Literal["sglang"] = "sglang"
+    #: Offline teacher provenance; the trainer consumes the same feature schema.
+    #: Live streaming still requires the external SGLang capture server.
+    target_backend: Literal["sglang", "transformers", "vllm"] = "sglang"
     #: Retained for offline/config migration only. The server-only online path
     #: transports complete feature records and does not shard target outputs in
     #: the trainer.

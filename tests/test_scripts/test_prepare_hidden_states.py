@@ -13,6 +13,7 @@ from scripts.prepare_hidden_states import (
     _generate_shared_vocab_mapping,
     _resolve_draft_vocab_size,
     build_target_model,
+    build_capture_plan_manifest,
     parse_args,
     resolve_offline_capture_plan,
 )
@@ -22,6 +23,53 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class PrepareHiddenStatesCaptureLayersTest(unittest.TestCase):
+    def test_capture_provenance_changes_with_data_dtype_and_attention(self):
+        target = SimpleNamespace(hidden_size=8, vocab_size=16, dtype="float32")
+        plan = SimpleNamespace(
+            strategy="dspark", capture_method="dspark", capture_layers=(0, 2),
+            draft_config={"vocab_size": 16},
+            layout=SimpleNamespace(last_hidden_feature="target_hidden", output_names=("hidden_states",)),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            data = Path(directory) / "data.jsonl"
+            data.write_text("first dataset\n")
+            args = SimpleNamespace(
+                target_model_path="target", target_revision="sha", chat_template="qwen",
+                max_length=8, is_preformatted=False, target_backend="transformers",
+                data_path=str(data), torch_dtype="float32", hf_attention_implementation="sdpa",
+            )
+            baseline = build_capture_plan_manifest(args, target, plan)
+            for field, value in (("torch_dtype", "bfloat16"), ("hf_attention_implementation", "eager")):
+                old = getattr(args, field)
+                setattr(args, field, value)
+                changed = build_capture_plan_manifest(args, target, plan)
+                self.assertNotEqual(baseline["manifest_hash"], changed["manifest_hash"])
+                setattr(args, field, old)
+            data.write_text("changed dataset\n")
+            changed = build_capture_plan_manifest(args, target, plan)
+            self.assertNotEqual(baseline["manifest_hash"], changed["manifest_hash"])
+
+    def test_teacher_selection_and_single_rank_guards(self):
+        for backend in ("transformers", "vllm"):
+            with self.subTest(backend=backend), mock.patch("sys.argv", [
+                "prepare_hidden_states.py", "--target-model-path", "target",
+                "--data-path", "data.jsonl", "--target-backend", backend,
+                "--torch-dtype", "float32",
+            ]):
+                args = parse_args()
+                with mock.patch.dict("os.environ", {"WORLD_SIZE": "1", "SPECFORGE_DEVICE": "cpu"}), mock.patch(
+                    "scripts.prepare_hidden_states.load_offline_capture"
+                ) as load:
+                    build_target_model(args, SimpleNamespace(dtype="bfloat16"), [0, 2], "dspark")
+                    self.assertEqual(load.call_args.kwargs["backend"], backend)
+                    self.assertEqual(load.call_args.kwargs["torch_dtype"], torch.float32)
+                    self.assertNotIn("attention_backend", load.call_args.kwargs)
+                    args.tp_size = 2
+                    load.reset_mock()
+                    with self.assertRaisesRegex(ValueError, "tp-size 1"):
+                        build_target_model(args, SimpleNamespace(dtype=None), [0, 2], "dspark")
+                    load.assert_not_called()
+
     def test_cli_defaults_to_legacy_eagle3_capture(self):
         argv = [
             "prepare_hidden_states.py",
