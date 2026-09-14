@@ -42,7 +42,9 @@ def _remote_json(repo: str, filename: str, revision: str) -> Optional[Dict[str, 
         quote(repo, safe="/"), quote(revision, safe=""), filename
     )
     try:
-        with urlopen(Request(url, headers={"User-Agent": "dspark-inspector/0.1"}), timeout=20) as response:
+        with urlopen(
+            Request(url, headers={"User-Agent": "dspark-inspector/0.1"}), timeout=20
+        ) as response:
             return _read_json_bytes(response.read(), filename)
     except (HTTPError, URLError, TimeoutError):
         return None
@@ -55,7 +57,9 @@ def _remote_text(repo: str, filename: str, revision: str) -> Optional[str]:
         quote(repo, safe="/"), quote(revision, safe=""), filename
     )
     try:
-        with urlopen(Request(url, headers={"User-Agent": "dspark-inspector/0.1"}), timeout=20) as response:
+        with urlopen(
+            Request(url, headers={"User-Agent": "dspark-inspector/0.1"}), timeout=20
+        ) as response:
             return response.read().decode("utf-8")
     except (HTTPError, URLError, TimeoutError):
         return None
@@ -66,7 +70,9 @@ def _remote_api(repo: str, revision: str) -> Optional[Dict[str, Any]]:
         quote(repo, safe="/"), quote(revision, safe="")
     )
     try:
-        with urlopen(Request(url, headers={"User-Agent": "dspark-inspector/0.1"}), timeout=20) as response:
+        with urlopen(
+            Request(url, headers={"User-Agent": "dspark-inspector/0.1"}), timeout=20
+        ) as response:
             value = json.loads(response.read().decode("utf-8"))
             return value if isinstance(value, dict) else None
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError):
@@ -102,7 +108,12 @@ def _first(config: Dict[str, Any], names: Iterable[str]) -> Any:
 
 def _layer_types(config: Dict[str, Any]) -> List[str]:
     for key, value in _walk_values(config):
-        if key in _LAYER_KEYS and isinstance(value, list) and value and all(isinstance(x, str) for x in value):
+        if (
+            key in _LAYER_KEYS
+            and isinstance(value, list)
+            and value
+            and all(isinstance(x, str) for x in value)
+        ):
             return list(value)
     return []
 
@@ -115,7 +126,9 @@ def _classify(config: Dict[str, Any], layer_types: List[str]) -> Tuple[str, str]
     blob = _text_blob(config)
     model_type = str(_first(config, {"model_type"}) or "").lower()
     moe = any(token in blob for token in ("num_local_experts", "num_experts", "moe"))
-    linear = any(token in blob for token in ("linear_attention", "gated_delta", "deltanet"))
+    linear = any(
+        token in blob for token in ("linear_attention", "gated_delta", "deltanet")
+    )
     recurrent = linear or any(token in blob for token in ("rwkv", "mamba", "recurrent"))
     conv = "conv" in blob or "shortconv" in blob
     mixed = bool(layer_types) and len(set(layer_types)) > 1
@@ -132,7 +145,9 @@ def _classify(config: Dict[str, Any], layer_types: List[str]) -> Tuple[str, str]
     return "dense", "standard_attention_kv_state"
 
 
-def _parameter_count(config: Dict[str, Any], api: Optional[Dict[str, Any]]) -> Optional[int]:
+def _parameter_count(
+    config: Dict[str, Any], api: Optional[Dict[str, Any]]
+) -> Optional[int]:
     if api:
         safetensors = api.get("safetensors")
         if isinstance(safetensors, dict) and isinstance(safetensors.get("total"), int):
@@ -156,7 +171,9 @@ def _tap_candidates(layer_types: List[str], n_layers: Optional[int]) -> List[int
     return sorted(x for x in points if 0 <= x < n_layers)
 
 
-def inspect_target(source: str, revision: str = "main", local_only: bool = False) -> Dict[str, Any]:
+def inspect_target(
+    source: str, revision: str = "main", local_only: bool = False
+) -> Dict[str, Any]:
     root = Path(source).expanduser()
     is_local = root.is_dir()
     if local_only and not is_local:
@@ -174,14 +191,20 @@ def inspect_target(source: str, revision: str = "main", local_only: bool = False
             for name in _ALLOWED_REMOTE_FILES
             if name.endswith(".json")
         }
-        loaded["chat_template.jinja"] = _remote_text(source, "chat_template.jinja", metadata_revision)
+        loaded["chat_template.jinja"] = _remote_text(
+            source, "chat_template.jinja", metadata_revision
+        )
         loaded["README.md"] = _remote_text(source, "README.md", metadata_revision)
         repo = source
 
     raw_config = loaded.get("config.json")
     if not isinstance(raw_config, dict):
         raise ValueError(f"{source!r} has no readable config.json")
-    config = raw_config.get("text_config") if isinstance(raw_config.get("text_config"), dict) else raw_config
+    config = (
+        raw_config.get("text_config")
+        if isinstance(raw_config.get("text_config"), dict)
+        else raw_config
+    )
     tokenizer = loaded.get("tokenizer_config.json") or {}
     if not isinstance(tokenizer, dict):
         tokenizer = {}
@@ -199,34 +222,66 @@ def inspect_target(source: str, revision: str = "main", local_only: bool = False
         # Prefer text-model layer types; multimodal configs may contain a vision
         # encoder whose convolution keys must not change the LM state contract.
         has_conv = any("conv" in kind.lower() for kind in layer_types)
-        has_linear = any("linear" in kind.lower() or "delta" in kind.lower() for kind in layer_types)
+        has_linear = any(
+            "linear" in kind.lower() or "delta" in kind.lower() for kind in layer_types
+        )
     else:
         has_conv = "conv" in blob or "shortconv" in blob
-        has_linear = any(token in blob for token in ("linear_attention", "gated_delta", "deltanet"))
+        has_linear = any(
+            token in blob for token in ("linear_attention", "gated_delta", "deltanet")
+        )
     if lane == "linear_recurrent":
         state_kind = "recurrent"
     elif lane == "hybrid_stateful":
-        state_kind = "conv_plus_kv" if has_conv else "linear_plus_kv" if has_linear else "hybrid_kv"
+        state_kind = (
+            "conv_plus_kv"
+            if has_conv
+            else "linear_plus_kv" if has_linear else "hybrid_kv"
+        )
     else:
         state_kind = "kv"
     if lane == "moe_hybrid":
-        state_kind = "moe_plus_conv" if has_conv else "moe_plus_linear" if has_linear else "moe_plus_kv"
+        state_kind = (
+            "moe_plus_conv"
+            if has_conv
+            else "moe_plus_linear" if has_linear else "moe_plus_kv"
+        )
     recommendations = {
-        "draft_depth_candidates": [x for x in (3, 5, 7) if not n_layers or x <= n_layers],
+        "draft_depth_candidates": [
+            x for x in (3, 5, 7) if not n_layers or x <= n_layers
+        ],
         "target_tap_candidates": _tap_candidates(layer_types, n_layers),
         "train_block_candidates": [7, 16],
         "decode_block_candidates": [4, 7, 12, 16],
         "anchor_sampling_candidates": ["uniform", "random"],
-        "required_gates": ["chat_template_fixture", "target_only_greedy_token_parity", "hidden_feature_parity"],
+        "required_gates": [
+            "chat_template_fixture",
+            "target_only_greedy_token_parity",
+            "hidden_feature_parity",
+        ],
     }
     index = loaded.get("model.safetensors.index.json") or {}
     weight_map = index.get("weight_map", {}) if isinstance(index, dict) else {}
-    names = [key for key in weight_map if isinstance(key, str)] if isinstance(weight_map, dict) else []
+    names = (
+        [key for key in weight_map if isinstance(key, str)]
+        if isinstance(weight_map, dict)
+        else []
+    )
     weight_keys = {
-        "embedding_candidates": sorted(key for key in names if key.endswith((
-            "embed_tokens.weight", "word_embeddings.weight", "wte.weight",
-        ))),
-        "head_candidates": sorted(key for key in names if key.endswith("lm_head.weight")),
+        "embedding_candidates": sorted(
+            key
+            for key in names
+            if key.endswith(
+                (
+                    "embed_tokens.weight",
+                    "word_embeddings.weight",
+                    "wte.weight",
+                )
+            )
+        ),
+        "head_candidates": sorted(
+            key for key in names if key.endswith("lm_head.weight")
+        ),
     }
     if state_kind != "kv":
         recommendations["required_gates"].append("state_snapshot_rollback_replay")
@@ -274,10 +329,17 @@ def inspect_target(source: str, revision: str = "main", local_only: bool = False
             "state_kind": state_kind,
             "state_reason": state_reason,
             "chat_template_present": bool(chat_template),
-            "chat_template_has_generation": bool(re.search(r"\{%[-+]?\s*generation\s*[-+]?%\}", chat_template)) if isinstance(chat_template, str) else None,
+            "chat_template_has_generation": (
+                bool(re.search(r"\{%[-+]?\s*generation\s*[-+]?%\}", chat_template))
+                if isinstance(chat_template, str)
+                else None
+            ),
             "chat_template_source": chat_source,
             "vocab_size": _first(config, {"vocab_size"}),
-            "context_length": _first(config, {"max_position_embeddings", "max_sequence_length", "context_length"}),
+            "context_length": _first(
+                config,
+                {"max_position_embeddings", "max_sequence_length", "context_length"},
+            ),
         },
         "recommendations": recommendations,
         "evidence": evidence,
@@ -289,13 +351,17 @@ def inspect_target(source: str, revision: str = "main", local_only: bool = False
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Inspect a HF target without downloading weights")
+    parser = argparse.ArgumentParser(
+        description="Inspect a HF target without downloading weights"
+    )
     parser.add_argument("source", help="HF repo id or local model directory")
     parser.add_argument("--revision", default="main")
     parser.add_argument("--local-only", action="store_true")
     args = parser.parse_args(argv)
     try:
-        result = inspect_target(args.source, revision=args.revision, local_only=args.local_only)
+        result = inspect_target(
+            args.source, revision=args.revision, local_only=args.local_only
+        )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         parser.error(str(exc))
     json.dump(result, sys.stdout, ensure_ascii=False, indent=2, sort_keys=True)

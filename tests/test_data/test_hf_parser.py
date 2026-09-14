@@ -1,4 +1,5 @@
 """Native HF assistant spans must not supervise matching user text."""
+
 import unittest
 
 from tokenizers import Tokenizer, models, pre_tokenizers
@@ -11,19 +12,25 @@ from specforge.data.template import TEMPLATE_REGISTRY
 
 class HFParserTest(unittest.TestCase):
     def setUp(self):
-        backend = Tokenizer(models.WordLevel(
-            {"[UNK]": 0, "user": 1, "assistant": 2, "same": 3, "answer": 4},
-            unk_token="[UNK]",
-        ))
+        backend = Tokenizer(
+            models.WordLevel(
+                {"[UNK]": 0, "user": 1, "assistant": 2, "same": 3, "answer": 4},
+                unk_token="[UNK]",
+            )
+        )
         backend.pre_tokenizer = pre_tokenizers.Whitespace()
-        self.tokenizer = PreTrainedTokenizerFast(tokenizer_object=backend, unk_token="[UNK]")
+        self.tokenizer = PreTrainedTokenizerFast(
+            tokenizer_object=backend, unk_token="[UNK]"
+        )
         self.tokenizer.chat_template = (
             "{% for m in messages %}{{ m.role }} "
             "{% if m.role == 'assistant' %}{% generation %}{{ m.content }}{% endgeneration %}"
             "{% else %}{{ m.content }}{% endif %} {% endfor %}"
         )
-        self.messages = [{"role": "user", "content": "same answer"},
-                         {"role": "assistant", "content": "same answer"}]
+        self.messages = [
+            {"role": "user", "content": "same answer"},
+            {"role": "assistant", "content": "same answer"},
+        ]
         self.parser = HFParser(self.tokenizer, TEMPLATE_REGISTRY.get("hf"))
 
     def test_exact_mask_and_truncation(self):

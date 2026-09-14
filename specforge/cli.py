@@ -34,6 +34,7 @@ from typing import Iterator, List, Optional
 
 from specforge.config import load_config
 
+
 class _WorkerTermination(BaseException):
     """Translate a process signal into normal Python stack unwinding."""
 
@@ -200,7 +201,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         nargs="*",
         help="dotted overrides, e.g. training.learning_rate=1e-4",
     )
-    sub.add_parser("algorithms", help="list registered draft methods and feature requirements")
+    sub.add_parser(
+        "algorithms", help="list registered draft methods and feature requirements"
+    )
     data = sub.add_parser("data", help="prepare local user data for training")
     data_sub = data.add_subparsers(dest="data_command", required=True)
     data_prepare = data_sub.add_parser(
@@ -253,27 +256,58 @@ def main(argv: Optional[List[str]] = None) -> int:
         type=int,
         help="cap input rows before conversion",
     )
-    target = sub.add_parser("target", help="inspect and prepare a target without downloading weights")
+    target = sub.add_parser(
+        "target", help="inspect and prepare a target without downloading weights"
+    )
     target_sub = target.add_subparsers(dest="target_command", required=True)
     inspect_target = target_sub.add_parser(
-        "inspect", help="classify architecture/state and suggest DSpark validation gates"
+        "inspect",
+        help="classify architecture/state and suggest DSpark validation gates",
     )
-    inspect_target.add_argument("source", help="Hugging Face repo id or local model directory")
+    inspect_target.add_argument(
+        "source", help="Hugging Face repo id or local model directory"
+    )
     inspect_target.add_argument("--revision", default="main")
     inspect_target.add_argument("--local-only", action="store_true")
-    prepare_target = target_sub.add_parser("prepare", help="create a new editable draft-training project from metadata")
-    prepare_target.add_argument("source", help="Hugging Face target repo or local model directory")
+    prepare_target = target_sub.add_parser(
+        "prepare", help="create a new editable draft-training project from metadata"
+    )
+    prepare_target.add_argument(
+        "source", help="Hugging Face target repo or local model directory"
+    )
     prepare_target.add_argument("--output-dir", required=True)
     prepare_target.add_argument("--strategy", default="dspark")
-    prepare_target.add_argument("--teacher-backend", choices=("sglang", "transformers", "vllm"), default="sglang")
+    prepare_target.add_argument(
+        "--teacher-backend",
+        choices=("sglang", "transformers", "vllm"),
+        default="sglang",
+    )
     prepare_target.add_argument("--revision", default="main")
     prepare_target.add_argument("--local-only", action="store_true")
     prepare_data = prepare_target.add_mutually_exclusive_group(required=True)
-    prepare_data.add_argument("--train-data", help="raw conversation file; creates GPU0 server/GPU1 trainer config")
-    prepare_data.add_argument("--hidden-states", help="offline feature directory, which can be populated later")
-    prepare_target.add_argument("--draft-config", help="custom draft JSON or pretrained draft repo")
-    prepare_target.add_argument("--draft-checkpoint", help="weights-only initialization; never restores optimizer state")
-    prepare_target.add_argument("--set", dest="overrides", action="append", default=[], metavar="PATH=VALUE", help="typed config override, repeatable")
+    prepare_data.add_argument(
+        "--train-data",
+        help="raw conversation file; creates GPU0 server/GPU1 trainer config",
+    )
+    prepare_data.add_argument(
+        "--hidden-states",
+        help="offline feature directory, which can be populated later",
+    )
+    prepare_target.add_argument(
+        "--draft-config", help="custom draft JSON or pretrained draft repo"
+    )
+    prepare_target.add_argument(
+        "--draft-checkpoint",
+        help="weights-only initialization; never restores optimizer state",
+    )
+    prepare_target.add_argument(
+        "--set",
+        dest="overrides",
+        action="append",
+        default=[],
+        metavar="PATH=VALUE",
+        help="typed config override, repeatable",
+    )
     scaffold_target = target_sub.add_parser(
         "scaffold", help="write a typed offline run config from inspection JSON"
     )
@@ -284,7 +318,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     scaffold_target.add_argument("--output-root", default="./outputs")
     validate = sub.add_parser("validate", help="run dependency-free parity gates")
     validate_sub = validate.add_subparsers(dest="validate_command", required=True)
-    parity = validate_sub.add_parser("parity", help="compare offline and online feature manifests")
+    parity = validate_sub.add_parser(
+        "parity", help="compare offline and online feature manifests"
+    )
     parity.add_argument("--offline", required=True)
     parity.add_argument("--online", required=True)
     tokens = validate_sub.add_parser("tokens", help="compare token-id JSON arrays")
@@ -299,9 +335,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     replay.add_argument("--expected", required=True)
     replay.add_argument("--actual", required=True)
     acceptance = validate_sub.add_parser(
-        "acceptance", help="validate an aggregated speculative-serving acceptance report"
+        "acceptance",
+        help="validate an aggregated speculative-serving acceptance report",
     )
-    acceptance.add_argument("--summary", required=True, help="aggregated serving-gate JSON")
+    acceptance.add_argument(
+        "--summary", required=True, help="aggregated serving-gate JSON"
+    )
     acceptance.add_argument("--min-train-acc-len", type=float)
     acceptance.add_argument("--min-holdout-acc-len", type=float)
     acceptance.add_argument(
@@ -315,8 +354,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     sweep.add_argument("--model-spec", required=True, help="JSON from target inspect")
     sweep.add_argument("--output", required=True)
     sweep.add_argument("--max-runs", type=int, default=24)
-    distributed = sub.add_parser("distributed", help="plan platform distributed training")
-    distributed_sub = distributed.add_subparsers(dest="distributed_command", required=True)
+    distributed = sub.add_parser(
+        "distributed", help="plan platform distributed training"
+    )
+    distributed_sub = distributed.add_subparsers(
+        dest="distributed_command", required=True
+    )
     distributed_plan = distributed_sub.add_parser("plan")
     distributed_plan.add_argument("--nodes", type=int, default=1)
     distributed_plan.add_argument("--gpus-per-node", type=int, default=1)
@@ -371,7 +414,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     benchmark.add_argument("--enable-thinking", action="store_true")
     benchmark.add_argument("--trust-remote-code", action="store_true")
     benchmark.add_argument("--output-json")
-    artifact = sub.add_parser("artifact", help="write reproducible run-artifact metadata")
+    artifact = sub.add_parser(
+        "artifact", help="write reproducible run-artifact metadata"
+    )
     artifact_sub = artifact.add_subparsers(dest="artifact_command", required=True)
     artifact_manifest = artifact_sub.add_parser("manifest")
     artifact_manifest.add_argument("--output", required=True)
@@ -398,6 +443,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if args.command == "algorithms":
         from specforge.target_project import algorithm_catalog
+
         print(json.dumps(algorithm_catalog(), indent=2))
         return 0
     if args.command == "data":
@@ -420,12 +466,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.command == "target":
         if args.target_command == "prepare":
             from specforge.target_project import prepare_project
+
             try:
                 result = prepare_project(
-                    args.source, args.output_dir, strategy=args.strategy,
-                    revision=args.revision, local_only=args.local_only,
-                    train_data=args.train_data, hidden_states=args.hidden_states,
-                    draft_config=args.draft_config, draft_checkpoint=args.draft_checkpoint,
+                    args.source,
+                    args.output_dir,
+                    strategy=args.strategy,
+                    revision=args.revision,
+                    local_only=args.local_only,
+                    train_data=args.train_data,
+                    hidden_states=args.hidden_states,
+                    draft_config=args.draft_config,
+                    draft_checkpoint=args.draft_checkpoint,
                     overrides=args.overrides,
                     target_backend=args.teacher_backend,
                 )
@@ -437,7 +489,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             from specforge.target_inspector import inspect_target as inspect
 
             try:
-                result = inspect(args.source, revision=args.revision, local_only=args.local_only)
+                result = inspect(
+                    args.source, revision=args.revision, local_only=args.local_only
+                )
             except (OSError, ValueError, json.JSONDecodeError) as exc:
                 parser.error(str(exc))
             json.dump(result, sys.stdout, ensure_ascii=False, indent=2, sort_keys=True)
@@ -526,7 +580,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         with open(args.output, "w", encoding="utf-8") as handle:
             json.dump(rows, handle, ensure_ascii=False, indent=2)
             handle.write("\n")
-        print(json.dumps({"runs": len(rows), "output": args.output}, ensure_ascii=False))
+        print(
+            json.dumps({"runs": len(rows), "output": args.output}, ensure_ascii=False)
+        )
         return 0
     if args.command == "distributed":
         from specforge.torchspec_bridge import TorchSpecLaunch
@@ -541,7 +597,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             checkpoint_root=args.checkpoint_root,
             max_checkpoints=args.max_checkpoints,
         )
-        json.dump({"argv": launch.torchrun_argv(), **launch.manifest()}, sys.stdout, indent=2)
+        json.dump(
+            {"argv": launch.torchrun_argv(), **launch.manifest()}, sys.stdout, indent=2
+        )
         sys.stdout.write("\n")
         return 0
     if args.command == "artifact":
@@ -568,7 +626,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             write_artifact_manifest(args.output, manifest)
         except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
             parser.error(str(exc))
-        print(json.dumps({"artifact_hash": manifest["artifact_hash"], "output": args.output}))
+        print(
+            json.dumps(
+                {"artifact_hash": manifest["artifact_hash"], "output": args.output}
+            )
+        )
         return 0
     if args.command == "train":
         cfg = load_config(args.config, args.overrides)

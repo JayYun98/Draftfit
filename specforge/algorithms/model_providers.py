@@ -77,7 +77,9 @@ def _warm_start(
         cfg.model.draft_checkpoint_path,
         draft_config=draft_config,
         strategy=cfg.training.strategy,
-        allow_missing_embedding=(allow_missing_embedding and cfg.model.load_target_embedding),
+        allow_missing_embedding=(
+            allow_missing_embedding and cfg.model.load_target_embedding
+        ),
         cache_dir=cfg.model.cache_dir,
         trust_remote_code=cfg.model.trust_remote_code,
     )
@@ -250,12 +252,16 @@ def resolve_dflash_capture_layers(
         if isinstance(draft_config, dict)
         else getattr(draft_config, "dflash_config", {})
     ) or {}
-    layers = list(cfg.model.target_layer_ids or method_config.get("target_layer_ids", []))
+    layers = list(
+        cfg.model.target_layer_ids or method_config.get("target_layer_ids", [])
+    )
     if not layers:
         raise ValueError("draft config does not define target capture layer ids")
     target_text_config = getattr(target_config, "text_config", target_config)
     target_layers = getattr(target_text_config, "num_hidden_layers", None)
-    if isinstance(target_layers, int) and any(layer >= target_layers for layer in layers):
+    if isinstance(target_layers, int) and any(
+        layer >= target_layers for layer in layers
+    ):
         raise ValueError(
             "configured target capture layer exceeds target depth "
             f"{target_layers}: {layers!r}"
@@ -538,10 +544,15 @@ def populate_dflash2_generated_config(
     """Populate the genuine DFlash2 schema for a target-derived draft."""
 
     from math import gcd
+
     from specforge.modeling.draft.dflash import build_target_layer_ids
 
     target_layers = getattr(target_config, "num_hidden_layers", None)
-    if not isinstance(target_layers, int) or isinstance(target_layers, bool) or target_layers < 1:
+    if (
+        not isinstance(target_layers, int)
+        or isinstance(target_layers, bool)
+        or target_layers < 1
+    ):
         raise ValueError(
             "DFlash2 auto-generation requires target num_hidden_layers, got "
             f"{target_layers!r}"

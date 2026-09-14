@@ -28,20 +28,28 @@ class SGLangBenchmarkTest(unittest.TestCase):
             path = Path(directory) / "result.json"
             args = SimpleNamespace(output_json=str(path))
             result = sglang.BenchmarkResult("sglang", "test", 1, 1, 1, 1)
-            with mock.patch.object(sglang, "_run_sglang", side_effect=RuntimeError("server")):
+            with mock.patch.object(
+                sglang, "_run_sglang", side_effect=RuntimeError("server")
+            ):
                 with self.assertRaises(RuntimeError):
                     sglang.run(args)
             self.assertFalse(path.exists())
-            with (mock.patch.object(sglang, "_run_sglang", return_value=result),
-                  mock.patch.object(sglang.os, "fsync", side_effect=OSError("disk"))):
+            with (
+                mock.patch.object(sglang, "_run_sglang", return_value=result),
+                mock.patch.object(sglang.os, "fsync", side_effect=OSError("disk")),
+            ):
                 with self.assertRaises(OSError):
                     sglang.run(args)
             self.assertFalse(path.exists())
+
             def replace_then_fail(_args):
                 path.unlink()
                 path.write_text("another writer")
                 raise RuntimeError("server")
-            with mock.patch.object(sglang, "_run_sglang", side_effect=replace_then_fail):
+
+            with mock.patch.object(
+                sglang, "_run_sglang", side_effect=replace_then_fail
+            ):
                 with self.assertRaises(RuntimeError):
                     sglang.run(args)
             self.assertEqual(path.read_text(), "another writer")
@@ -50,8 +58,10 @@ class SGLangBenchmarkTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "result.json"
             result = sglang.BenchmarkResult("sglang", "test", 1, 1, 1, 1)
-            with (mock.patch.object(sglang, "_run_sglang", return_value=result),
-                  redirect_stdout(StringIO())):
+            with (
+                mock.patch.object(sglang, "_run_sglang", return_value=result),
+                redirect_stdout(StringIO()),
+            ):
                 self.assertEqual(sglang.run(SimpleNamespace(output_json=str(path))), 0)
             self.assertEqual(json.loads(path.read_text())["output_tokens"], 1)
 
@@ -180,7 +190,9 @@ class SGLangBenchmarkTest(unittest.TestCase):
                 path.write_text(json.dumps(row) + "\n", encoding="utf-8")
                 args.messages_jsonl = str(path)
                 with (
-                    mock.patch("transformers.AutoTokenizer.from_pretrained") as tokenizer,
+                    mock.patch(
+                        "transformers.AutoTokenizer.from_pretrained"
+                    ) as tokenizer,
                     mock.patch("requests.get") as get,
                     mock.patch("requests.post") as post,
                 ):

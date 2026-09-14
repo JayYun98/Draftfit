@@ -192,6 +192,7 @@ class FeatureDataLoader:
 
         if not spec_sets:
             return
+
         def batch_shape(spec, ref):
             shape = tuple(spec.shape)
             # Refs contain one sequence, not a fixed-length training batch.

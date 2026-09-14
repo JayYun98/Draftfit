@@ -123,8 +123,16 @@ _harmony_encoding = None
 class HFParser(Parser):
     """Use the tokenizer's native generation spans, never guessed delimiters."""
 
-    def parse(self, conversation, max_length, *, preformatted=False,
-              train_only_last_turn=False, tool=None, **kwargs):
+    def parse(
+        self,
+        conversation,
+        max_length,
+        *,
+        preformatted=False,
+        train_only_last_turn=False,
+        tool=None,
+        **kwargs,
+    ):
         if preformatted or train_only_last_turn:
             raise ValueError(
                 "chat_template='hf' requires structured messages and all-turn training; "
@@ -140,14 +148,26 @@ class HFParser(Parser):
                 "input_ids/loss_mask. Assistant boundaries will not be guessed."
             )
         encoded = self.tokenizer.apply_chat_template(
-            messages, tools=tool or None, tokenize=True, add_generation_prompt=False,
-            return_dict=True, return_assistant_tokens_mask=True,
-            truncation=True, max_length=max_length, **kwargs,
+            messages,
+            tools=tool or None,
+            tokenize=True,
+            add_generation_prompt=False,
+            return_dict=True,
+            return_assistant_tokens_mask=True,
+            truncation=True,
+            max_length=max_length,
+            **kwargs,
         )
         ids = torch.as_tensor(encoded["input_ids"], dtype=torch.long)
         mask = torch.as_tensor(encoded.get("assistant_masks", []), dtype=torch.long)
-        if ids.ndim != 1 or mask.shape != ids.shape or not torch.all((mask == 0) | (mask == 1)):
-            raise ValueError("HF tokenizer did not return aligned binary assistant_masks")
+        if (
+            ids.ndim != 1
+            or mask.shape != ids.shape
+            or not torch.all((mask == 0) | (mask == 1))
+        ):
+            raise ValueError(
+                "HF tokenizer did not return aligned binary assistant_masks"
+            )
         return ids, mask
 
 

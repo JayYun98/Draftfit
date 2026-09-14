@@ -33,9 +33,7 @@ class TorchSpecLaunch:
         if self.fsdp_version not in {"v1", "v2"}:
             raise ValueError(f"unsupported fsdp version: {self.fsdp_version}")
         if self.checkpoint_format not in {"distributed", "single_file"}:
-            raise ValueError(
-                f"unsupported checkpoint format: {self.checkpoint_format}"
-            )
+            raise ValueError(f"unsupported checkpoint format: {self.checkpoint_format}")
         if self.max_checkpoints < 0:
             raise ValueError("max_checkpoints must be >= 0")
 

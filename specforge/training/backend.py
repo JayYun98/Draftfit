@@ -494,9 +494,7 @@ class FSDP2TrainingBackend(FSDPTrainingBackend):
                 self._wrapper_kind = "replicate"
             else:
                 if strategy not in {"FULL_SHARD", "SHARD_GRAD_OP"}:
-                    raise ValueError(
-                        f"unsupported FSDP2 sharding strategy: {strategy}"
-                    )
+                    raise ValueError(f"unsupported FSDP2 sharding strategy: {strategy}")
                 # ``reshard_after_forward=False`` is FSDP2's equivalent of
                 # FSDP1 SHARD_GRAD_OP. FULL_SHARD keeps the default reshard.
                 fully_shard(
@@ -511,8 +509,12 @@ class FSDP2TrainingBackend(FSDPTrainingBackend):
                 # These parameter-bearing calls happen outside draft.forward()
                 # in the loss wrappers; FULL_SHARD must gather for them too.
                 for method in (
-                    "apply_logits_head", "predict_confidence", "embed_input_ids",
-                    "project_hidden_states", "compute_logits", "backbone",
+                    "apply_logits_head",
+                    "predict_confidence",
+                    "embed_input_ids",
+                    "project_hidden_states",
+                    "compute_logits",
+                    "backbone",
                 ):
                     callback = getattr(target, method, None)
                     if callable(callback) and not isinstance(callback, nn.Module):

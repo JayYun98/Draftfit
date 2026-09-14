@@ -91,7 +91,9 @@ def create_dflash_sdpa_mask(
         mask_context = mask_context & (kv_indices >= context_lower_bound)
         if is_causal is not None:
             query_position = anchor_expanded + q_block_offsets
-            mask_context = mask_context & ((query_position - kv_indices) < sliding_window)
+            mask_context = mask_context & (
+                (query_position - kv_indices) < sliding_window
+            )
             kv_block_offsets = (kv_indices - S) % block_size
             mask_draft = mask_draft & (
                 (query_position - (anchor_expanded + kv_block_offsets)).abs()
@@ -141,7 +143,9 @@ def create_dflash_block_mask(
             mask_context = mask_context & (kv_idx >= context_lower_bound)
             if is_causal is not None:
                 query_position = anchor_pos + q_block_offset
-                mask_context = mask_context & ((query_position - kv_idx) < sliding_window)
+                mask_context = mask_context & (
+                    (query_position - kv_idx) < sliding_window
+                )
                 kv_block_offset = (kv_idx - S) % block_size
                 mask_draft = mask_draft & (
                     (query_position - (anchor_pos + kv_block_offset)).abs()
@@ -278,11 +282,15 @@ class OnlineDFlashModel(nn.Module):
             # intentionally a tensor-only path so it remains usable in CUDA
             # forwards and in reproducible CPU tests.
             sentinel = valid.shape[1]
-            valid_positions = torch.where(
-                valid,
-                torch.arange(sentinel, device=device).view(1, -1),
-                torch.full_like(valid, sentinel, dtype=torch.long),
-            ).sort(dim=1).values
+            valid_positions = (
+                torch.where(
+                    valid,
+                    torch.arange(sentinel, device=device).view(1, -1),
+                    torch.full_like(valid, sentinel, dtype=torch.long),
+                )
+                .sort(dim=1)
+                .values
+            )
             ranks = torch.linspace(0, 1, width, device=device)
             ranks = torch.round(
                 ranks.unsqueeze(0) * (valid_counts.clamp_min(1).unsqueeze(1) - 1)
@@ -414,7 +422,9 @@ class OnlineDFlashModel(nn.Module):
             mask_args["flex_block_size"] = (256, 128)
         mask_options = self._block_mask_options()
         full_attn_mask = mask_builder(**mask_args, **mask_options)
-        sliding_window = mask_options.get("sliding_window", self.draft_model.sliding_window)
+        sliding_window = mask_options.get(
+            "sliding_window", self.draft_model.sliding_window
+        )
         dflash_attn_mask = full_attn_mask
         if sliding_window is not None:
             dflash_attn_mask = {
@@ -634,7 +644,10 @@ class OnlineDFlash2Model(OnlineDFlashModel):
             anchor_sampling=anchor_sampling,
         )
         selector_loss_alpha = float(selector_loss_alpha)
-        if not torch.isfinite(torch.tensor(selector_loss_alpha)) or selector_loss_alpha <= 0:
+        if (
+            not torch.isfinite(torch.tensor(selector_loss_alpha))
+            or selector_loss_alpha <= 0
+        ):
             raise ValueError(
                 "dflash2_selector_loss_alpha must be positive, "
                 f"got {selector_loss_alpha}"
@@ -650,9 +663,13 @@ class OnlineDFlash2Model(OnlineDFlashModel):
             )
         attention_types = set(layer_types or ["full_attention"])
         if not attention_types <= {"full_attention", "sliding_attention"}:
-            raise ValueError(f"Unsupported DFlash2 layer types: {sorted(attention_types)}")
+            raise ValueError(
+                f"Unsupported DFlash2 layer types: {sorted(attention_types)}"
+            )
         if len(attention_types) > 1:
-            raise ValueError("DFlash2 training does not support mixed full and sliding layers")
+            raise ValueError(
+                "DFlash2 training does not support mixed full and sliding layers"
+            )
         uses_sliding_window = "sliding_attention" in attention_types
         explicit_causality = getattr(config, "is_causal", None)
         self.attention_is_causal = (
@@ -667,7 +684,9 @@ class OnlineDFlash2Model(OnlineDFlashModel):
             else None
         )
         if self.sliding_window is not None and self.sliding_window < 1:
-            raise ValueError(f"sliding_window must be positive, got {self.sliding_window}")
+            raise ValueError(
+                f"sliding_window must be positive, got {self.sliding_window}"
+            )
 
     def _block_mask_options(self) -> Dict[str, object]:
         return {

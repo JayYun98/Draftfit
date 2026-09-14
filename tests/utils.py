@@ -159,9 +159,7 @@ def wait_for_server(
                 )
                 if response.status_code == 200:
                     time.sleep(5)
-                    print(
-                        "Server is ready; server and test output may be interleaved."
-                    )
+                    print("Server is ready; server and test output may be interleaved.")
                     return
             except requests.exceptions.RequestException:
                 pass

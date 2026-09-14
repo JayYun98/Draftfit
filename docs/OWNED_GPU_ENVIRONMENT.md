@@ -4,6 +4,11 @@ Environment checked and bounded GPU campaign executed 2026-09-14.
 See [model validation](MODEL_VALIDATION.md#native-teacher-two-gpu-functional-evidence-2026-09-14)
 for passes and retained failures; this is not blanket production certification.
 
+This guide is bundled in the wheel, but `scripts/gates/` and its fixtures are
+checkout-only validation tools. Run the commands below from a matching
+[repository checkout](https://github.com/JayYun98/dspark-train-platform);
+exporting wheel assets alone does not provide those scripts.
+
 ## Image and hardware
 
 Use `vllm/vllm-openai:v0.22.1`, Linux amd64. Docker Hub currently resolves its

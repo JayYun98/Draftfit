@@ -30,20 +30,15 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Any, Optional
+from typing import Any
 
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from transformers import Qwen3Config
 
-from .dflash import (
-    DFlashDraftModel,
-    Qwen3DFlashDecoderLayer,
-    build_target_layer_ids,
-)
+from .dflash import DFlashDraftModel, Qwen3DFlashDecoderLayer, build_target_layer_ids
 from .registry import register_draft
-
 
 _SERVING_KEY_REMAP = (
     ("context_proj.", "fc."),
@@ -184,9 +179,11 @@ class DFlash2Config(Qwen3Config):
         )
         if target_layer_ids is None:
             target_depth = _strict_int(
-                target_num_hidden_layers
-                if target_num_hidden_layers is not None
-                else (declared_num_target_layers or 36),
+                (
+                    target_num_hidden_layers
+                    if target_num_hidden_layers is not None
+                    else (declared_num_target_layers or 36)
+                ),
                 "target_num_hidden_layers",
             )
             target_layer_ids = build_target_layer_ids(target_depth, draft_depth)
@@ -214,11 +211,11 @@ class DFlash2Config(Qwen3Config):
         target_layer_ids = list(target_layer_ids)
         if not target_layer_ids:
             raise ValueError("target_layer_ids must contain at least one layer")
-        target_depth = _strict_int(
-            target_num_hidden_layers, "target_num_hidden_layers"
-        )
+        target_depth = _strict_int(target_num_hidden_layers, "target_num_hidden_layers")
         invalid_layer_ids = [
-            layer_id for layer_id in target_layer_ids if not 0 <= layer_id < target_depth
+            layer_id
+            for layer_id in target_layer_ids
+            if not 0 <= layer_id < target_depth
         ]
         if invalid_layer_ids:
             raise ValueError(
@@ -264,7 +261,10 @@ class DFlash2Config(Qwen3Config):
         if kwargs.get("rope_scaling") is not None:
             raise ValueError("DFlash2 training does not support rope_scaling")
         unsupported_rope_keys = set(rope_parameters) - {"rope_theta", "rope_type"}
-        if rope_parameters.get("rope_type", "default") != "default" or unsupported_rope_keys:
+        if (
+            rope_parameters.get("rope_type", "default") != "default"
+            or unsupported_rope_keys
+        ):
             raise ValueError("DFlash2 training supports only default rope_parameters")
 
         num_hidden_layers = _strict_int(
@@ -283,9 +283,11 @@ class DFlash2Config(Qwen3Config):
                 kwargs.get("max_window_layers", 28), "max_window_layers"
             )
             layer_types = [
-                "sliding_attention"
-                if use_sliding_window and layer_id >= max_window_layers
-                else "full_attention"
+                (
+                    "sliding_attention"
+                    if use_sliding_window and layer_id >= max_window_layers
+                    else "full_attention"
+                )
                 for layer_id in range(num_hidden_layers)
             ]
         else:
@@ -297,9 +299,13 @@ class DFlash2Config(Qwen3Config):
             )
         attention_types = set(layer_types)
         if not attention_types <= {"full_attention", "sliding_attention"}:
-            raise ValueError(f"Unsupported DFlash2 layer types: {sorted(attention_types)}")
+            raise ValueError(
+                f"Unsupported DFlash2 layer types: {sorted(attention_types)}"
+            )
         if len(attention_types) > 1:
-            raise ValueError("DFlash2 training does not support mixed full and sliding layers")
+            raise ValueError(
+                "DFlash2 training does not support mixed full and sliding layers"
+            )
         if "sliding_attention" in attention_types:
             if sliding_window is None:
                 raise ValueError(
@@ -307,7 +313,9 @@ class DFlash2Config(Qwen3Config):
                 )
             sliding_window = _strict_int(sliding_window, "sliding_window")
             if sliding_window < 1:
-                raise ValueError(f"sliding_window must be positive, got {sliding_window}")
+                raise ValueError(
+                    f"sliding_window must be positive, got {sliding_window}"
+                )
         else:
             sliding_window = None
 
@@ -328,9 +336,10 @@ class DFlash2Config(Qwen3Config):
             raise ValueError(
                 f"mask_token_id must be in [0, {vocab_size}), got {mask_token_id}"
             )
-        if draft_vocab_size is not None and _strict_int(
-            draft_vocab_size, "draft_vocab_size"
-        ) != vocab_size:
+        if (
+            draft_vocab_size is not None
+            and _strict_int(draft_vocab_size, "draft_vocab_size") != vocab_size
+        ):
             raise ValueError(
                 "DFlash2 does not support draft_vocab_size different from vocab_size"
             )
@@ -414,7 +423,9 @@ class DFlashGroupedConv(nn.Module):
     ) -> None:
         super().__init__()
         if hidden_size % group_size:
-            raise ValueError(f"group_size={group_size} must divide hidden_size={hidden_size}")
+            raise ValueError(
+                f"group_size={group_size} must divide hidden_size={hidden_size}"
+            )
         self.block_size = int(block_size)
         self.kernel_size = int(kernel_size)
         self.group_size = int(group_size)
@@ -452,8 +463,10 @@ class DFlashGroupedConv(nn.Module):
         coefficients = base.to(hidden_states.dtype) + dynamic.unsqueeze(-1)
         output = torch.zeros_like(blocks)
         for offset in range(self.kernel_size):
-            values = blocks if offset == 0 else F.pad(
-                blocks[:, :-offset], (0, 0, 0, 0, offset, 0)
+            values = (
+                blocks
+                if offset == 0
+                else F.pad(blocks[:, :-offset], (0, 0, 0, 0, offset, 0))
             )
             output = output + coefficients[:, :, offset] * values
         return output.reshape(batch, length, hidden_size)
@@ -465,7 +478,10 @@ class DFlashGroupedConv(nn.Module):
             self.kernel_size,
             self.num_groups,
         )
-        return self._convolve(hidden_states, dynamic[..., 0, :, :], 0), dynamic[..., 1, :, :]
+        return (
+            self._convolve(hidden_states, dynamic[..., 0, :, :], 0),
+            dynamic[..., 1, :, :],
+        )
 
     def finish(
         self,
@@ -478,7 +494,9 @@ class DFlashGroupedConv(nn.Module):
 class CandidateSelector(nn.Module):
     """Low-rank predecessor/successor lattice used by DFlash2 decoding."""
 
-    def __init__(self, hidden_size: int, vocab_size: int, rank: int, top_k: int) -> None:
+    def __init__(
+        self, hidden_size: int, vocab_size: int, rank: int, top_k: int
+    ) -> None:
         super().__init__()
         if not 2 <= top_k <= vocab_size:
             raise ValueError(f"top_k must be in [2, {vocab_size}], got {top_k}")

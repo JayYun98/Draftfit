@@ -30,8 +30,10 @@ class ExportCheckpointSecurityTest(unittest.TestCase):
             with self.assertRaises(pickle.UnpicklingError):
                 manager.read_resume_state(str(checkpoint))
             torch.save({"global_step": 1, "world_size": 1}, shared)
-            torch.save({"bad": _UnexpectedCheckpointObject()},
-                       checkpoint / "training_state_rank0.pt")
+            torch.save(
+                {"bad": _UnexpectedCheckpointObject()},
+                checkpoint / "training_state_rank0.pt",
+            )
             with self.assertRaises(pickle.UnpicklingError):
                 manager.read_resume_state(str(checkpoint))
 

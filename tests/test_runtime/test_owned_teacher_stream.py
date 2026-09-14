@@ -22,7 +22,11 @@ from specforge.runtime.data_plane.feature_dataloader import FeatureDataLoader
 from specforge.runtime.data_plane.mooncake_store import MooncakeFeatureStore
 from specforge.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
 from tests.test_dflash2_integration import tiny_config
-from tests.test_runtime.test_server_capture import _FakeMooncakeStore, _capture_schema, _task
+from tests.test_runtime.test_server_capture import (
+    _capture_schema,
+    _FakeMooncakeStore,
+    _task,
+)
 
 
 class OwnedTeacherStreamTest(unittest.TestCase):
@@ -31,19 +35,35 @@ class OwnedTeacherStreamTest(unittest.TestCase):
         rng.__enter__()
         self.addCleanup(rng.__exit__, None, None, None)
         torch.manual_seed(17)
-        self.teacher = Qwen3ForCausalLM(Qwen3Config(
-            hidden_size=32, intermediate_size=64, vocab_size=64,
-            num_hidden_layers=3, num_attention_heads=4, num_key_value_heads=2,
-            head_dim=8, max_position_embeddings=64, tie_word_embeddings=False,
-        )).eval().requires_grad_(False)
+        self.teacher = (
+            Qwen3ForCausalLM(
+                Qwen3Config(
+                    hidden_size=32,
+                    intermediate_size=64,
+                    vocab_size=64,
+                    num_hidden_layers=3,
+                    num_attention_heads=4,
+                    num_key_value_heads=2,
+                    head_dim=8,
+                    max_position_embeddings=64,
+                    tie_word_embeddings=False,
+                )
+            )
+            .eval()
+            .requires_grad_(False)
+        )
         capture = OfflineTransformersCapture(self.teacher)
         capture.set_capture_layers([0, 2], capture_method="dflash")
         self.backend = _FakeMooncakeStore()
         self.store = MooncakeFeatureStore(store=self.backend, store_id="run0")
         service = TeacherService(
-            teacher=capture, sink=CaptureSink(self.store, aux_layer_ids=[0, 2]),
-            max_model_len=64, max_batch_size=4,
-            backend="transformers", target_model="tiny-fixture", target_revision="local",
+            teacher=capture,
+            sink=CaptureSink(self.store, aux_layer_ids=[0, 2]),
+            max_model_len=64,
+            max_batch_size=4,
+            backend="transformers",
+            target_model="tiny-fixture",
+            target_revision="local",
         )
         self.addCleanup(service.close)
         server = make_server(service, host="127.0.0.1", port=0)
@@ -53,15 +73,23 @@ class OwnedTeacherStreamTest(unittest.TestCase):
         self.addCleanup(thread.join, 5)
         self.addCleanup(server.shutdown)
         self.adapter = TeacherServerCaptureAdapter(
-            f"http://127.0.0.1:{server.server_address[1]}", self.store,
-            run_id="run0", algorithm="dflash2", schema=_capture_schema("dflash2"),
-            backend="transformers", timeout_s=5,
-            target_model_version="tiny-fixture", target_revision="local",
+            f"http://127.0.0.1:{server.server_address[1]}",
+            self.store,
+            run_id="run0",
+            algorithm="dflash2",
+            schema=_capture_schema("dflash2"),
+            backend="transformers",
+            timeout_s=5,
+            target_model_version="tiny-fixture",
+            target_revision="local",
         )
         self.contract = CaptureConfig.from_strategy(
             required_features={"input_ids", "loss_mask", "hidden_states"},
-            aux_hidden_state_layer_ids=(0, 2), target_repr=None,
-            target_hidden_size=32, target_vocab_size=64, draft_vocab_size=64,
+            aux_hidden_state_layer_ids=(0, 2),
+            target_repr=None,
+            target_hidden_size=32,
+            target_vocab_size=64,
+            draft_vocab_size=64,
         )
 
     def test_live_teacher_channel_loader_and_finite_draft_update(self):
@@ -71,11 +99,17 @@ class OwnedTeacherStreamTest(unittest.TestCase):
             channel = StreamingRefChannel(str(Path(directory) / "refs.jsonl"))
             channel.publish_consumer_quantum(1)
             _, drive = build_disagg_online_producer(
-                algorithm=registration, feature_source=self.adapter,
+                algorithm=registration,
+                feature_source=self.adapter,
                 prompts=[dataclasses.asdict(task) for task in tasks],
-                feature_store=self.store, channel=channel, run_id="run0",
-                target_hidden_size=32, target_vocab_size=64, draft_vocab_size=64,
-                target_repr=None, aux_hidden_state_layer_ids=(0, 2),
+                feature_store=self.store,
+                channel=channel,
+                run_id="run0",
+                target_hidden_size=32,
+                target_vocab_size=64,
+                draft_vocab_size=64,
+                target_repr=None,
+                aux_hidden_state_layer_ids=(0, 2),
             )
             self.assertEqual(drive(), 2)
             self.assertTrue(channel.is_closed())
@@ -84,11 +118,15 @@ class OwnedTeacherStreamTest(unittest.TestCase):
             self.assertTrue(all(ref.metadata["generation"] == 1 for ref in refs))
             provider = registration.providers.server_streaming_for("text")
             loader = FeatureDataLoader(
-                self.store, refs=refs, batch_size=2, strategy="dflash2",
-                collate_fn=provider.build_collator(), gc_interval_s=None,
+                self.store,
+                refs=refs,
+                batch_size=2,
+                strategy="dflash2",
+                collate_fn=provider.build_collator(),
+                gc_interval_s=None,
             )
             try:
-                batch, = list(loader)
+                (batch,) = list(loader)
             finally:
                 loader.close()
             self.assertEqual(tuple(batch.tensors["hidden_states"].shape), (2, 16, 64))
@@ -99,15 +137,31 @@ class OwnedTeacherStreamTest(unittest.TestCase):
             for row, sample_id in enumerate(batch.sample_ids):
                 task = task_by_id[sample_id]
                 ids = torch.tensor([task.payload["input_ids"]])
-                result = expected.capture(input_ids=ids, attention_mask=torch.ones_like(ids),
-                                          loss_mask=torch.tensor([task.payload["loss_mask"]]))
-                self.assertTrue(torch.allclose(batch.tensors["hidden_states"][row, :ids.shape[1]],
-                                               result.hidden_states[0], atol=1e-6, rtol=1e-5))
-            draft = DFlash2DraftModel(tiny_config(target_num_hidden_layers=3, target_layer_ids=[0, 2]))
+                result = expected.capture(
+                    input_ids=ids,
+                    attention_mask=torch.ones_like(ids),
+                    loss_mask=torch.tensor([task.payload["loss_mask"]]),
+                )
+                self.assertTrue(
+                    torch.allclose(
+                        batch.tensors["hidden_states"][row, : ids.shape[1]],
+                        result.hidden_states[0],
+                        atol=1e-6,
+                        rtol=1e-5,
+                    )
+                )
+            draft = DFlash2DraftModel(
+                tiny_config(target_num_hidden_layers=3, target_layer_ids=[0, 2])
+            )
             wrapper = OnlineDFlash2Model(
-                draft_model=draft, target_lm_head=self.teacher.lm_head,
-                target_embed_tokens=self.teacher.get_input_embeddings(), mask_token_id=63,
-                block_size=4, num_anchors=2, anchor_sampling="uniform", attention_backend="sdpa",
+                draft_model=draft,
+                target_lm_head=self.teacher.lm_head,
+                target_embed_tokens=self.teacher.get_input_embeddings(),
+                mask_token_id=63,
+                block_size=4,
+                num_anchors=2,
+                anchor_sampling="uniform",
+                attention_backend="sdpa",
             )
             watched = draft.candidate_selector.hidden_projection.weight
             before = watched.detach().clone()
@@ -140,7 +194,9 @@ class OwnedTeacherStreamTest(unittest.TestCase):
             self.adapter.produce_refs([task], capture=self.contract)
         initial_keys = set(self.backend._d)
         self.assertTrue(initial_keys)
-        ref, = self.adapter.produce_refs([dataclasses.replace(task, attempt=1)], capture=self.contract)
+        (ref,) = self.adapter.produce_refs(
+            [dataclasses.replace(task, attempt=1)], capture=self.contract
+        )
         self.assertEqual(ref.metadata["generation"], 1)
         self.assertEqual(set(self.backend._d), initial_keys)
         self.assertEqual([request["gen"] for request in requests], [1, 1])
@@ -150,7 +206,9 @@ class OwnedTeacherStreamTest(unittest.TestCase):
         self.assertFalse(self.backend._d)
         with self.assertRaises(ConnectionError):
             self.adapter.produce_refs([_task(1, 12)], capture=self.contract)
-        self.assertEqual(self.store.discard_external_attempts(reason="terminal-test"), 1)
+        self.assertEqual(
+            self.store.discard_external_attempts(reason="terminal-test"), 1
+        )
         self.store.drain_pending_removals(retry_interval_s=0)
         self.assertFalse(self.backend._d)
 
@@ -160,7 +218,9 @@ class OwnedTeacherStreamTest(unittest.TestCase):
             self.adapter.produce_refs([_task(0, 12)], capture=self.contract)
         self.assertTrue(self.backend._d)
         self.assertEqual(self.store.health()["provisional_external"], 1)
-        self.assertEqual(self.store.discard_external_attempts(reason="wrong-teacher"), 1)
+        self.assertEqual(
+            self.store.discard_external_attempts(reason="wrong-teacher"), 1
+        )
         self.store.drain_pending_removals(retry_interval_s=0)
         self.assertFalse(self.backend._d)
 

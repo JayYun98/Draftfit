@@ -19,6 +19,7 @@ def load_offline_capture(model_path, *, backend="sglang", **kwargs):
         return OfflineVLLMCapture.from_pretrained(model_path, **kwargs)
     raise ValueError(f"unsupported offline teacher backend: {backend!r}")
 
+
 __all__ = [
     "OfflineCaptureBatch",
     "OfflineEagle3CaptureBatch",

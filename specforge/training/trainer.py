@@ -434,7 +434,9 @@ class Trainer:
             raise ValueError(
                 f"unsupported fsdp_version={fsdp_version!r}; expected 'v1' or 'v2'"
             )
-        backend_cls = FSDP2TrainingBackend if fsdp_version == "v2" else FSDPTrainingBackend
+        backend_cls = (
+            FSDP2TrainingBackend if fsdp_version == "v2" else FSDPTrainingBackend
+        )
         backend = backend_cls(parallel, optimizer_factory=optimizer_factory)
         # FSDP-wrap the composite model and build the optimizer over the inner draft
         # AFTER wrapping; the strategy MUST run forward through the wrapped module so

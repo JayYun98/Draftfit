@@ -36,8 +36,8 @@ import dataclasses
 import os
 from typing import Dict, Iterator, List, Optional, Tuple
 
-from specforge.runtime.contracts import SCHEMA_VERSION, FeatureSpec, SampleRef
 from specforge.inference.capture_manifest import load_capture_manifest
+from specforge.runtime.contracts import SCHEMA_VERSION, FeatureSpec, SampleRef
 from specforge.runtime.data_plane.feature_store import (
     load_feature_file,
     spec_from_tensor,
@@ -114,7 +114,11 @@ class OfflineManifestReader:
         self.capture_manifest = None
         manifest_path = capture_manifest_path
         if manifest_path is None:
-            root = os.path.dirname(os.path.abspath(hidden_states_path)) if os.path.isfile(hidden_states_path) else hidden_states_path
+            root = (
+                os.path.dirname(os.path.abspath(hidden_states_path))
+                if os.path.isfile(hidden_states_path)
+                else hidden_states_path
+            )
             candidate = os.path.join(root, "capture_manifest.json")
             if os.path.isfile(candidate):
                 manifest_path = candidate
@@ -131,9 +135,7 @@ class OfflineManifestReader:
                 raise ValueError(
                     f"capture manifest features {actual_keys!r} != {expected_keys!r}"
                 )
-            self.target_model_version = str(
-                self.capture_manifest["target"]["revision"]
-            )
+            self.target_model_version = str(self.capture_manifest["target"]["revision"])
             self.tokenizer_version = str(
                 self.capture_manifest["tokenizer"].get("version") or "unknown"
             )
@@ -158,9 +160,7 @@ class OfflineManifestReader:
                 path, self.feature_keys
             )
             if self.capture_manifest is not None:
-                target_feature = self.capture_manifest["contract"].get(
-                    "target_feature"
-                )
+                target_feature = self.capture_manifest["contract"].get("target_feature")
                 if target_feature in specs:
                     target_contract = self.capture_manifest["contract"]
                     specs[target_feature] = dataclasses.replace(

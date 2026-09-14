@@ -638,9 +638,7 @@ class TrainingConfig(StrictConfigModel):
     @model_validator(mode="after")
     def _validate_training_shape(self):
         if not math.isfinite(self.dflash2_selector_loss_alpha):
-            raise ValueError(
-                "training.dflash2_selector_loss_alpha must be finite"
-            )
+            raise ValueError("training.dflash2_selector_loss_alpha must be finite")
         if not 0.0 <= self.dpace_alpha <= 1.0:
             raise ValueError("training.dpace_alpha must be in [0, 1]")
         if not 0.0 < self.down_sample_ratio <= 1.0:
@@ -775,15 +773,28 @@ class Config(StrictConfigModel):
             if self.model.input_modality != "text":
                 raise ValueError("owned teacher servers support text only")
             changed = [
-                name for name, field in type(self.model).model_fields.items()
-                if name.startswith("sglang_") and getattr(self.model, name) != field.default
+                name
+                for name, field in type(self.model).model_fields.items()
+                if name.startswith("sglang_")
+                and getattr(self.model, name) != field.default
             ]
             if changed:
-                raise ValueError(f"SGLang options do not apply to owned teacher servers: {changed}")
+                raise ValueError(
+                    f"SGLang options do not apply to owned teacher servers: {changed}"
+                )
         if mode == "online":
-            for field, backend in (("hf_attn_implementation", "transformers"), ("vllm_gpu_memory_utilization", "vllm")):
-                if self.model.target_backend != backend and getattr(self.model, field) != type(self.model).model_fields[field].default:
-                    raise ValueError(f"model.{field} requires model.target_backend={backend}")
+            for field, backend in (
+                ("hf_attn_implementation", "transformers"),
+                ("vllm_gpu_memory_utilization", "vllm"),
+            ):
+                if (
+                    self.model.target_backend != backend
+                    and getattr(self.model, field)
+                    != type(self.model).model_fields[field].default
+                ):
+                    raise ValueError(
+                        f"model.{field} requires model.target_backend={backend}"
+                    )
         if role != "all" and deployment != "disaggregated":
             raise ValueError(
                 "training.role=auto/producer/consumer requires "
@@ -890,8 +901,13 @@ class Config(StrictConfigModel):
                 for server in managed_local.capture_servers:
                     if server.tp_size != 1:
                         raise ValueError("owned teacher servers require tp_size=1")
-                    if server.mem_fraction_static is not None or server.attention_backend is not None:
-                        raise ValueError("owned teacher servers use model.hf_attn_implementation/model.vllm_gpu_memory_utilization; SGLang server overrides are unsupported")
+                    if (
+                        server.mem_fraction_static is not None
+                        or server.attention_backend is not None
+                    ):
+                        raise ValueError(
+                            "owned teacher servers use model.hf_attn_implementation/model.vllm_gpu_memory_utilization; SGLang server overrides are unsupported"
+                        )
             if mode != "online":
                 raise ValueError("managed_local supports online capture only")
             if self.deployment.trainer.nnodes != 1:
@@ -1027,7 +1043,9 @@ def apply_overrides(config: Config, overrides: List[str]) -> Config:
         if keys[-1] not in node:
             raise ValueError(f"override path {path!r} does not exist")
         current = node[keys[-1]]
-        if (current is None or isinstance(current, (dict, list))) and value.lstrip().startswith(("[", "{")):
+        if (
+            current is None or isinstance(current, (dict, list))
+        ) and value.lstrip().startswith(("[", "{")):
             import yaml
 
             try:

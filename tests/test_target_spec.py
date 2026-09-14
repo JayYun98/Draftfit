@@ -46,7 +46,10 @@ class TargetSpecTest(unittest.TestCase):
             self.assertEqual(config.model.target_layer_ids, [1, 3, 5, 7])
             self.assertEqual(config.model.draft_num_hidden_layers, 3)
             self.assertEqual(config.model.draft_block_size, 7)
-            self.assertEqual(json.loads(Path(spec_path).read_text())["schema_version"], "target_spec_v1")
+            self.assertEqual(
+                json.loads(Path(spec_path).read_text())["schema_version"],
+                "target_spec_v1",
+            )
             self.assertEqual(spec.support["serve"], "state_replay_required")
             before = Path(config_path).read_bytes()
             with self.assertRaises(FileExistsError):
@@ -76,17 +79,28 @@ class TargetSpecTest(unittest.TestCase):
             self.assertTrue(Path(str(output) + ".target-spec.json").is_file())
 
     def test_dspark_generated_config_uses_target_taps_and_attention_mode(self):
-        payload = {"num_hidden_layers": 3, "num_attention_heads": 16, "num_key_value_heads": 8}
+        payload = {
+            "num_hidden_layers": 3,
+            "num_attention_heads": 16,
+            "num_key_value_heads": 8,
+        }
         cfg = SimpleNamespace(model=SimpleNamespace(target_layer_ids=[2, 6]))
-        populate_dspark_generated_config(payload, SimpleNamespace(num_hidden_layers=8), cfg)
+        populate_dspark_generated_config(
+            payload, SimpleNamespace(num_hidden_layers=8), cfg
+        )
         self.assertEqual(payload["dflash_config"]["target_layer_ids"], [2, 6])
         self.assertEqual(payload["dflash_config"]["attention_mode"], "gqa")
         self.assertEqual(payload["dflash_config"]["projector_type"], "dspark")
 
     def test_uniform_anchor_sampling_is_reproducible_and_random_is_not_required(self):
         model = OnlineDFlashModel(
-            nn.Identity(), nn.Identity(), nn.Identity(), mask_token_id=0,
-            block_size=2, num_anchors=3, anchor_sampling="uniform",
+            nn.Identity(),
+            nn.Identity(),
+            nn.Identity(),
+            mask_token_id=0,
+            block_size=2,
+            num_anchors=3,
+            anchor_sampling="uniform",
         )
         mask = torch.ones((1, 10), dtype=torch.float32)
         first = model._sample_anchor_positions(10, mask, torch.device("cpu"))[0]

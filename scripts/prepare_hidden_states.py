@@ -74,12 +74,13 @@ from specforge.distributed import (
     init_distributed,
     is_tp_rank_0,
 )
-from specforge.offline_capture import OfflineSGLangCapture, load_offline_capture
 from specforge.inference.capture_manifest import (
     build_capture_manifest,
     load_capture_manifest,
     write_capture_manifest,
 )
+from specforge.offline_capture import OfflineSGLangCapture  # noqa: F401 - legacy import
+from specforge.offline_capture import load_offline_capture
 from specforge.utils import (
     get_local_device,
     load_tokenizer,
@@ -110,14 +111,20 @@ def parse_args():
     model_group.add_argument("--target-model-path", type=str, required=True)
     model_group.add_argument("--target-revision", type=str, default=None)
     model_group.add_argument(
-        "--target-backend", choices=("sglang", "transformers", "vllm"),
-        default="sglang", help="Feature producer; the later trainer is shared",
+        "--target-backend",
+        choices=("sglang", "transformers", "vllm"),
+        default="sglang",
+        help="Feature producer; the later trainer is shared",
     )
     model_group.add_argument(
-        "--torch-dtype", choices=("float32", "float16", "bfloat16"), default=None,
+        "--torch-dtype",
+        choices=("float32", "float16", "bfloat16"),
+        default=None,
     )
     model_group.add_argument(
-        "--hf-attention-implementation", choices=("eager", "sdpa"), default="sdpa",
+        "--hf-attention-implementation",
+        choices=("eager", "sdpa"),
+        default="sdpa",
     )
     model_group.add_argument(
         "--strategy",
@@ -154,7 +161,9 @@ def parse_args():
     inference_group = parser.add_argument_group("inference")
     inference_group.add_argument("--tp-size", type=int, default=1)
     inference_group.add_argument("--batch-size", type=int, default=32)
-    inference_group.add_argument("--vllm-gpu-memory-utilization", type=float, default=0.4)
+    inference_group.add_argument(
+        "--vllm-gpu-memory-utilization", type=float, default=0.4
+    )
 
     others_group = parser.add_argument_group("others")
     others_group.add_argument("--cache-dir", type=str, default="./cache")
@@ -403,7 +412,9 @@ def build_capture_plan_manifest(
     """Serialize the resolved offline plan for the online/offline boundary."""
 
     target_config = getattr(target_model_config, "text_config", target_model_config)
-    target_revision = getattr(target_model_config, "_commit_hash", None) or getattr(args, "target_revision", None)
+    target_revision = getattr(target_model_config, "_commit_hash", None) or getattr(
+        args, "target_revision", None
+    )
     if not target_revision:
         target_revision = getattr(target_model_config, "_name_or_path", None)
     target_revision = str(target_revision or args.target_model_path)
@@ -420,7 +431,9 @@ def build_capture_plan_manifest(
     )
     target_feature = capture_plan.layout.last_hidden_feature
     backend = getattr(args, "target_backend", "sglang")
-    dtype = getattr(args, "torch_dtype", None) or getattr(target_model_config, "dtype", None)
+    dtype = getattr(args, "torch_dtype", None) or getattr(
+        target_model_config, "dtype", None
+    )
     settings = {
         "dtype": str(dtype).removeprefix("torch.") if dtype is not None else "auto",
         "num_samples": getattr(args, "num_samples", None),
@@ -431,11 +444,15 @@ def build_capture_plan_manifest(
         with open(data_path, "rb") as stream:
             settings["data_sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
     if backend == "transformers":
-        settings["attention_implementation"] = getattr(args, "hf_attention_implementation", "sdpa")
+        settings["attention_implementation"] = getattr(
+            args, "hf_attention_implementation", "sdpa"
+        )
     elif backend == "vllm":
         settings["vllm_version"] = "0.22.1"
     else:
-        settings["attention_backend"] = getattr(args, "sglang_attention_backend", "flashinfer")
+        settings["attention_backend"] = getattr(
+            args, "sglang_attention_backend", "flashinfer"
+        )
     return build_capture_manifest(
         strategy=capture_plan.strategy,
         capture_method=capture_plan.capture_method,
@@ -483,7 +500,8 @@ def build_target_model(
         kwargs = _sglang_kwargs(args)
     elif backend == "transformers":
         kwargs = dict(
-            device=get_local_device(), cache_dir=getattr(args, "cache_dir", None),
+            device=get_local_device(),
+            cache_dir=getattr(args, "cache_dir", None),
             attn_implementation=getattr(args, "hf_attention_implementation", "sdpa"),
         )
     else:
@@ -814,7 +832,8 @@ class HiddenStatesGenerator:
                 continue
 
             filtered_batch_gpu = {
-                k: v.to(get_local_device(), non_blocking=True) for k, v in filtered_batch.items()
+                k: v.to(get_local_device(), non_blocking=True)
+                for k, v in filtered_batch.items()
             }
             captured = self.model.capture(
                 **filtered_batch_gpu,
@@ -918,7 +937,9 @@ def _main(cleanup):
         cache_dir=args.cache_dir,
         trust_remote_code=args.trust_remote_code,
     )
-    args.target_revision = getattr(target_model_config, "_commit_hash", None) or args.target_revision
+    args.target_revision = (
+        getattr(target_model_config, "_commit_hash", None) or args.target_revision
+    )
     capture_plan = resolve_offline_capture_plan(args, target_model_config)
     capture_manifest = build_capture_plan_manifest(
         args,
@@ -926,7 +947,9 @@ def _main(cleanup):
         capture_plan,
     )
     if args.dry_run:
-        print(json.dumps(capture_manifest, ensure_ascii=False, indent=2, sort_keys=True))
+        print(
+            json.dumps(capture_manifest, ensure_ascii=False, indent=2, sort_keys=True)
+        )
         return
 
     draft_vocab_size = _resolve_draft_vocab_size(args.draft_model_config)
@@ -940,8 +963,13 @@ def _main(cleanup):
         args.output_path,
         "capture_manifest.json",
     )
-    if Path(manifest_path).exists() and load_capture_manifest(manifest_path) != capture_manifest:
-        raise ValueError("capture manifest differs; use a new output directory instead of mixing teacher features")
+    if (
+        Path(manifest_path).exists()
+        and load_capture_manifest(manifest_path) != capture_manifest
+    ):
+        raise ValueError(
+            "capture manifest differs; use a new output directory instead of mixing teacher features"
+        )
 
     # Initialize distributed environment (TP + DP)
     init_distributed(timeout=args.dist_timeout, tp_size=args.tp_size)
@@ -1005,7 +1033,8 @@ def _main(cleanup):
         dataset = dataset.select(range(args.num_samples))
     # Tokenizer and cache key
     tokenizer = load_tokenizer(
-        args.target_model_path, trust_remote_code=args.trust_remote_code,
+        args.target_model_path,
+        trust_remote_code=args.trust_remote_code,
         revision=args.target_revision,
     )
     cache_params_string = capture_manifest["manifest_hash"]

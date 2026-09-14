@@ -10,7 +10,10 @@ from typing import Any, Mapping, Sequence
 
 def _canonical(value: Any) -> Any:
     if isinstance(value, Mapping):
-        return {str(k): _canonical(v) for k, v in sorted(value.items(), key=lambda item: str(item[0]))}
+        return {
+            str(k): _canonical(v)
+            for k, v in sorted(value.items(), key=lambda item: str(item[0]))
+        }
     if isinstance(value, (list, tuple)):
         return [_canonical(v) for v in value]
     if isinstance(value, (bytes, bytearray, memoryview)):
@@ -52,9 +55,13 @@ def feature_manifest(
         try:
             shape = [int(dim) for dim in shape]
         except (TypeError, ValueError) as exc:
-            raise ValueError(f"feature {name!r} shape must be a sequence of integers") from exc
+            raise ValueError(
+                f"feature {name!r} shape must be a sequence of integers"
+            ) from exc
         if any(dim < 0 for dim in shape):
-            raise ValueError(f"feature {name!r} shape cannot contain negative dimensions")
+            raise ValueError(
+                f"feature {name!r} shape cannot contain negative dimensions"
+            )
         if dtype is None:
             raise ValueError(f"feature {name!r} has no dtype")
         target_repr = getattr(spec, "target_repr", None)
@@ -105,7 +112,13 @@ def compare_feature_manifests(
         "aux_layer_ids",
     ):
         if offline.get(field) != online.get(field):
-            differences.append({"field": field, "offline": offline.get(field), "online": online.get(field)})
+            differences.append(
+                {
+                    "field": field,
+                    "offline": offline.get(field),
+                    "online": online.get(field),
+                }
+            )
     left = offline.get("features", {})
     right = online.get("features", {})
     if not isinstance(left, Mapping) or not isinstance(right, Mapping):
@@ -113,10 +126,21 @@ def compare_feature_manifests(
     else:
         for name in sorted(set(left) | set(right)):
             if name not in left or name not in right:
-                differences.append({"feature": name, "reason": "missing", "offline": name in left, "online": name in right})
+                differences.append(
+                    {
+                        "feature": name,
+                        "reason": "missing",
+                        "offline": name in left,
+                        "online": name in right,
+                    }
+                )
                 continue
-            if not isinstance(left[name], Mapping) or not isinstance(right[name], Mapping):
-                differences.append({"feature": name, "reason": "feature metadata must be objects"})
+            if not isinstance(left[name], Mapping) or not isinstance(
+                right[name], Mapping
+            ):
+                differences.append(
+                    {"feature": name, "reason": "feature metadata must be objects"}
+                )
                 continue
             for field in (
                 "shape",
@@ -128,8 +152,20 @@ def compare_feature_manifests(
             ):
                 if field in left[name] or field in right[name]:
                     if left[name].get(field) != right[name].get(field):
-                        differences.append({"feature": name, "field": field, "offline": left[name].get(field), "online": right[name].get(field)})
-    return {"passed": not differences, "differences": differences, "offline_hash": manifest_hash(offline), "online_hash": manifest_hash(online)}
+                        differences.append(
+                            {
+                                "feature": name,
+                                "field": field,
+                                "offline": left[name].get(field),
+                                "online": right[name].get(field),
+                            }
+                        )
+    return {
+        "passed": not differences,
+        "differences": differences,
+        "offline_hash": manifest_hash(offline),
+        "online_hash": manifest_hash(online),
+    }
 
 
 def _strict_token_ids(value: Sequence[int]) -> list[int]:
@@ -139,7 +175,9 @@ def _strict_token_ids(value: Sequence[int]) -> list[int]:
         items = list(value)
     except TypeError as exc:
         raise TypeError("token IDs must be a sequence") from exc
-    if any(isinstance(token, bool) or not isinstance(token, Integral) for token in items):
+    if any(
+        isinstance(token, bool) or not isinstance(token, Integral) for token in items
+    ):
         raise ValueError("token IDs must contain only integers")
     result = [int(token) for token in items]
     if any(token < 0 for token in result):
@@ -160,22 +198,37 @@ def compare_token_ids(expected: Sequence[int], actual: Sequence[int]) -> dict[st
             "first_mismatch": None,
             "error": str(exc),
         }
-    first_mismatch = next((i for i, pair in enumerate(zip(expected, actual)) if pair[0] != pair[1]), None)
+    first_mismatch = next(
+        (i for i, pair in enumerate(zip(expected, actual)) if pair[0] != pair[1]), None
+    )
     if first_mismatch is None and len(expected) != len(actual):
         first_mismatch = min(len(expected), len(actual))
-    return {"passed": first_mismatch is None, "expected_length": len(expected), "actual_length": len(actual), "first_mismatch": first_mismatch}
+    return {
+        "passed": first_mismatch is None,
+        "expected_length": len(expected),
+        "actual_length": len(actual),
+        "first_mismatch": first_mismatch,
+    }
 
 
 def compare_state_snapshots(expected: Any, actual: Any) -> dict[str, Any]:
     """Compare snapshots and reject incomplete/tampered state artifacts."""
-    expected = expected.to_dict() if callable(getattr(expected, "to_dict", None)) else expected
+    expected = (
+        expected.to_dict() if callable(getattr(expected, "to_dict", None)) else expected
+    )
     actual = actual.to_dict() if callable(getattr(actual, "to_dict", None)) else actual
     errors: list[str] = []
     if expected is None or actual is None:
         errors.append("state snapshots are required")
     snapshot_fields = {
-        "schema_version", "target_model_version", "state_kind", "sequence_position",
-        "token_ids", "state", "metadata", "state_hash",
+        "schema_version",
+        "target_model_version",
+        "state_kind",
+        "sequence_position",
+        "token_ids",
+        "state",
+        "metadata",
+        "state_hash",
     }
     if isinstance(expected, Mapping) or isinstance(actual, Mapping):
         for label, value in (("expected", expected), ("actual", actual)):
@@ -223,6 +276,7 @@ def compare_state_replay(
     actual_token_ids: Sequence[int] | None = None,
 ) -> dict[str, Any]:
     """Atomically gate state equality and the token prefix used to reach it."""
+
     def _snapshot_value(value: Any) -> Any:
         return value.to_dict() if callable(getattr(value, "to_dict", None)) else value
 
@@ -249,7 +303,9 @@ def compare_state_replay(
     if token_result.get("error"):
         errors.append(str(token_result["error"]))
     return {
-        "passed": bool(state_result["passed"] and token_result["passed"] and not errors),
+        "passed": bool(
+            state_result["passed"] and token_result["passed"] and not errors
+        ),
         "state": state_result,
         "tokens": token_result,
         "errors": errors,

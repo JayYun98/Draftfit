@@ -454,11 +454,16 @@ class TestCaptureLogBackup(unittest.TestCase):
             with (
                 mock.patch.dict(os.environ, SPECFORGE_GATE_LOG_DIR=str(destination)),
                 mock.patch.object(TestServerCaptureGate, "workdir", str(source)),
-                mock.patch(__name__ + ".terminate_process_trees", side_effect=RuntimeError("cleanup")),
+                mock.patch(
+                    __name__ + ".terminate_process_trees",
+                    side_effect=RuntimeError("cleanup"),
+                ),
                 self.assertRaisesRegex(RuntimeError, "cleanup"),
             ):
                 TestServerCaptureGate._cleanup_processes()
-            self.assertEqual((destination / "server.log").read_text(), "actual server failure")
+            self.assertEqual(
+                (destination / "server.log").read_text(), "actual server failure"
+            )
 
 
 if __name__ == "__main__":

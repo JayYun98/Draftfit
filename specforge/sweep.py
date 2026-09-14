@@ -11,11 +11,12 @@ def build_sweep(spec: Mapping[str, Any], *, max_runs: int = 24) -> list[dict[str
     depths = list(rec.get("draft_depth_candidates", [3, 5, 7]))
     tap_ids = [int(value) for value in rec.get("target_tap_candidates", [0])]
     tap_counts = [count for count in (3, 5, 8) if len(tap_ids) >= count]
-    taps = [(count, tap_ids[:count]) for count in tap_counts] or [(len(tap_ids), tap_ids)]
+    taps = [(count, tap_ids[:count]) for count in tap_counts] or [
+        (len(tap_ids), tap_ids)
+    ]
     blocks = list(rec.get("train_block_candidates", [7, 16]))
     decode_blocks = [
-        int(value)
-        for value in rec.get("decode_block_candidates", [4, 7, 12, 16])
+        int(value) for value in rec.get("decode_block_candidates", [4, 7, 12, 16])
     ]
     anchors = list(rec.get("anchor_sampling_candidates", ["uniform", "random"]))
     if max_runs < 1:

@@ -444,7 +444,9 @@ class TestServerCaptureAdapter(unittest.TestCase):
             "contract-123",
         )
 
-    def test_offline_online_parity_mock_requires_provenance_tokens_masks_and_tensor_hashes(self):
+    def test_offline_online_parity_mock_requires_provenance_tokens_masks_and_tensor_hashes(
+        self,
+    ):
         task = _task(0, 5)
         backend, _, store, adapter = _mk(
             algorithm="dspark",
@@ -463,12 +465,12 @@ class TestServerCaptureAdapter(unittest.TestCase):
                 "target_last_hidden_states": torch.randn(
                     1, length, HIDDEN, dtype=torch.bfloat16
                 ),
-                "input_ids": torch.tensor(task.payload["input_ids"], dtype=torch.int64).reshape(
-                    1, length
-                ),
-                "loss_mask": torch.tensor(task.payload["loss_mask"], dtype=torch.int64).reshape(
-                    1, length
-                ),
+                "input_ids": torch.tensor(
+                    task.payload["input_ids"], dtype=torch.int64
+                ).reshape(1, length),
+                "loss_mask": torch.tensor(
+                    task.payload["loss_mask"], dtype=torch.int64
+                ).reshape(1, length),
             }
             offline = feature_manifest(
                 {
@@ -518,10 +520,14 @@ class TestServerCaptureAdapter(unittest.TestCase):
             self.assertFalse(compare_feature_manifests(offline, wrong_sample)["passed"])
             wrong_revision = dict(online)
             wrong_revision["target_model_version"] = "target@rev-b"
-            self.assertFalse(compare_feature_manifests(offline, wrong_revision)["passed"])
+            self.assertFalse(
+                compare_feature_manifests(offline, wrong_revision)["passed"]
+            )
             wrong_manifest = dict(online)
             wrong_manifest["manifest_hash"] = "manifest-b"
-            self.assertFalse(compare_feature_manifests(offline, wrong_manifest)["passed"])
+            self.assertFalse(
+                compare_feature_manifests(offline, wrong_manifest)["passed"]
+            )
         finally:
             store.release(handle)
 

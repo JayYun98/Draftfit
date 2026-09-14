@@ -47,16 +47,17 @@ def _tokenize(tokenizer: Any, text: str) -> list[int]:
         encoded = encoded["input_ids"]
     if hasattr(encoded, "tolist"):
         encoded = encoded.tolist()
-    if isinstance(encoded, (list, tuple)) and encoded and isinstance(
-        encoded[0], (list, tuple)
+    if (
+        isinstance(encoded, (list, tuple))
+        and encoded
+        and isinstance(encoded[0], (list, tuple))
     ):
         if len(encoded) != 1:
             raise ValueError("tokenizer returned multiple rows for one text")
         encoded = encoded[0]
     if not isinstance(encoded, (list, tuple)):
         raise TypeError(
-            "tokenizer input_ids must be a sequence, "
-            f"got {type(encoded).__name__}"
+            "tokenizer input_ids must be a sequence, " f"got {type(encoded).__name__}"
         )
     return [int(token) for token in encoded]
 
@@ -67,7 +68,9 @@ def _normal_role(message: Mapping[str, Any], index: int) -> str:
     role = message.get("role")
     if not isinstance(role, str) or not role.strip():
         raise ValueError(f"message {index} requires a non-empty role")
-    return {"human": "user", "gpt": "assistant"}.get(role.strip().lower(), role.strip().lower())
+    return {"human": "user", "gpt": "assistant"}.get(
+        role.strip().lower(), role.strip().lower()
+    )
 
 
 def _message_content(message: Mapping[str, Any], index: int) -> str:
@@ -137,7 +140,9 @@ class LingRenderer:
                 if role == "system":
                     parts.append(content)
                     continue
-                parts.append(f"<role>{'HUMAN' if role == 'user' else role.upper()}</role>{content}")
+                parts.append(
+                    f"<role>{'HUMAN' if role == 'user' else role.upper()}</role>{content}"
+                )
                 if role in {"assistant", "tool"}:
                     parts.append("<|role_end|>")
             if add_generation_prompt:
@@ -158,9 +163,13 @@ class LingRenderer:
             found = -1
             prefix_ids: list[int] = []
             if callable(template):
-                prefix_messages = normalized_messages[:index] + [{"role": "assistant", "content": ""}]
+                prefix_messages = normalized_messages[:index] + [
+                    {"role": "assistant", "content": ""}
+                ]
                 try:
-                    prefix_text = template(prefix_messages, tokenize=False, add_generation_prompt=False)
+                    prefix_text = template(
+                        prefix_messages, tokenize=False, add_generation_prompt=False
+                    )
                     prefix_ids = _tokenize(tokenizer, prefix_text)
                 except (TypeError, KeyError, ValueError):
                     prefix_ids = []
@@ -251,12 +260,8 @@ class TargetAdapter:
     _LANE_STATES: ClassVar[dict[str, frozenset[str]]] = {
         "dense": frozenset({"kv"}),
         "moe": frozenset({"kv"}),
-        "moe_hybrid": frozenset(
-            {"moe_plus_kv", "moe_plus_linear", "moe_plus_conv"}
-        ),
-        "hybrid_stateful": frozenset(
-            {"hybrid_kv", "linear_plus_kv", "conv_plus_kv"}
-        ),
+        "moe_hybrid": frozenset({"moe_plus_kv", "moe_plus_linear", "moe_plus_conv"}),
+        "hybrid_stateful": frozenset({"hybrid_kv", "linear_plus_kv", "conv_plus_kv"}),
         "attention_hybrid": frozenset({"kv", "hybrid_kv"}),
         "linear_recurrent": frozenset({"recurrent"}),
     }
@@ -326,11 +331,19 @@ class TargetAdapter:
             )
         n_layers = facts.get("num_hidden_layers")
         if n_layers is not None:
-            if isinstance(n_layers, bool) or not isinstance(n_layers, int) or n_layers <= 0:
+            if (
+                isinstance(n_layers, bool)
+                or not isinstance(n_layers, int)
+                or n_layers <= 0
+            ):
                 raise ValueError("target inspection num_hidden_layers must be positive")
         if capture_layers is None:
             recommendations = inspection.get("recommendations")
-            candidates = recommendations.get("target_tap_candidates", []) if isinstance(recommendations, Mapping) else []
+            candidates = (
+                recommendations.get("target_tap_candidates", [])
+                if isinstance(recommendations, Mapping)
+                else []
+            )
             capture_layers = tuple(candidates)
         adapter = cls(
             model_id=source,
@@ -342,21 +355,37 @@ class TargetAdapter:
             revision=revision.strip(),
         )
         if n_layers is not None and adapter.capture_layers:
-            adapter.validate_capture_layers(adapter.capture_layers, num_hidden_layers=n_layers)
+            adapter.validate_capture_layers(
+                adapter.capture_layers, num_hidden_layers=n_layers
+            )
         return adapter
 
-    def render(self, tokenizer: Any, messages: Sequence[Mapping[str, Any]], **kwargs) -> RenderedPrompt:
+    def render(
+        self, tokenizer: Any, messages: Sequence[Mapping[str, Any]], **kwargs
+    ) -> RenderedPrompt:
         return self.renderer.render(tokenizer, messages, **kwargs)
 
-    def validate_capture_layers(self, layers: Sequence[int], *, num_hidden_layers: int | None = None) -> tuple[int, ...]:
+    def validate_capture_layers(
+        self, layers: Sequence[int], *, num_hidden_layers: int | None = None
+    ) -> tuple[int, ...]:
         raw = tuple(layers)
-        if not raw or any(isinstance(layer, bool) or not isinstance(layer, int) for layer in raw):
-            raise ValueError(f"capture layers must be distinct non-negative integers, got {list(layers)!r}")
+        if not raw or any(
+            isinstance(layer, bool) or not isinstance(layer, int) for layer in raw
+        ):
+            raise ValueError(
+                f"capture layers must be distinct non-negative integers, got {list(layers)!r}"
+            )
         resolved = tuple(raw)
         if any(layer < 0 for layer in resolved) or len(set(resolved)) != len(resolved):
-            raise ValueError(f"capture layers must be distinct non-negative integers, got {list(layers)!r}")
-        if num_hidden_layers is not None and any(layer >= int(num_hidden_layers) for layer in resolved):
-            raise ValueError(f"capture layer exceeds target depth {num_hidden_layers}: {list(resolved)!r}")
+            raise ValueError(
+                f"capture layers must be distinct non-negative integers, got {list(layers)!r}"
+            )
+        if num_hidden_layers is not None and any(
+            layer >= int(num_hidden_layers) for layer in resolved
+        ):
+            raise ValueError(
+                f"capture layer exceeds target depth {num_hidden_layers}: {list(resolved)!r}"
+            )
         return resolved
 
     def contract_hash(self) -> str:
@@ -380,7 +409,15 @@ class LingTargetAdapter(TargetAdapter):
 
     def __init__(self, *, capture_layers: Sequence[int] = ()) -> None:
         base = TargetAdapter.ling(capture_layers=capture_layers)
-        for name in ("model_id", "architecture_lane", "state_kind", "capture_layers", "renderer", "capabilities", "revision"):
+        for name in (
+            "model_id",
+            "architecture_lane",
+            "state_kind",
+            "capture_layers",
+            "renderer",
+            "capabilities",
+            "revision",
+        ):
             object.__setattr__(self, name, getattr(base, name))
 
 

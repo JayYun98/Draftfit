@@ -384,7 +384,9 @@ class MooncakeFeatureStore(FeatureStore):
                 f"mooncake get_into short read for {key}: got {rc} of {nb} bytes"
             )
 
-    def _store_remove(self, key: str, *, force: bool = False) -> bool:
+    def _store_remove(
+        self, key: str, *, force: bool = False, missing_ok: bool = False
+    ) -> bool:
         """Best-effort physical free. Returns True on confirmed removal.
 
         Recent Mooncake bindings expose ``remove(key, force=True)`` so a
@@ -403,7 +405,9 @@ class MooncakeFeatureStore(FeatureStore):
                 rc = self._store.remove(key)
         except Exception:  # pragma: no cover - transient RPC failure
             return False
-        return rc is None or int(rc) == 0
+        # Mooncake v0.3.13.post1 types.h: OBJECT_NOT_FOUND=-704.
+        # Explicit opt-in keeps other lifecycle callers' existing semantics.
+        return rc is None or int(rc) == 0 or (missing_ok and int(rc) == -704)
 
     # -- write -------------------------------------------------------------
     def put(

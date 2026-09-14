@@ -98,13 +98,15 @@ EXPECTED_DISAGGREGATED = {
                 "global_segment_size_bytes": 34359738368,
                 "local_buffer_size_bytes": 1073741824,
             },
-            "capture_servers": [{
-                "port": 30000,
-                "cuda_visible_devices": ["0"],
-                "tp_size": 1,
-                "mem_fraction_static": 0.72,
-                "startup_timeout_s": 1800,
-            }],
+            "capture_servers": [
+                {
+                    "port": 30000,
+                    "cuda_visible_devices": ["0"],
+                    "tp_size": 1,
+                    "mem_fraction_static": 0.72,
+                    "startup_timeout_s": 1800,
+                }
+            ],
         },
     },
     "glm-5.2-dspark-disaggregated.yaml": {

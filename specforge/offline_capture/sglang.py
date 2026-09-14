@@ -6,7 +6,6 @@ from typing import List, Optional
 
 import torch
 
-
 from specforge.inference.capture import TeacherCaptureBatch as OfflineCaptureBatch
 
 

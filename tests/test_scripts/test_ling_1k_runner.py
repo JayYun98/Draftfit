@@ -5,7 +5,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "scripts" / "run_ling_1k.sh"
 
@@ -33,13 +32,17 @@ class Ling1KRunnerScriptTest(unittest.TestCase):
             )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("--revision a2ee06c0f2de5b171701aee7f73f70a1da75483b", result.stdout)
+        self.assertIn(
+            "--revision a2ee06c0f2de5b171701aee7f73f70a1da75483b", result.stdout
+        )
         self.assertIn("--output-path", result.stdout)
         self.assertIn("features/train", result.stdout)
         self.assertIn("features/holdout", result.stdout)
         self.assertIn("data.eval_hidden_states_path", result.stdout)
         self.assertIn("specforge export --to hf", result.stdout)
-        self.assertIn("no download, split, capture, training, or export will run", result.stdout)
+        self.assertIn(
+            "no download, split, capture, training, or export will run", result.stdout
+        )
 
     def test_dry_run_regeneration_requires_no_gpu_or_server(self):
         result = subprocess.run(
@@ -85,7 +88,9 @@ class Ling1KRunnerScriptTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("CUDA_VISIBLE_DEVICES=0\\,1 torchrun --nproc_per_node=2", result.stdout)
+        self.assertIn(
+            "CUDA_VISIBLE_DEVICES=0\\,1 torchrun --nproc_per_node=2", result.stdout
+        )
         self.assertIn("--tp-size 2", result.stdout)
         self.assertIn("deployment.trainer.nproc_per_node=2", result.stdout)
         self.assertIn("training.num_epochs=1", result.stdout)
@@ -117,7 +122,10 @@ class Ling1KRunnerScriptTest(unittest.TestCase):
         self.assertIn("training.max_steps=200", result.stdout)
         self.assertIn("training.total_steps=450", result.stdout)
         self.assertIn("training.num_epochs=2", result.stdout)
-        self.assertIn("training.resume_from=/tmp/dspark-ling-resume-dry/checkpoints/ling-step100", result.stdout)
+        self.assertIn(
+            "training.resume_from=/tmp/dspark-ling-resume-dry/checkpoints/ling-step100",
+            result.stdout,
+        )
 
     def test_dry_run_is_independent_of_calling_directory(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -140,7 +148,10 @@ class Ling1KRunnerScriptTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(str(ROOT / "scripts" / "prepare_hidden_states.py"), result.stdout)
-        self.assertIn(str(ROOT / "examples" / "configs" / "ling-3.0-tiny-dspark-offline.yaml"), result.stdout)
+        self.assertIn(
+            str(ROOT / "examples" / "configs" / "ling-3.0-tiny-dspark-offline.yaml"),
+            result.stdout,
+        )
 
 
 if __name__ == "__main__":

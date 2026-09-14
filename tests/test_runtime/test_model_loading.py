@@ -109,13 +109,16 @@ class DraftConfigResolutionTest(unittest.TestCase):
     def test_supplied_target_metadata_never_loads_target(self):
         from transformers import PretrainedConfig
 
-        metadata = PretrainedConfig.from_dict({"text_config": _target_config().to_dict()})
+        metadata = PretrainedConfig.from_dict(
+            {"text_config": _target_config().to_dict()}
+        )
         with mock.patch(
             "specforge.modeling.target.target_utils.load_target_config",
             side_effect=AssertionError("metadata preparation must not fetch target"),
         ):
             config = resolve_draft_config(
-                _run_config("dspark"), provider=_draft_config_provider("dspark"),
+                _run_config("dspark"),
+                provider=_draft_config_provider("dspark"),
                 target_config=metadata,
             )
         self.assertEqual(config.hidden_size, 32)
@@ -364,13 +367,19 @@ class WarmStartTest(unittest.TestCase):
     def test_embedding_projection_is_not_optional(self):
         model = _TinyDraft()
         model.embed_projection = torch.nn.Linear(3, 3)
-        state = {key: value for key, value in model.state_dict().items()
-                 if not key.startswith("embed_projection.")}
+        state = {
+            key: value
+            for key, value in model.state_dict().items()
+            if not key.startswith("embed_projection.")
+        }
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_runtime_state(directory, state, strategy="eagle3")
             with self.assertRaisesRegex(ValueError, "embed_projection"):
                 warm_start_draft_model(
-                    model, path, draft_config=object(), strategy="eagle3",
+                    model,
+                    path,
+                    draft_config=object(),
+                    strategy="eagle3",
                     allow_missing_embedding=True,
                 )
 
@@ -393,13 +402,16 @@ class WarmStartTest(unittest.TestCase):
         source = _TinyDraft()
         destination = _TinyDraft()
         config = mock.Mock(architectures=["DFlashDraftModel"])
-        with mock.patch(
-            "specforge.training.model_loading.load_draft_config_source",
-            return_value=config,
-        ), mock.patch(
-            "specforge.modeling.auto.AutoDraftModel.from_pretrained",
-            return_value=(source, {"missing_keys": []}),
-        ) as load:
+        with (
+            mock.patch(
+                "specforge.training.model_loading.load_draft_config_source",
+                return_value=config,
+            ),
+            mock.patch(
+                "specforge.modeling.auto.AutoDraftModel.from_pretrained",
+                return_value=(source, {"missing_keys": []}),
+            ) as load,
+        ):
             report = warm_start_draft_model(
                 destination,
                 "org/base-draft",
@@ -421,16 +433,22 @@ class WarmStartTest(unittest.TestCase):
     def test_pretrained_load_refuses_discarded_tensors(self):
         config = mock.Mock(architectures=["DFlashDraftModel"])
         for field in ("unexpected_keys", "mismatched_keys", "error_msgs"):
-            with self.subTest(field=field), mock.patch(
-                "specforge.training.model_loading.load_draft_config_source",
-                return_value=config,
-            ), mock.patch(
-                "specforge.modeling.auto.AutoDraftModel.from_pretrained",
-                return_value=(_TinyDraft(), {field: ["extra_head.weight"]}),
+            with (
+                self.subTest(field=field),
+                mock.patch(
+                    "specforge.training.model_loading.load_draft_config_source",
+                    return_value=config,
+                ),
+                mock.patch(
+                    "specforge.modeling.auto.AutoDraftModel.from_pretrained",
+                    return_value=(_TinyDraft(), {field: ["extra_head.weight"]}),
+                ),
             ):
                 with self.assertRaisesRegex(ValueError, field):
                     warm_start_draft_model(
-                        _TinyDraft(), "org/draft", draft_config=config,
+                        _TinyDraft(),
+                        "org/draft",
+                        draft_config=config,
                         strategy="dflash",
                     )
 
@@ -453,7 +471,9 @@ class WarmStartTest(unittest.TestCase):
             wrong_config = mock.Mock(architectures=["DSparkDraftModel"])
             with self.assertRaisesRegex(ValueError, "draft architecture"):
                 warm_start_draft_model(
-                    destination, directory, draft_config=wrong_config,
+                    destination,
+                    directory,
+                    draft_config=wrong_config,
                     strategy="dspark",
                 )
 
@@ -463,10 +483,13 @@ class WarmStartTest(unittest.TestCase):
         model = _TinyDraft()
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_runtime_state(
-                directory, {"proj.weight": model.proj.weight, "proj.bias": model.proj.bias},
+                directory,
+                {"proj.weight": model.proj.weight, "proj.bias": model.proj.bias},
                 strategy="eagle3",
             )
-            cfg = _run_config("eagle3", draft_checkpoint_path=path, load_target_embedding=False)
+            cfg = _run_config(
+                "eagle3", draft_checkpoint_path=path, load_target_embedding=False
+            )
             with self.assertRaisesRegex(ValueError, "missing draft weights"):
                 _warm_start(cfg, model, object(), allow_missing_embedding=True)
 

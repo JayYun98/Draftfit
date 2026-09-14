@@ -22,6 +22,7 @@ DOCUMENTS = (
     "docs/RELEASE_GATES.md",
     "docs/CODE_OWNERSHIP.md",
     "docs/ENVIRONMENT.md",
+    "docs/OWNED_GPU_ENVIRONMENT.md",
 )
 
 
@@ -32,7 +33,9 @@ def _root():
     checkout = Path(__file__).resolve().parents[2]
     if (checkout / "pyproject.toml").is_file() and (checkout / "configs").is_dir():
         return checkout
-    raise FileNotFoundError("Recipe assets are missing; reinstall a complete dspark-train-platform wheel.")
+    raise FileNotFoundError(
+        "Recipe assets are missing; reinstall a complete dspark-train-platform wheel."
+    )
 
 
 def _walk(node, prefix):
@@ -47,8 +50,11 @@ def _walk(node, prefix):
 def list_assets():
     """Return bundled relative names, preserving paths referenced by recipes."""
     root = _root()
-    return [name for directory in ("configs", "examples/configs")
-            for name, _ in _walk(root.joinpath(directory), directory)] + list(DOCUMENTS)
+    return [
+        name
+        for directory in ("configs", "examples/configs")
+        for name, _ in _walk(root.joinpath(directory), directory)
+    ] + list(DOCUMENTS)
 
 
 def export_assets(destination):

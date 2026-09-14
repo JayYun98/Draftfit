@@ -264,7 +264,10 @@ def build_query_kwargs(args, messages, max_tokens=None):
 
 
 def get_regeneration_tag(args):
-    return getattr(args, "regenerated_by", None) or f"{args.model}-t{args.temperature:g}-{args.reasoning}"
+    return (
+        getattr(args, "regenerated_by", None)
+        or f"{args.model}-t{args.temperature:g}-{args.reasoning}"
+    )
 
 
 def add_regeneration_provenance(data, args):
@@ -496,7 +499,9 @@ def main():
             data = json.loads(line.strip())
             if processed_ids:
                 if "id" not in data:
-                    raise ValueError("ID-based resume requires every input row to have id")
+                    raise ValueError(
+                        "ID-based resume requires every input row to have id"
+                    )
                 if data["id"] in processed_ids:
                     continue
             invalid_reason = validate_regen_input(data)

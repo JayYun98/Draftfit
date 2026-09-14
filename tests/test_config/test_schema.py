@@ -84,7 +84,9 @@ class ConfigSchemaTest(unittest.TestCase):
             "ling-3.0-tiny-dspark-offline.yaml",
         )
         cfg = Config.from_file(recipe)
-        self.assertEqual(cfg.model.draft_model_config, "configs/ling-3.0-tiny-dspark.json")
+        self.assertEqual(
+            cfg.model.draft_model_config, "configs/ling-3.0-tiny-dspark.json"
+        )
         self.assertEqual(cfg.model.embedding_key, "model.word_embeddings.weight")
         self.assertEqual(cfg.model.lm_head_key, "lm_head.weight")
         self.assertEqual(cfg.model.sglang_attention_backend, "fa3")

@@ -89,8 +89,12 @@ all feed the same PyTorch draft trainer. The new Transformers/vLLM adapters are
 experimental, single-device text paths for Llama/Qwen2/Qwen3—not universal model
 or serving support. See [teacher setup](docs/ENVIRONMENT.md#offline-teachers).
 Native HF/vLLM online capture now uses the same producer/channel/consumer flow;
-its CPU live-HTTP tests are not real GPU certification. The existing bounded
-SGLang/Ling validation remains separate evidence.
+bounded Qwen3 GPU capture, training and managed CLI runs have passed. HF BF16
+feature parity passed; vLLM BF16 cross-engine parity failed, while FP32 parity
+with deterministic training passed. These results do not certify serving,
+speedup or other targets. Use the [native teacher runbook](docs/OWNED_GPU_ENVIRONMENT.md)
+and [recorded limits](docs/MODEL_VALIDATION.md#native-teacher-two-gpu-functional-evidence-2026-09-14).
+The existing bounded SGLang/Ling validation remains separate evidence.
 
 ### Export
 

@@ -291,7 +291,9 @@ def resolve_draft_config(
             trust_remote_code=cfg.model.trust_remote_code,
         )
     else:
-        draft_config = _generate_draft_config(cfg, provider, target_config=target_config)
+        draft_config = _generate_draft_config(
+            cfg, provider, target_config=target_config
+        )
 
     expected = provider.architecture
     compatible = provider.compatible_architectures or frozenset({expected})
@@ -461,7 +463,9 @@ def warm_start_draft_model(
         )
     allowed_missing = set()
     if allow_missing_embedding:
-        allowed_missing = {key for key in result.missing_keys if key == "embed_tokens.weight"}
+        allowed_missing = {
+            key for key in result.missing_keys if key == "embed_tokens.weight"
+        }
     required_missing = sorted(set(result.missing_keys) - allowed_missing)
     if required_missing:
         raise ValueError(

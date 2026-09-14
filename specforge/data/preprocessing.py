@@ -37,7 +37,7 @@ from transformers import PreTrainedTokenizer
 
 from ..distributed import get_draft_sp_group, get_sp_ring_group
 from .loss_mask import has_consecutive_supervised_tokens
-from .parse import GeneralParser, GLMParser, HarmonyParser, ThinkingParser, HFParser
+from .parse import GeneralParser, GLMParser, HarmonyParser, HFParser, ThinkingParser
 from .template import TEMPLATE_REGISTRY, ChatTemplate
 
 # define a type called conversation

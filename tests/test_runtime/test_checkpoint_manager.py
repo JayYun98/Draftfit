@@ -274,7 +274,9 @@ class TestReadResumeState(unittest.TestCase):
             1,
             rank_state={"optimizer": {}, "rng": {}},
         )
-        with self.assertRaisesRegex(ValueError, "unsupported checkpoint_schema_version"):
+        with self.assertRaisesRegex(
+            ValueError, "unsupported checkpoint_schema_version"
+        ):
             CheckpointManager.read_resume_state(ckpt)
 
     def test_malformed_rank_state_is_rejected(self):
@@ -282,8 +284,12 @@ class TestReadResumeState(unittest.TestCase):
 
         out = tempfile.mkdtemp(prefix="ckpt_bad_rank_")
         ckpt = _mgr(out).save(_state(1, world_size=1), 1)
-        torch.save(["not", "a", "mapping"], os.path.join(ckpt, "training_state_rank0.pt"))
-        with self.assertRaisesRegex(ValueError, "rank state for rank 0 must be a mapping"):
+        torch.save(
+            ["not", "a", "mapping"], os.path.join(ckpt, "training_state_rank0.pt")
+        )
+        with self.assertRaisesRegex(
+            ValueError, "rank state for rank 0 must be a mapping"
+        ):
             CheckpointManager.read_resume_state(ckpt)
 
     def test_replicated_optimizer_is_restored_from_shared_state(self):

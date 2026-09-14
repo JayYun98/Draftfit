@@ -98,8 +98,10 @@ def _load_prompts(name: str, max_samples: Optional[int]) -> list[list[str]]:
     for row in dataset:
         formatted = descriptor["format"](row)
         if descriptor.get("multi_turn"):
-            if not isinstance(formatted, list) or not formatted or not all(
-                isinstance(turn, str) for turn in formatted
+            if (
+                not isinstance(formatted, list)
+                or not formatted
+                or not all(isinstance(turn, str) for turn in formatted)
             ):
                 raise ValueError(f"dataset {name!r} contains invalid multi-turn prompt")
             prompts.append(formatted)
@@ -144,9 +146,7 @@ def _load_messages_jsonl(
                     f"invalid JSON in messages JSONL at line {line_number}"
                 ) from exc
             if not isinstance(row, dict):
-                raise ValueError(
-                    f"messages JSONL line {line_number} must be an object"
-                )
+                raise ValueError(f"messages JSONL line {line_number} must be an object")
             if "system" in row:
                 raise ValueError(
                     f"messages JSONL line {line_number} has unsupported top-level "
@@ -165,9 +165,7 @@ def _load_messages_jsonl(
                     f"messages JSONL line {line_number} must contain only one of "
                     "'messages' or 'conversations'"
                 )
-            messages = (
-                row.get("messages") if has_messages else row.get("conversations")
-            )
+            messages = row.get("messages") if has_messages else row.get("conversations")
             if not isinstance(messages, list) or not messages:
                 raise ValueError(
                     f"messages JSONL line {line_number} must contain a nonempty "
@@ -399,7 +397,9 @@ def run(args) -> int:
     try:
         result = _run_sglang(args)
         if output_file is not None:
-            json.dump(asdict(result), output_file, indent=2, sort_keys=True, allow_nan=False)
+            json.dump(
+                asdict(result), output_file, indent=2, sort_keys=True, allow_nan=False
+            )
             output_file.write("\n")
             output_file.flush()
             os.fsync(output_file.fileno())

@@ -22,10 +22,13 @@ from unittest import mock
 
 import torch
 
+from specforge.inference.capture_manifest import (
+    build_capture_manifest,
+    write_capture_manifest,
+)
 from specforge.runtime.data_plane.feature_dataloader import FeatureDataLoader
 from specforge.runtime.data_plane.feature_store import LocalFeatureStore
 from specforge.runtime.data_plane.offline_reader import OfflineManifestReader
-from specforge.inference.capture_manifest import build_capture_manifest, write_capture_manifest
 
 _KEYS = ("input_ids", "loss_mask", "hidden_states")
 _SEQ = 8
@@ -188,12 +191,16 @@ class TestEagerValidationIsOptIn(unittest.TestCase):
             target_repr="hidden_state",
             tokenizer_version="tok-1",
         )
-        write_capture_manifest(os.path.join(directory, "capture_manifest.json"), manifest)
+        write_capture_manifest(
+            os.path.join(directory, "capture_manifest.json"), manifest
+        )
         refs = _reader(directory, validate_files=True).read(limit=1)
         ref = refs[0]
         self.assertEqual(ref.target_model_version, manifest["target"]["revision"])
         self.assertEqual(ref.tokenizer_version, "tok-1")
-        self.assertEqual(ref.metadata["capture_contract_hash"], manifest["contract_hash"])
+        self.assertEqual(
+            ref.metadata["capture_contract_hash"], manifest["contract_hash"]
+        )
         self.assertEqual(
             ref.feature_specs["hidden_states"].target_meta["capture_contract_hash"],
             manifest["contract_hash"],

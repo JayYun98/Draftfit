@@ -209,36 +209,42 @@ def _cpu_two_rank_trainer_resume_worker(
         model = Composite()
         seen = []
         refs = OfflineManifestReader(feat_dir, run_id="data").read()[rank::world]
-        return Trainer(
-            algorithm_name="eagle3",
-            make_step_strategy=lambda wrapped, *, target_head: Strategy(wrapped, seen),
-            controller=DataFlowController(f"run-{rank}"),
-            store=LocalFeatureStore(f"store-{rank}"),
-            ref_source={"refs": refs},
-            model=model,
-            target_head=None,
-            optimizer_factory=lambda module: BF16Optimizer(
-                module,
-                lr=0.05,
-                max_grad_norm=1.0,
-                warmup_ratio=0.0,
+        return (
+            Trainer(
+                algorithm_name="eagle3",
+                make_step_strategy=lambda wrapped, *, target_head: Strategy(
+                    wrapped, seen
+                ),
+                controller=DataFlowController(f"run-{rank}"),
+                store=LocalFeatureStore(f"store-{rank}"),
+                ref_source={"refs": refs},
+                model=model,
+                target_head=None,
+                optimizer_factory=lambda module: BF16Optimizer(
+                    module,
+                    lr=0.05,
+                    max_grad_norm=1.0,
+                    warmup_ratio=0.0,
+                    total_steps=2,
+                ),
+                run_id="two-rank",
+                output_dir=output,
+                batch_size=2,
+                accumulation_steps=1,
+                num_epochs=1,
+                max_steps=max_steps,
                 total_steps=2,
+                save_interval=0,
+                logger=lambda metrics, step: None,
+                log_interval=1,
+                collate_fn=collate,
+                per_sample_transform=transform,
+                durable_ack=False,
+                resume_from=resume_from,
             ),
-            run_id="two-rank",
-            output_dir=output,
-            batch_size=2,
-            accumulation_steps=1,
-            num_epochs=1,
-            max_steps=max_steps,
-            total_steps=2,
-            save_interval=0,
-            logger=lambda metrics, step: None,
-            log_interval=1,
-            collate_fn=collate,
-            per_sample_transform=transform,
-            durable_ack=False,
-            resume_from=resume_from,
-        ), model, seen
+            model,
+            seen,
+        )
 
     def state_close(left, right):
         if isinstance(left, torch.Tensor):
@@ -254,8 +260,10 @@ def _cpu_two_rank_trainer_resume_worker(
                 and all(state_close(left[key], right[key]) for key in left)
             )
         if isinstance(left, list):
-            return isinstance(right, list) and len(left) == len(right) and all(
-                state_close(a, b) for a, b in zip(left, right)
+            return (
+                isinstance(right, list)
+                and len(left) == len(right)
+                and all(state_close(a, b) for a, b in zip(left, right))
             )
         return left == right
 
@@ -274,9 +282,7 @@ def _cpu_two_rank_trainer_resume_worker(
         float(metrics["loss"])
     )
     interrupted.fit()
-    checkpoint = os.path.realpath(
-        os.path.join(out_dir, "resume", "two-rank-latest")
-    )
+    checkpoint = os.path.realpath(os.path.join(out_dir, "resume", "two-rank-latest"))
     from specforge.training.checkpoint import CheckpointManager
 
     checkpoint_state = CheckpointManager.read_resume_state(checkpoint)
@@ -1115,9 +1121,7 @@ class TestTwoRankTrainerResume(unittest.TestCase):
         import torch.multiprocessing as mp
 
         with tempfile.TemporaryDirectory(prefix="trainer_resume_2rank_") as workdir:
-            feat_dir = _write_feature_files(
-                os.path.join(workdir, "features"), n=8
-            )
+            feat_dir = _write_feature_files(os.path.join(workdir, "features"), n=8)
             result_dir = os.path.join(workdir, "results")
             os.makedirs(result_dir)
             with socket.socket() as rendezvous:

@@ -397,10 +397,15 @@ class TeacherServerCaptureAdapter:
                 )
                 continue
             if self.backend != "sglang":
-                expected_teacher = {"backend": self.backend, "target_model": self.target_model_version}
+                expected_teacher = {
+                    "backend": self.backend,
+                    "target_model": self.target_model_version,
+                }
                 if self.target_revision is not None:
                     expected_teacher["target_revision"] = self.target_revision
-                if any(result.get(key) != value for key, value in expected_teacher.items()):
+                if any(
+                    result.get(key) != value for key, value in expected_teacher.items()
+                ):
                     raise CaptureMismatchError(
                         f"teacher identity mismatch: expected {expected_teacher!r}"
                     )

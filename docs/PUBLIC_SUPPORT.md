@@ -2,7 +2,24 @@
 
 Config generation is not model certification. The target executes in the
 existing inference backend; the platform does not port its architecture.
-Use `specforge algorithms` for the live registry and feature tensor contracts.
+Use `dspark algorithms` for the live registry and feature tensor contracts.
+
+## Owned native teacher services
+
+`dspark target prepare ... --teacher-backend transformers` or
+`--teacher-backend vllm` selects the platform's own teacher service. It publishes
+features through the same Mooncake transport and producer/consumer trainer as
+the SGLang path; it does not launch a TorchSpec/AngelSpec training wrapper.
+Native capture is limited to supported single-device Llama/Qwen2/Qwen3 text
+decoders, with real GPU evidence limited to the pinned Qwen3-0.6B campaign.
+
+HF BF16 feature parity passed. Native vLLM BF16 cross-engine elementwise parity
+failed; FP32 parity and deterministic next-step replay passed. Both managed
+BF16 CLI runs completed two DSpark updates and a checkpoint, which establishes
+functional execution but does not override the BF16 parity failure. No native
+serving, throughput gain, long-run quality or broad architecture support is
+certified. See [exact evidence](MODEL_VALIDATION.md#native-teacher-two-gpu-functional-evidence-2026-09-14)
+and the [reproducible entrypoints](OWNED_GPU_ENVIRONMENT.md).
 
 ## Implemented draft methods
 

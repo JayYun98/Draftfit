@@ -73,6 +73,15 @@ with a direct clean wheel, so a working checkout alone cannot satisfy the gate.
 
 ## Publication controls
 
+The native teacher release evidence is bounded: real HF BF16 and native vLLM
+FP32 feature/training gates passed, with deterministic settings required for
+exact FP32 next-step replay. vLLM BF16 cross-engine parity failed and remains
+unverified despite a successful short managed BF16 training run. Publish these
+limits with the candidate; do not describe all teacher backends as production
+certified. The [model validation matrix](MODEL_VALIDATION.md#native-teacher-two-gpu-functional-evidence-2026-09-14)
+records the exact runtime and scope. Remote CPU CI, package publication and
+serving validation remain separate gates.
+
 - CPU pull requests use hosted CPU runners and read-only repository permissions.
   The inherited privileged GPU workflow is restricted to the upstream repository,
   so this fork's PRs cannot trigger its self-hosted cleanup/GPU jobs.

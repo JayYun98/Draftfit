@@ -145,14 +145,21 @@ class TargetSpec:
     ) -> dict[str, Any]:
         """Return a structurally valid offline config, without claiming data exists."""
         from specforge.algorithms.builtin import builtin_algorithm_registry
+
         try:
             algorithm = builtin_algorithm_registry().resolve(strategy)
         except KeyError as exc:
             raise ValueError(str(exc)) from exc
         slug = _slug(self.model_id)
-        depths = [int(value) for value in self.recommendations.get("draft_depth_candidates", (3,))]
+        depths = [
+            int(value)
+            for value in self.recommendations.get("draft_depth_candidates", (3,))
+        ]
         depth = next((value for value in depths if value > 0), 3)
-        blocks = [int(value) for value in self.recommendations.get("train_block_candidates", (7,))]
+        blocks = [
+            int(value)
+            for value in self.recommendations.get("train_block_candidates", (7,))
+        ]
         block = next((value for value in blocks if value > 1), 7)
         taps = list(self.default_taps)
         config: dict[str, Any] = {
@@ -164,7 +171,9 @@ class TargetSpec:
             },
             "data": {
                 "hidden_states_path": f"{data_root.rstrip('/')}/{slug}",
-                "chat_template": "hf" if self.chat_template_present else "explicit-required",
+                "chat_template": (
+                    "hf" if self.chat_template_present else "explicit-required"
+                ),
                 "cache_dir": "./cache",
             },
             "training": {
@@ -179,12 +188,18 @@ class TargetSpec:
         requirement = algorithm.spec.draft
         fixed = dict(requirement.fixed_override_values)
         if "num_hidden_layers" in requirement.supported_overrides:
-            config["model"]["draft_num_hidden_layers"] = fixed.get("num_hidden_layers", depth)
+            config["model"]["draft_num_hidden_layers"] = fixed.get(
+                "num_hidden_layers", depth
+            )
         if "block_size" in requirement.supported_overrides:
             config["model"]["draft_block_size"] = block
             config["model"]["target_layer_ids"] = taps or None
         if algorithm.spec.capabilities.allows_aux_layer_override and len(taps) >= 3:
-            config["model"]["aux_hidden_state_layer_ids"] = [taps[0], taps[len(taps) // 2], taps[-1]]
+            config["model"]["aux_hidden_state_layer_ids"] = [
+                taps[0],
+                taps[len(taps) // 2],
+                taps[-1],
+            ]
         return config
 
     def write_scaffold(self, output: str, **kwargs: Any) -> tuple[str, str]:

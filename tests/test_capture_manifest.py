@@ -14,14 +14,20 @@ from specforge.inference.capture_manifest import (
 class TestCaptureManifest(unittest.TestCase):
     def test_backend_provenance_does_not_change_tensor_contract(self):
         options = dict(
-            strategy="dspark", capture_method="dspark", capture_layers=[0, 2],
-            feature_names=["hidden_states"], target_model="target", target_revision="sha",
+            strategy="dspark",
+            capture_method="dspark",
+            capture_layers=[0, 2],
+            feature_names=["hidden_states"],
+            target_model="target",
+            target_revision="sha",
         )
         hf = build_capture_manifest(**options, capture_backend="transformers")
         vllm = build_capture_manifest(**options, capture_backend="vllm")
         self.assertEqual(hf["contract_hash"], vllm["contract_hash"])
         self.assertNotEqual(hf["manifest_hash"], vllm["manifest_hash"])
-        self.assertEqual(validate_capture_manifest(hf)["producer"]["backend"], "transformers")
+        self.assertEqual(
+            validate_capture_manifest(hf)["producer"]["backend"], "transformers"
+        )
 
     def _manifest(self):
         return build_capture_manifest(

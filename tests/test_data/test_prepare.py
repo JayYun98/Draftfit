@@ -130,7 +130,9 @@ class LocalDatasetPreparationTest(unittest.TestCase):
                 split_eval=True,
             )
 
-            self.assertEqual((first.input_rows, first.train_rows, first.eval_rows), (20, 19, 1))
+            self.assertEqual(
+                (first.input_rows, first.train_rows, first.eval_rows), (20, 19, 1)
+            )
             self.assertEqual(
                 (root / "first_train.jsonl").read_text(),
                 (root / "second_train.jsonl").read_text(),
@@ -183,9 +185,7 @@ class LocalDatasetPreparationTest(unittest.TestCase):
                     ]
                 }
 
-        with patch(
-            "specforge.data.prepare._input_rows", return_value=source_rows()
-        ):
+        with patch("specforge.data.prepare._input_rows", return_value=source_rows()):
             rows = load_local_rows("unused.jsonl", max_rows=2)
 
         self.assertEqual(len(rows), 2)
@@ -212,7 +212,9 @@ class LocalDatasetPreparationTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with self.assertRaisesRegex(ValueError, "requires at least one user and assistant"):
+            with self.assertRaisesRegex(
+                ValueError, "requires at least one user and assistant"
+            ):
                 prepare_dataset(input_path, root / "out" / "train.jsonl")
             self.assertFalse((root / "out").exists())
 

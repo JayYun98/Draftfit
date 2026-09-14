@@ -73,7 +73,10 @@ def build_capture_manifest(
     target_model = _non_empty(target_model, "target_model")
     target_revision = _non_empty(target_revision, "target_revision")
     layers = tuple(capture_layers)
-    if any(isinstance(layer, bool) or not isinstance(layer, int) or layer < 0 for layer in layers):
+    if any(
+        isinstance(layer, bool) or not isinstance(layer, int) or layer < 0
+        for layer in layers
+    ):
         raise ValueError("capture_layers must contain non-negative integers")
     if len(set(layers)) != len(layers):
         raise ValueError("capture_layers must be unique")
@@ -86,7 +89,9 @@ def build_capture_manifest(
         ("draft_vocab_size", draft_vocab_size),
         ("max_length", max_length),
     ):
-        if value is not None and (isinstance(value, bool) or not isinstance(value, int) or value <= 0):
+        if value is not None and (
+            isinstance(value, bool) or not isinstance(value, int) or value <= 0
+        ):
             raise ValueError(f"{name} must be a positive integer or None")
     if tokenizer_version is not None:
         tokenizer_version = _non_empty(tokenizer_version, "tokenizer_version")
@@ -117,7 +122,9 @@ def build_capture_manifest(
         "contract": contract,
     }
     if capture_backend is not None:
-        manifest["producer"] = {"backend": _non_empty(capture_backend, "capture_backend")}
+        manifest["producer"] = {
+            "backend": _non_empty(capture_backend, "capture_backend")
+        }
         if capture_settings is not None:
             manifest["producer"]["settings"] = dict(capture_settings)
     manifest["contract_hash"] = _hash(contract)
@@ -147,8 +154,14 @@ def validate_capture_manifest(
     contract = manifest.get("contract")
     target = manifest.get("target")
     tokenizer = manifest.get("tokenizer")
-    if not isinstance(contract, Mapping) or not isinstance(target, Mapping) or not isinstance(tokenizer, Mapping):
-        raise ValueError("capture manifest requires target, tokenizer, and contract objects")
+    if (
+        not isinstance(contract, Mapping)
+        or not isinstance(target, Mapping)
+        or not isinstance(tokenizer, Mapping)
+    ):
+        raise ValueError(
+            "capture manifest requires target, tokenizer, and contract objects"
+        )
     if manifest.get("contract_hash") != _hash(contract):
         raise ValueError("capture manifest contract_hash mismatch")
     unsigned = dict(manifest)

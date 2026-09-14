@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from specforge.inference.acceptance import validate_acceptance_summary
 from specforge.inference.parity import (
     compare_feature_manifests,
     compare_state_replay,
@@ -13,7 +14,6 @@ from specforge.inference.parity import (
     feature_manifest,
 )
 from specforge.inference.state import TargetStateAdapter, TargetStateSnapshot
-from specforge.inference.acceptance import validate_acceptance_summary
 from specforge.inference.target_adapter import (
     ChatTemplateRenderer,
     LingRenderer,
@@ -27,7 +27,9 @@ from specforge.torchspec_bridge import TorchSpecLaunch
 class _Tokenizer:
     chat_template = "fixture"
 
-    def apply_chat_template(self, messages, *, tokenize=False, add_generation_prompt=False):
+    def apply_chat_template(
+        self, messages, *, tokenize=False, add_generation_prompt=False
+    ):
         text = "".join(f"<{m['role']}>{m['content']}" for m in messages)
         return text + ("<assistant>" if add_generation_prompt else "")
 
@@ -87,7 +89,10 @@ class InferenceContractTest(unittest.TestCase):
         self.assertEqual(dense.capture_layers, (0, 3))
         self.assertEqual(hybrid.capture_layers, (1, 3))
         self.assertEqual(dense.renderer.name, "hf-chat-template")
-        self.assertEqual(dense.render(_Tokenizer(), [{"role": "user", "content": "u"}]).renderer, "hf-chat-template")
+        self.assertEqual(
+            dense.render(_Tokenizer(), [{"role": "user", "content": "u"}]).renderer,
+            "hf-chat-template",
+        )
         self.assertNotEqual(dense.contract_hash(), hybrid.contract_hash())
 
     def test_generic_factory_accepts_moe_and_rejects_unknown_state(self):
@@ -103,7 +108,9 @@ class InferenceContractTest(unittest.TestCase):
             TargetAdapter.from_inspection(
                 {**self._inspection("dense", "kv"), "revision": "main"}
             )
-        with self.assertRaisesRegex(ValueError, "requires tokenizer.apply_chat_template"):
+        with self.assertRaisesRegex(
+            ValueError, "requires tokenizer.apply_chat_template"
+        ):
             ChatTemplateRenderer().render(
                 _FallbackTokenizer(), [{"role": "user", "content": "u"}]
             )
@@ -116,8 +123,12 @@ class InferenceContractTest(unittest.TestCase):
         self.assertEqual(result.renderer, "ling-3.0")
         self.assertEqual(sum(result.loss_mask), 2)
         self.assertEqual(result.loss_mask[-2:], (1, 1))
-        self.assertEqual(TargetAdapter.ling(capture_layers=[3, 15]).contract_hash().__len__(), 16)
-        self.assertEqual(LingTargetAdapter(capture_layers=[3]).model_id, "inclusionAI/Ling-3.0-tiny")
+        self.assertEqual(
+            TargetAdapter.ling(capture_layers=[3, 15]).contract_hash().__len__(), 16
+        )
+        self.assertEqual(
+            LingTargetAdapter(capture_layers=[3]).model_id, "inclusionAI/Ling-3.0-tiny"
+        )
 
     def test_ling_renderer_fallback_is_deterministic_and_accepts_batch_wrappers(self):
         result = LingRenderer().render(
@@ -142,17 +153,35 @@ class InferenceContractTest(unittest.TestCase):
             TargetAdapter.ling(capture_layers=[2, 2])
         with self.assertRaises(ValueError):
             TargetAdapter.ling(capture_layers=[-1])
-        self.assertEqual(TargetAdapter.ling().validate_capture_layers([2, 7], num_hidden_layers=24), (2, 7))
+        self.assertEqual(
+            TargetAdapter.ling().validate_capture_layers([2, 7], num_hidden_layers=24),
+            (2, 7),
+        )
         with self.assertRaises(ValueError):
             TargetAdapter.ling().validate_capture_layers([2, 2])
 
     def test_parity_reports_mismatch(self):
-        left = {"schema_version": 1, "aux_layer_ids": [3], "features": {"x": {"shape": [1, 2], "dtype": "bf16"}}}
-        right = {"schema_version": 1, "aux_layer_ids": [5], "features": {"x": {"shape": [1, 3], "dtype": "bf16"}}}
+        left = {
+            "schema_version": 1,
+            "aux_layer_ids": [3],
+            "features": {"x": {"shape": [1, 2], "dtype": "bf16"}},
+        }
+        right = {
+            "schema_version": 1,
+            "aux_layer_ids": [5],
+            "features": {"x": {"shape": [1, 3], "dtype": "bf16"}},
+        }
         self.assertFalse(compare_feature_manifests(left, right)["passed"])
-        self.assertEqual(feature_manifest({"x": {"shape": [1, 2], "dtype": "bf16"}})["features"]["x"]["shape"], [1, 2])
+        self.assertEqual(
+            feature_manifest({"x": {"shape": [1, 2], "dtype": "bf16"}})["features"][
+                "x"
+            ]["shape"],
+            [1, 2],
+        )
         self.assertTrue(compare_token_ids([1, 2], [1, 2])["passed"])
-        self.assertTrue(compare_state_snapshots({"state": [1]}, {"state": [1]})["passed"])
+        self.assertTrue(
+            compare_state_snapshots({"state": [1]}, {"state": [1]})["passed"]
+        )
 
     def test_state_snapshot_is_immutable_and_replays_with_exact_prefix(self):
         source = {"conv": _FakeTensor(b"ab"), "step": 2}
@@ -221,9 +250,7 @@ class InferenceContractTest(unittest.TestCase):
         right = dict(left)
         right["features"] = dict(left["features"])
         right["features"]["target"] = dict(left["features"]["target"])
-        right["features"]["target"]["target_meta"] = {
-            "vocab_map_version": "v2"
-        }
+        right["features"]["target"]["target_meta"] = {"vocab_map_version": "v2"}
         result = compare_feature_manifests(left, right)
         self.assertFalse(result["passed"])
         self.assertTrue(
@@ -263,10 +290,14 @@ class InferenceContractTest(unittest.TestCase):
         self.assertFalse(failed["passed"])
         self.assertTrue(any("holdout pos2" in error for error in failed["errors"]))
         self.assertFalse(
-            validate_acceptance_summary(summary, min_train_acc_len=float("nan"))["passed"]
+            validate_acceptance_summary(summary, min_train_acc_len=float("nan"))[
+                "passed"
+            ]
         )
         self.assertFalse(
-            validate_acceptance_summary(summary, expected_holdout_requests=1.5)["passed"]
+            validate_acceptance_summary(summary, expected_holdout_requests=1.5)[
+                "passed"
+            ]
         )
 
     def test_cli_acceptance_returns_gate_status(self):
@@ -315,12 +346,27 @@ class InferenceContractTest(unittest.TestCase):
             self.assertTrue(json.loads(result.stdout)["passed"])
 
     def test_sweep_and_torchspec_plan_are_deterministic(self):
-        rows = build_sweep({"recommendations": {"draft_depth_candidates": [3, 5], "target_tap_candidates": [1, 2, 3, 4, 5], "train_block_candidates": [7], "anchor_sampling_candidates": ["uniform", "random"]}}, max_runs=3)
+        rows = build_sweep(
+            {
+                "recommendations": {
+                    "draft_depth_candidates": [3, 5],
+                    "target_tap_candidates": [1, 2, 3, 4, 5],
+                    "train_block_candidates": [7],
+                    "anchor_sampling_candidates": ["uniform", "random"],
+                }
+            },
+            max_runs=3,
+        )
         self.assertEqual([row["run_index"] for row in rows], [1, 2, 3])
-        self.assertTrue(all(row["decode_block_size"] <= row["train_block_size"] for row in rows))
+        self.assertTrue(
+            all(row["decode_block_size"] <= row["train_block_size"] for row in rows)
+        )
         self.assertEqual(TorchSpecLaunch(nodes=2, gpus_per_node=4).world_size, 8)
         manifest = TorchSpecLaunch(
-            nodes=2, gpus_per_node=4, checkpoint_root="/shared/checkpoints", max_checkpoints=3
+            nodes=2,
+            gpus_per_node=4,
+            checkpoint_root="/shared/checkpoints",
+            max_checkpoints=3,
         ).manifest()
         self.assertTrue(manifest["checkpoint_contract"]["shared_filesystem_required"])
         self.assertEqual(manifest["checkpoint_contract"]["rotation"], 3)
@@ -331,7 +377,17 @@ class InferenceContractTest(unittest.TestCase):
             (root / "a.json").write_text("[1,2]\n", encoding="utf-8")
             (root / "b.json").write_text("[1,3]\n", encoding="utf-8")
             result = subprocess.run(
-                [sys.executable, "-m", "specforge.cli", "validate", "tokens", "--expected", str(root / "a.json"), "--actual", str(root / "b.json")],
+                [
+                    sys.executable,
+                    "-m",
+                    "specforge.cli",
+                    "validate",
+                    "tokens",
+                    "--expected",
+                    str(root / "a.json"),
+                    "--actual",
+                    str(root / "b.json"),
+                ],
                 capture_output=True,
                 text=True,
             )

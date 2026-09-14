@@ -93,14 +93,18 @@ class FSDP2BackendTest(unittest.TestCase):
         grad_norm = backend.step()
         self.assertTrue(grad_norm is None or torch.isfinite(torch.as_tensor(grad_norm)))
         state = backend.state_dict()
-        self.assertEqual(set(state["model"]), {"draft_model.weight", "draft_model.bias"})
+        self.assertEqual(
+            set(state["model"]), {"draft_model.weight", "draft_model.bias"}
+        )
         self.assertIn("optimizer_state_dict", state["optimizer"])
         self.assertEqual(state["rng"]["device_type"], "cpu")
 
         restored = _Composite()
         backend2 = self._backend(restored)
         backend2.load_state_dict(state)
-        for left, right in zip(model.draft_model.parameters(), restored.draft_model.parameters()):
+        for left, right in zip(
+            model.draft_model.parameters(), restored.draft_model.parameters()
+        ):
             self.assertTrue(torch.equal(left, right))
         self.assertEqual(
             backend2.optimizer.scheduler.last_epoch,

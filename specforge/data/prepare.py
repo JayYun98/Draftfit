@@ -72,16 +72,12 @@ def _input_rows(path: Path) -> Iterator[tuple[int, Any]]:
                 try:
                     row = json.loads(line)
                 except json.JSONDecodeError as exc:
-                    raise ValueError(
-                        f"input row {line_number}: invalid JSON"
-                    ) from exc
+                    raise ValueError(f"input row {line_number}: invalid JSON") from exc
                 yield line_number, row
         return
 
     if path.stat().st_size > MAX_JSON_FILE_BYTES:
-        raise ValueError(
-            "input JSON exceeds 64 MiB; use JSONL for larger datasets"
-        )
+        raise ValueError("input JSON exceeds 64 MiB; use JSONL for larger datasets")
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
@@ -110,7 +106,11 @@ def _format_for_row(row: Mapping[str, Any], requested: str, row_number: int) -> 
         return "openai"
     if has_conversations:
         conversations = row["conversations"]
-        first = conversations[0] if isinstance(conversations, list) and conversations else None
+        first = (
+            conversations[0]
+            if isinstance(conversations, list) and conversations
+            else None
+        )
         if isinstance(first, Mapping) and ("from" in first or "value" in first):
             return "sharegpt"
         return "canonical"
@@ -229,9 +229,7 @@ def normalize_row(
     unsupported_fields = sorted(set(row).difference(_ROW_FIELDS))
     if unsupported_fields:
         fields = ", ".join(repr(field) for field in unsupported_fields)
-        raise ValueError(
-            f"input row {row_number}: unsupported row field(s): {fields}"
-        )
+        raise ValueError(f"input row {row_number}: unsupported row field(s): {fields}")
     source_format = _format_for_row(row, data_format, row_number)
     if source_format == "openai":
         raw_messages = row.get("messages")
@@ -256,7 +254,9 @@ def normalize_row(
     row_id = row.get("id")
     if row_id is None or not str(row_id).strip():
         row_id = hashlib.sha256(
-            json.dumps(messages, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+            json.dumps(
+                messages, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ).encode()
         ).hexdigest()[:16]
     result = {"id": str(row_id), "conversations": messages}
     if "tools" in row:
@@ -281,9 +281,7 @@ def load_local_rows(
     source_rows = _input_rows(Path(input_path))
     selected_rows = source_rows if max_rows is None else islice(source_rows, max_rows)
     for row_number, row in selected_rows:
-        rows.append(
-            normalize_row(row, data_format=data_format, row_number=row_number)
-        )
+        rows.append(normalize_row(row, data_format=data_format, row_number=row_number))
     if not rows:
         raise ValueError("input data contains no rows")
     return rows
@@ -426,7 +424,7 @@ def prepare_dataset(
             if stem == "train":
                 eval_name = "test.jsonl"
             elif stem.endswith("_train"):
-                eval_name = stem[:-len("_train")] + "_test.jsonl"
+                eval_name = stem[: -len("_train")] + "_test.jsonl"
             else:
                 eval_name = stem + "_holdout.jsonl"
             eval_path = train_path.with_name(eval_name)

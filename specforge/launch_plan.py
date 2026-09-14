@@ -535,14 +535,25 @@ def _managed_local_services(
         )
         if cfg.model.target_backend != "sglang":
             argv = [
-                sys.executable, "-m", "specforge.inference.teacher_server",
-                "--target-backend", cfg.model.target_backend,
-                "--model-path", cfg.model.target_model_path,
-                "--dtype", cfg.model.torch_dtype,
-                "--capture-method", contract.method,
-                "--aux-layer-ids", *[str(layer) for layer in contract.aux_layer_ids],
-                "--max-model-len", str(cfg.data.max_length + 1),
-                "--host", "127.0.0.1", "--port", str(server.port),
+                sys.executable,
+                "-m",
+                "specforge.inference.teacher_server",
+                "--target-backend",
+                cfg.model.target_backend,
+                "--model-path",
+                cfg.model.target_model_path,
+                "--dtype",
+                cfg.model.torch_dtype,
+                "--capture-method",
+                contract.method,
+                "--aux-layer-ids",
+                *[str(layer) for layer in contract.aux_layer_ids],
+                "--max-model-len",
+                str(cfg.data.max_length + 1),
+                "--host",
+                "127.0.0.1",
+                "--port",
+                str(server.port),
             ]
             if cfg.model.target_revision is not None:
                 argv.extend(("--revision", cfg.model.target_revision))
@@ -551,9 +562,21 @@ def _managed_local_services(
             if cfg.model.cache_dir:
                 argv.extend(("--cache-dir", cfg.model.cache_dir))
             if cfg.model.target_backend == "transformers":
-                argv.extend(("--device", "cuda:0", "--attn-implementation", cfg.model.hf_attn_implementation))
+                argv.extend(
+                    (
+                        "--device",
+                        "cuda:0",
+                        "--attn-implementation",
+                        cfg.model.hf_attn_implementation,
+                    )
+                )
             else:
-                argv.extend(("--gpu-memory-utilization", str(cfg.model.vllm_gpu_memory_utilization)))
+                argv.extend(
+                    (
+                        "--gpu-memory-utilization",
+                        str(cfg.model.vllm_gpu_memory_utilization),
+                    )
+                )
         service_env = {
             **shared_env,
             device_visibility_env: ",".join(server.cuda_visible_devices),
@@ -981,7 +1004,9 @@ def _managed_preflight(plan: LaunchPlan) -> None:
         raise RuntimeError("managed_local requires the mooncake Python package")
     if any("sglang.launch_server" in service.command.argv for service in plan.services):
         try:
-            patched_sglang = importlib.util.find_spec("sglang.srt.spec_capture_sink") is not None
+            patched_sglang = (
+                importlib.util.find_spec("sglang.srt.spec_capture_sink") is not None
+            )
         except ModuleNotFoundError:
             patched_sglang = False
         if not patched_sglang:

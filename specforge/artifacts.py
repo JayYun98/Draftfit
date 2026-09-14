@@ -98,7 +98,9 @@ def build_artifact_manifest(
             payload = None
         if isinstance(payload, Mapping) and "passed" in payload:
             record["passed"] = bool(payload["passed"])
-        record["manifest_hash"] = manifest_hash(payload) if payload is not None else None
+        record["manifest_hash"] = (
+            manifest_hash(payload) if payload is not None else None
+        )
         manifest["validation"].append(record)
     manifest["artifact_hash"] = manifest_hash(manifest)
     return manifest

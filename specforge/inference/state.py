@@ -28,7 +28,9 @@ def _token_ids(value: Sequence[int]) -> tuple[int, ...]:
     try:
         items = tuple(value)
     except TypeError as exc:
-        raise TypeError("token_ids must be a sequence of non-negative integers") from exc
+        raise TypeError(
+            "token_ids must be a sequence of non-negative integers"
+        ) from exc
     if any(isinstance(item, bool) or not isinstance(item, Integral) for item in items):
         raise TypeError("token_ids must contain only integers")
     result = tuple(int(item) for item in items)
@@ -119,7 +121,9 @@ class TargetStateSnapshot:
 
     def __post_init__(self) -> None:
         if self.schema_version != _SCHEMA_VERSION:
-            raise ValueError(f"unsupported state snapshot schema {self.schema_version!r}")
+            raise ValueError(
+                f"unsupported state snapshot schema {self.schema_version!r}"
+            )
         if (
             not isinstance(self.target_model_version, str)
             or not self.target_model_version.strip()
@@ -167,8 +171,14 @@ class TargetStateSnapshot:
         if not isinstance(value, Mapping):
             raise TypeError("state snapshot must be an object")
         required = {
-            "schema_version", "target_model_version", "state_kind",
-            "sequence_position", "token_ids", "state", "metadata", "state_hash",
+            "schema_version",
+            "target_model_version",
+            "state_kind",
+            "sequence_position",
+            "token_ids",
+            "state",
+            "metadata",
+            "state_hash",
         }
         missing = sorted(required - set(value))
         if missing:
@@ -209,7 +219,9 @@ class TargetStateAdapter:
         if not isinstance(state_kind, str) or not state_kind:
             raise ValueError("state_kind must be non-empty")
         if (capture_state is None) != (restore_state is None):
-            raise ValueError("capture_state and restore_state must be provided together")
+            raise ValueError(
+                "capture_state and restore_state must be provided together"
+            )
         self.target_model_version = target_model_version
         self.state_kind = state_kind
         self._capture_state = capture_state

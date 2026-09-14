@@ -63,7 +63,11 @@ def validate_acceptance_summary(
                 errors.append(f"{split}.{field} is required")
         if "requests" in row:
             requests = row["requests"]
-            if isinstance(requests, bool) or not isinstance(requests, int) or requests < 0:
+            if (
+                isinstance(requests, bool)
+                or not isinstance(requests, int)
+                or requests < 0
+            ):
                 errors.append(f"{split}.requests must be a non-negative integer")
         if "weighted_acc_len" in row:
             _number(row["weighted_acc_len"], f"{split}.weighted_acc_len", errors)
@@ -81,7 +85,12 @@ def validate_acceptance_summary(
         actual = _number(value, label, errors)
         if actual is not None:
             checks.append(
-                {"name": name, "value": actual, "minimum": minimum, "passed": actual >= minimum}
+                {
+                    "name": name,
+                    "value": actual,
+                    "minimum": minimum,
+                    "passed": actual >= minimum,
+                }
             )
             if actual < minimum:
                 errors.append(f"{label} {actual:.4f} < {minimum}")
@@ -102,10 +111,15 @@ def validate_acceptance_summary(
         )
     if pos2_min is not None:
         positions = rows.get("holdout", {}).get("true_position_acceptance", [])
-        value = positions[1] if isinstance(positions, list) and len(positions) > 1 else None
+        value = (
+            positions[1] if isinstance(positions, list) and len(positions) > 1 else None
+        )
         check("holdout_pos2", value, pos2_min, "holdout pos2")
 
-    for split, expected in (("train", expected_train_requests), ("holdout", expected_holdout_requests)):
+    for split, expected in (
+        ("train", expected_train_requests),
+        ("holdout", expected_holdout_requests),
+    ):
         if expected is None:
             continue
         if isinstance(expected, bool) or not isinstance(expected, int) or expected < 0:
@@ -115,7 +129,12 @@ def validate_acceptance_summary(
         if actual != expected:
             errors.append(f"expected {expected} {split} requests, found {actual}")
         checks.append(
-            {"name": f"{split}_requests", "value": actual, "expected": expected, "passed": actual == expected}
+            {
+                "name": f"{split}_requests",
+                "value": actual,
+                "expected": expected,
+                "passed": actual == expected,
+            }
         )
 
     for split in ("train", "holdout"):

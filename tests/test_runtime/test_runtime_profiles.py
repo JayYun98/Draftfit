@@ -1,7 +1,7 @@
 """CPU check: hardware overrides compose with the model and reach server argv."""
 
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -22,8 +22,12 @@ class RuntimeProfileTest(unittest.TestCase):
                 )
                 argv = _sglang_argv(cfg.model)
                 self.assertEqual(argv[argv.index("--attention-backend") + 1], attention)
-                self.assertEqual(argv[argv.index("--linear-attn-backend") + 1], "triton")
-                self.assertEqual(argv[argv.index("--linear-attn-verify-backend") + 1], "triton")
+                self.assertEqual(
+                    argv[argv.index("--linear-attn-backend") + 1], "triton"
+                )
+                self.assertEqual(
+                    argv[argv.index("--linear-attn-verify-backend") + 1], "triton"
+                )
                 self.assertIn("--enable-deterministic-inference", argv)
                 self.assertIn("--disable-cuda-graph", argv)
                 self.assertEqual(cfg.model.sglang_context_length, 4103)

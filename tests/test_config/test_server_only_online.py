@@ -49,7 +49,9 @@ class ServerOnlyOnlineConfigTest(unittest.TestCase):
 
     def test_online_accepts_owned_teacher_servers_and_rejects_retired_names(self):
         for backend in ("transformers", "vllm"):
-            resolved = resolve_run(Config.model_validate(_online_payload(backend=backend)))
+            resolved = resolve_run(
+                Config.model_validate(_online_payload(backend=backend))
+            )
             self.assertEqual(resolved.config.model.target_backend, backend)
         for backend in ("hf", "custom"):
             with (
@@ -64,10 +66,15 @@ class ServerOnlyOnlineConfigTest(unittest.TestCase):
             raw["model"]["sglang_quantization"] = "fp8"
             with self.assertRaisesRegex(ValidationError, "SGLang options"):
                 Config.model_validate(raw)
-        for backend, field, value in (("vllm", "hf_attn_implementation", "eager"), ("transformers", "vllm_gpu_memory_utilization", 0.9)):
+        for backend, field, value in (
+            ("vllm", "hf_attn_implementation", "eager"),
+            ("transformers", "vllm_gpu_memory_utilization", 0.9),
+        ):
             raw = _online_payload(backend=backend)
             raw["model"][field] = value
-            with self.assertRaisesRegex(ValidationError, "requires model.target_backend"):
+            with self.assertRaisesRegex(
+                ValidationError, "requires model.target_backend"
+            ):
                 Config.model_validate(raw)
 
     def test_vlm_is_explicitly_unsupported(self):

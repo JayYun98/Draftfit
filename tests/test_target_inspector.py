@@ -1,5 +1,5 @@
-import json
 import io
+import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -16,19 +16,27 @@ class TargetInspectorTest(unittest.TestCase):
             root = Path(directory)
             (root / "config.json").write_text(json.dumps(config), encoding="utf-8")
             if tokenizer is not None:
-                (root / "tokenizer_config.json").write_text(json.dumps(tokenizer), encoding="utf-8")
+                (root / "tokenizer_config.json").write_text(
+                    json.dumps(tokenizer), encoding="utf-8"
+                )
             return inspect_target(directory, local_only=True)
 
     def test_dense_config_has_kv_state_and_chat_template(self):
         result = self._inspect(
-            {"model_type": "granite", "architectures": ["GraniteForCausalLM"], "num_hidden_layers": 12},
+            {
+                "model_type": "granite",
+                "architectures": ["GraniteForCausalLM"],
+                "num_hidden_layers": 12,
+            },
             {"chat_template": "{{ messages }}"},
         )
         facts = result["facts"]
         self.assertEqual(facts["architecture_lane"], "dense")
         self.assertEqual(facts["state_kind"], "kv")
         self.assertTrue(facts["chat_template_present"])
-        self.assertTrue(any(item["field"] == "architecture" for item in result["evidence"]))
+        self.assertTrue(
+            any(item["field"] == "architecture" for item in result["evidence"])
+        )
         self.assertIn("target_tap_candidates", result["recommendations"]["provenance"])
 
     def test_conv_attention_config_requires_state_replay(self):
@@ -37,16 +45,30 @@ class TargetInspectorTest(unittest.TestCase):
                 "model_type": "lfm2",
                 "architectures": ["Lfm2ForCausalLM"],
                 "num_hidden_layers": 6,
-                "layer_types": ["conv", "conv", "full_attention", "conv", "conv", "full_attention"],
+                "layer_types": [
+                    "conv",
+                    "conv",
+                    "full_attention",
+                    "conv",
+                    "conv",
+                    "full_attention",
+                ],
             }
         )
         self.assertEqual(result["facts"]["architecture_lane"], "hybrid_stateful")
-        self.assertIn("state_snapshot_rollback_replay", result["recommendations"]["required_gates"])
+        self.assertIn(
+            "state_snapshot_rollback_replay",
+            result["recommendations"]["required_gates"],
+        )
         self.assertIn(2, result["recommendations"]["target_tap_candidates"])
 
     def test_moe_config_is_not_misclassified_as_dense(self):
         result = self._inspect(
-            {"model_type": "granitemoe_swa", "num_hidden_layers": 8, "num_local_experts": 16}
+            {
+                "model_type": "granitemoe_swa",
+                "num_hidden_layers": 8,
+                "num_local_experts": 16,
+            }
         )
         self.assertEqual(result["facts"]["architecture_lane"], "moe")
 
@@ -56,8 +78,14 @@ class TargetInspectorTest(unittest.TestCase):
                 "model_type": "qwen3_5_text",
                 "num_hidden_layers": 8,
                 "layer_types": [
-                    "linear_attention", "linear_attention", "linear_attention", "full_attention",
-                    "linear_attention", "linear_attention", "linear_attention", "full_attention",
+                    "linear_attention",
+                    "linear_attention",
+                    "linear_attention",
+                    "full_attention",
+                    "linear_attention",
+                    "linear_attention",
+                    "linear_attention",
+                    "full_attention",
                 ],
             }
         )
@@ -75,7 +103,9 @@ class TargetInspectorTest(unittest.TestCase):
             )
             output = io.StringIO()
             with redirect_stdout(output):
-                self.assertEqual(cli_main(["target", "inspect", directory, "--local-only"]), 0)
+                self.assertEqual(
+                    cli_main(["target", "inspect", directory, "--local-only"]), 0
+                )
             result = json.loads(output.getvalue())
             self.assertEqual(result["facts"]["state_kind"], "recurrent")
 
@@ -93,8 +123,14 @@ class TargetInspectorTest(unittest.TestCase):
                 "model_type": "qwen3_5_text",
                 "num_hidden_layers": 8,
                 "layer_types": [
-                    "linear_attention", "linear_attention", "full_attention", "linear_attention",
-                    "linear_attention", "linear_attention", "full_attention", "linear_attention",
+                    "linear_attention",
+                    "linear_attention",
+                    "full_attention",
+                    "linear_attention",
+                    "linear_attention",
+                    "linear_attention",
+                    "full_attention",
+                    "linear_attention",
                 ],
             },
             {"chat_template": "{{ messages }}"},
