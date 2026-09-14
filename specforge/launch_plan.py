@@ -541,7 +541,7 @@ def _managed_local_services(
                 "--dtype", cfg.model.torch_dtype,
                 "--capture-method", contract.method,
                 "--aux-layer-ids", *[str(layer) for layer in contract.aux_layer_ids],
-                "--max-model-len", str(cfg.data.max_length),
+                "--max-model-len", str(cfg.data.max_length + 1),
                 "--host", "127.0.0.1", "--port", str(server.port),
             ]
             if cfg.model.target_revision is not None:

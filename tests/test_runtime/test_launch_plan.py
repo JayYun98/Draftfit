@@ -590,6 +590,7 @@ class LaunchPlanTest(unittest.TestCase):
                 self.assertEqual(argv[:3], (sys.executable, "-m", "specforge.inference.teacher_server"))
                 self.assertEqual(argv[argv.index("--target-backend") + 1], backend)
                 self.assertEqual(argv[argv.index("--revision") + 1], "a" * 40)
+                self.assertEqual(int(argv[argv.index("--max-model-len") + 1]), cfg.data.max_length + 1)
                 self.assertIn("--aux-layer-ids", argv)
                 self.assertIn("--cache-dir", argv)
                 self.assertNotIn("--enable-spec-capture", argv)
