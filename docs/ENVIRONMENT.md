@@ -1,8 +1,9 @@
 # Environment management with uv
 
 Use uv (0.9.18 or newer); contributor Python is 3.12. The owned distribution
-contains the modified SpecForge engine. Do not install upstream SpecForge beside
-it: both would own the same import namespace. See [code ownership](CODE_OWNERSHIP.md).
+contains the platform implementation in `dspark` and a legacy `specforge` import
+bridge. Do not install upstream SpecForge beside it: that package would collide
+with the compatibility bridge. See [code ownership](CODE_OWNERSHIP.md).
 
 ## CPU preparation and contributor checks
 
@@ -42,7 +43,7 @@ or pinned custom image first. Inside that image, use its actual Python path:
 ```sh
 # Replace /opt/runtime/bin/python with the interpreter supplied by the image.
 uv pip install --python /opt/runtime/bin/python --no-deps --no-build-isolation -e .
-uv run --no-project --python /opt/runtime/bin/python python -m specforge.cli algorithms
+uv run --no-project --python /opt/runtime/bin/python python -m dspark.cli algorithms
 ```
 
 `--no-deps` is intentional only for an already provisioned runtime, not a complete

@@ -1,7 +1,7 @@
 import unittest
 
-from specforge.modeling.auto import AutoDraftModel
-from specforge.modeling.draft.llama3_eagle import LlamaForCausalLMEagle3
+from dspark.modeling.auto import AutoDraftModel
+from dspark.modeling.draft.llama3_eagle import LlamaForCausalLMEagle3
 
 
 class TestAutoModelForCausalLM(unittest.TestCase):

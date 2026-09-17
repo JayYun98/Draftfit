@@ -9,18 +9,18 @@ from pathlib import Path
 import torch
 from transformers import Qwen3Config, Qwen3ForCausalLM
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.algorithms.common.dflash_family_model import OnlineDFlash2Model
-from specforge.inference.adapters.server_capture import TeacherServerCaptureAdapter
-from specforge.inference.capture import CaptureConfig, CaptureMismatchError
-from specforge.inference.capture_sink import CaptureSink
-from specforge.inference.teacher_server import TeacherService, make_server
-from specforge.launch import build_disagg_online_producer
-from specforge.modeling.draft.dflash2 import DFlash2DraftModel
-from specforge.offline_capture.transformers import OfflineTransformersCapture
-from specforge.runtime.data_plane.feature_dataloader import FeatureDataLoader
-from specforge.runtime.data_plane.mooncake_store import MooncakeFeatureStore
-from specforge.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.algorithms.common.dflash_family_model import OnlineDFlash2Model
+from dspark.inference.adapters.server_capture import TeacherServerCaptureAdapter
+from dspark.inference.capture import CaptureConfig, CaptureMismatchError
+from dspark.inference.capture_sink import CaptureSink
+from dspark.inference.teacher_server import TeacherService, make_server
+from dspark.launch import build_disagg_online_producer
+from dspark.modeling.draft.dflash2 import DFlash2DraftModel
+from dspark.offline_capture.transformers import OfflineTransformersCapture
+from dspark.runtime.data_plane.feature_dataloader import FeatureDataLoader
+from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
 from tests.test_dflash2_integration import tiny_config
 from tests.test_runtime.test_server_capture import (
     _capture_schema,

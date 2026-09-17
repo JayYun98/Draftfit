@@ -109,21 +109,21 @@ def main(argv=None):
         torch.backends.cudnn.allow_tf32 = False
     from transformers import AutoModelForCausalLM, AutoTokenizer, Qwen3Config
 
-    from specforge.algorithms.common.dflash_family_model import (
+    from dspark.algorithms.common.dflash_family_model import (
         OnlineDFlash2Model,
         OnlineDSparkModel,
     )
-    from specforge.export.to_hf import export_to_hf
-    from specforge.inference.adapters.server_capture import (
+    from dspark.export.to_hf import export_to_hf
+    from dspark.inference.adapters.server_capture import (
         ServerCaptureSchema,
         TeacherServerCaptureAdapter,
     )
-    from specforge.inference.capture import CaptureConfig
-    from specforge.modeling.draft.dflash2 import DFlash2Config, DFlash2DraftModel
-    from specforge.modeling.draft.dspark import DSparkDraftModel
-    from specforge.offline_capture.transformers import OfflineTransformersCapture
-    from specforge.runtime.contracts import PromptTask, SampleRef
-    from specforge.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+    from dspark.inference.capture import CaptureConfig
+    from dspark.modeling.draft.dflash2 import DFlash2Config, DFlash2DraftModel
+    from dspark.modeling.draft.dspark import DSparkDraftModel
+    from dspark.offline_capture.transformers import OfflineTransformersCapture
+    from dspark.runtime.contracts import PromptTask, SampleRef
+    from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
 
     if not torch.cuda.is_available() or torch.cuda.device_count() < 2:
         raise RuntimeError(
@@ -214,7 +214,7 @@ def main(argv=None):
     command = [
         args.teacher_python,
         "-m",
-        "specforge.inference.teacher_server",
+        "dspark.inference.teacher_server",
         "--target-backend",
         args.backend,
         "--model-path",

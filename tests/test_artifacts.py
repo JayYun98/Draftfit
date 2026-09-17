@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from specforge.artifacts import build_artifact_manifest
+from dspark.artifacts import build_artifact_manifest
 
 
 class ArtifactManifestTest(unittest.TestCase):
@@ -43,7 +43,7 @@ class ArtifactManifestTest(unittest.TestCase):
                 [
                     sys.executable,
                     "-m",
-                    "specforge.cli",
+                    "dspark.cli",
                     "artifact",
                     "manifest",
                     "--output",
@@ -71,7 +71,7 @@ class ArtifactManifestTest(unittest.TestCase):
                 [
                     sys.executable,
                     "-m",
-                    "specforge.cli",
+                    "dspark.cli",
                     "artifact",
                     "manifest",
                     "--output",

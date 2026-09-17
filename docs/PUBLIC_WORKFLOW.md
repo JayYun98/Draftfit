@@ -44,8 +44,8 @@ Recipe access itself uses only Python's standard library and works without a
 GPU, Torch, SGLang, a source checkout, or a network connection:
 
 ```sh
-python -m specforge.assets list
-python -m specforge.assets export ./my-draft-project
+python -m dspark.assets list
+python -m dspark.assets export ./my-draft-project
 cd ./my-draft-project
 ```
 

@@ -3,7 +3,7 @@
 import unittest
 from pathlib import Path
 
-from specforge.config import (
+from dspark.config import (
     Config,
     DataConfig,
     DeploymentConfig,

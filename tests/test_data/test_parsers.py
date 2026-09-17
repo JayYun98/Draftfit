@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Optional
 
 from transformers import AutoTokenizer
 
-from specforge.data.preprocessing import preprocess_conversations
-from specforge.data.template import TEMPLATE_REGISTRY
-from specforge.utils import load_tokenizer
+from dspark.data.preprocessing import preprocess_conversations
+from dspark.data.template import TEMPLATE_REGISTRY
+from dspark.utils import load_tokenizer
 
 
 class TestTemplatePreprocessing(unittest.TestCase):

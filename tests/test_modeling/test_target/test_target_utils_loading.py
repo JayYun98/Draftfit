@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import torch
 
-from specforge.modeling.target.target_utils import (
+from dspark.modeling.target.target_utils import (
     TargetEmbeddingsAndHead,
     load_target_config,
 )
@@ -40,7 +40,7 @@ class TargetEmbeddingsAndHeadLoadingTest(unittest.TestCase):
 
     def _safe_open(self, tensors):
         return patch(
-            "specforge.modeling.target.target_utils.safe_open",
+            "dspark.modeling.target.target_utils.safe_open",
             side_effect=lambda *_args, **_kwargs: _FakeSafeOpen(tensors),
         )
 
@@ -195,7 +195,7 @@ class TargetEmbeddingsAndHeadLoadingTest(unittest.TestCase):
                 encoding="utf-8",
             )
             with patch(
-                "specforge.modeling.target.target_utils.AutoConfig.from_pretrained",
+                "dspark.modeling.target.target_utils.AutoConfig.from_pretrained",
                 side_effect=ValueError("unknown model type"),
             ):
                 config = load_target_config(tmp)
@@ -223,7 +223,7 @@ class TargetEmbeddingsAndHeadLoadingTest(unittest.TestCase):
         with (
             tempfile.TemporaryDirectory() as tmp,
             patch(
-                "specforge.modeling.target.target_utils.load_target_config",
+                "dspark.modeling.target.target_utils.load_target_config",
                 return_value=config,
             ),
             patch.object(TargetEmbeddingsAndHead, "_load_weights", load_weights),

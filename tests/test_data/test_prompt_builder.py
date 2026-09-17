@@ -6,8 +6,8 @@ import types
 import unittest
 from unittest.mock import patch
 
-from specforge.data.loss_mask import has_consecutive_supervised_tokens
-from specforge.data.prompt_builder import prepare_prompt_tasks
+from dspark.data.loss_mask import has_consecutive_supervised_tokens
+from dspark.data.prompt_builder import prepare_prompt_tasks
 
 
 class _FakeDataset:
@@ -149,7 +149,7 @@ class TestPreparePromptTasks(unittest.TestCase):
 
         fake_datasets = types.ModuleType("datasets")
         fake_datasets.load_dataset = fake_load_dataset
-        fake_preprocessing = types.ModuleType("specforge.data.preprocessing")
+        fake_preprocessing = types.ModuleType("dspark.data.preprocessing")
         fake_preprocessing.build_eagle3_dataset = fake_build_eagle3_dataset
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -159,7 +159,7 @@ class TestPreparePromptTasks(unittest.TestCase):
                 sys.modules,
                 {
                     "datasets": fake_datasets,
-                    "specforge.data.preprocessing": fake_preprocessing,
+                    "dspark.data.preprocessing": fake_preprocessing,
                 },
             ):
                 prompts = prepare_prompt_tasks(

@@ -7,8 +7,8 @@ from dataclasses import fields
 from pathlib import Path
 from types import SimpleNamespace
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.algorithms.common.providers import (
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.algorithms.common.providers import (
     MODEL_PROVENANCE_CONTRACT_KEY,
     OMITTED_STATE_FINGERPRINT_CONTRACT_KEY,
     STEP_OPTIONS_CONTRACT_KEY,
@@ -19,7 +19,7 @@ from specforge.algorithms.common.providers import (
     ServerStreamingProvider,
     StepRuntimeConfig,
 )
-from specforge.algorithms.contracts import AlgorithmSpec, FeatureMode
+from dspark.algorithms.contracts import AlgorithmSpec, FeatureMode
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILTINS = ("dflash", "domino", "dspark", "eagle3", "peagle")
@@ -426,10 +426,10 @@ class BuiltinProviderContractTest(unittest.TestCase):
     def test_building_catalog_does_not_import_training_or_torch(self):
         code = (
             "import sys; "
-            "from specforge.algorithms.builtin import builtin_algorithm_registry; "
+            "from dspark.algorithms.builtin import builtin_algorithm_registry; "
             "r=builtin_algorithm_registry(); assert len(r)==5; "
             "assert 'torch' not in sys.modules; "
-            "assert 'specforge.training.strategies.registry' not in sys.modules"
+            "assert 'dspark.training.strategies.registry' not in sys.modules"
         )
         result = subprocess.run(
             [sys.executable, "-c", code],

@@ -7,8 +7,8 @@ from unittest import mock
 
 import torch
 
-from specforge.offline_capture.sglang_backend import patch as sglang_patch
-from specforge.offline_capture.sglang_backend import utils as sglang_utils
+from dspark.offline_capture.sglang_backend import patch as sglang_patch
+from dspark.offline_capture.sglang_backend import utils as sglang_utils
 
 
 class SGLang0514CompatibilityTest(unittest.TestCase):

@@ -9,7 +9,7 @@ from unittest.mock import patch
 import torch
 from torch import nn
 
-from specforge.modeling.draft.domino import DominoDraftModel
+from dspark.modeling.draft.domino import DominoDraftModel
 
 
 def _bare_domino(
@@ -55,7 +55,7 @@ class _TinyTarget(nn.Module):
 
 class TestDominoDraftModel(unittest.TestCase):
     def test_training_loss_updates_gru_and_projection(self):
-        from specforge.algorithms.common.dflash_family_model import OnlineDominoModel
+        from dspark.algorithms.common.dflash_family_model import OnlineDominoModel
 
         torch.manual_seed(11)
         hidden_size, vocab_size, block_size = 4, 7, 4
@@ -111,7 +111,7 @@ class TestDominoDraftModel(unittest.TestCase):
             )
 
     def test_chunked_objective_matches_full_loss_metrics_and_gradients(self):
-        from specforge.algorithms.common.dflash_family_model import OnlineDominoModel
+        from dspark.algorithms.common.dflash_family_model import OnlineDominoModel
 
         hidden_size, vocab_size, block_size = 4, 7, 4
         for shift_label in (False, True):
@@ -244,9 +244,7 @@ class TestDominoDraftModel(unittest.TestCase):
         model = _bare_domino().to(dtype=torch.bfloat16)
         inputs = torch.randn(2, 5, 4, dtype=torch.bfloat16)
 
-        with patch(
-            "specforge.modeling.draft.domino.get_device_type", return_value="npu"
-        ):
+        with patch("dspark.modeling.draft.domino.get_device_type", return_value="npu"):
             output = model._run_gru(inputs)
             output.float().square().mean().backward()
 

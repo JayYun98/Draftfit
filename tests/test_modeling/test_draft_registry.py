@@ -16,8 +16,8 @@ from unittest import mock
 import torch
 from transformers import LlamaConfig, Qwen3Config
 
-from specforge.modeling.auto import AutoDraftModel, AutoDraftModelConfig
-from specforge.modeling.draft import (
+from dspark.modeling.auto import AutoDraftModel, AutoDraftModelConfig
+from dspark.modeling.draft import (
     DRAFT_REGISTRY,
     DFlashDraftModel,
     DominoDraftModel,

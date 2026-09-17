@@ -22,24 +22,24 @@ from typing import Any, Dict, List
 
 import torch
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.inference.adapters.server_capture import (
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.inference.adapters.server_capture import (
     ServerCaptureFailure,
     ServerCaptureSchema,
     SGLangServerCaptureAdapter,
 )
-from specforge.inference.capture import (
+from dspark.inference.capture import (
     CaptureConfig,
     CaptureMismatchError,
     verify_capture_specs,
 )
-from specforge.inference.parity import (
+from dspark.inference.parity import (
     compare_feature_manifests,
     compare_token_ids,
     feature_manifest,
 )
-from specforge.runtime.contracts import FeatureSpec, PromptTask, SampleRef
-from specforge.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+from dspark.runtime.contracts import FeatureSpec, PromptTask, SampleRef
+from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
 
 HIDDEN = 8
 AUX_LAYERS = (2, 5, 8)
@@ -631,7 +631,7 @@ class TestServerCaptureAdapter(unittest.TestCase):
         self.assertIsInstance(results[1], SampleRef)
 
     def test_rollout_worker_ref_path(self):
-        from specforge.inference.rollout_worker import RolloutWorker
+        from dspark.inference.rollout_worker import RolloutWorker
 
         backend = _FakeMooncakeStore()
         server = _StubCaptureServer(backend, error_sample_ids={"run0:t1"})
@@ -834,7 +834,7 @@ class TestLoaderGcPump(unittest.TestCase):
     def test_loader_gc_pump_frees_lease_deferred_removes(self):
         import time as _time
 
-        from specforge.runtime.data_plane.feature_dataloader import FeatureDataLoader
+        from dspark.runtime.data_plane.feature_dataloader import FeatureDataLoader
 
         TTL = 0.05
 
@@ -888,10 +888,8 @@ class TestServerCaptureProducerWiring(unittest.TestCase):
     """The example's exact path: build_disagg_online_producer(feature_source=...)."""
 
     def test_producer_streams_refs_via_feature_source(self):
-        from specforge.launch import build_disagg_online_producer
-        from specforge.runtime.data_plane.streaming_ref_channel import (
-            StreamingRefChannel,
-        )
+        from dspark.launch import build_disagg_online_producer
+        from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
 
         backend = _FakeMooncakeStore()
         server = _StubCaptureServer(backend)

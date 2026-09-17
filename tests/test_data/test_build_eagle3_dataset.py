@@ -6,8 +6,8 @@ import torch
 from datasets import Dataset
 from transformers import AutoTokenizer
 
-from specforge.data.preprocessing import build_eagle3_dataset
-from specforge.utils import safe_conversations_generator
+from dspark.data.preprocessing import build_eagle3_dataset
+from dspark.utils import safe_conversations_generator
 
 # ANSI color codes
 RED = "\033[91m"
@@ -51,7 +51,7 @@ def print_with_loss_mask(tokenizer, input_ids, loss_mask, title=""):
     print("=" * 60)
 
 
-# Tools definition from specforge/data/tools.py
+# Tools definition from dspark/data/tools.py
 TOOLS = [
     {
         "type": "function",
@@ -137,7 +137,7 @@ TOOL_USE_CONVERSATION = [
 
 
 class TestBuildEagle3Dataset(unittest.TestCase):
-    """Test for build_eagle3_dataset with tools from specforge/data/tools.py."""
+    """Test for build_eagle3_dataset with tools from dspark/data/tools.py."""
 
     @classmethod
     def setUpClass(cls):

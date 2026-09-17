@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from specforge.optimizer import BF16Optimizer
+from dspark.optimizer import BF16Optimizer
 
 
 def _optimizer(*, scheduler="cosine", total_steps=4, warmup_ratio=0.0):

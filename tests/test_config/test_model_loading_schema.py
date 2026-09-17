@@ -5,8 +5,8 @@ import unittest
 
 from pydantic import ValidationError
 
-from specforge.application import resolve_run
-from specforge.config import Config
+from dspark.application import resolve_run
+from dspark.config import Config
 
 ONLINE_DEPLOYMENT = {
     "mode": "disaggregated",

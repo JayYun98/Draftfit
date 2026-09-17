@@ -6,16 +6,16 @@ import unittest
 
 import torch
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.core.compact_teacher import (
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.core.compact_teacher import (
     compute_target_from_hidden,
     compute_target_p_padded_from_hidden,
     tiled_logsumexp_argmax,
 )
-from specforge.core.eagle3_adapters import SdpaLikeAdapter
-from specforge.runtime.contracts import TrainBatch
-from specforge.training.strategies.base import Eagle3TrainStrategy
-from specforge.utils import padding
+from dspark.core.eagle3_adapters import SdpaLikeAdapter
+from dspark.runtime.contracts import TrainBatch
+from dspark.training.strategies.base import Eagle3TrainStrategy
+from dspark.utils import padding
 
 EAGLE3 = builtin_algorithm_registry().resolve("eagle3")
 

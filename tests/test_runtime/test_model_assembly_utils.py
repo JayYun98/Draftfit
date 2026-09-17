@@ -3,7 +3,7 @@
 import types
 import unittest
 
-from specforge.training.model_utils import resolve_mask_token_id
+from dspark.training.model_utils import resolve_mask_token_id
 
 
 class _Tokenizer:

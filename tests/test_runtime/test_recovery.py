@@ -6,10 +6,10 @@ import os
 import tempfile
 import unittest
 
-from specforge.runtime.contracts import FeatureSpec, SampleRef
-from specforge.runtime.control_plane.controller import DataFlowController
-from specforge.runtime.control_plane.metadata_store import SQLiteMetadataStore
-from specforge.runtime.data_plane.ref_serialization import ref_from_dict, ref_to_dict
+from dspark.runtime.contracts import FeatureSpec, SampleRef
+from dspark.runtime.control_plane.controller import DataFlowController
+from dspark.runtime.control_plane.metadata_store import SQLiteMetadataStore
+from dspark.runtime.data_plane.ref_serialization import ref_from_dict, ref_to_dict
 
 
 def _ref(sample_id: str) -> SampleRef:

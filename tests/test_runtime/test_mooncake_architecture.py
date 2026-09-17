@@ -7,8 +7,7 @@ import unittest
 from pathlib import Path
 
 STORE_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "specforge/runtime/data_plane/mooncake_store.py"
+    Path(__file__).resolve().parents[2] / "dspark/runtime/data_plane/mooncake_store.py"
 )
 
 

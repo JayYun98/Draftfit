@@ -8,8 +8,8 @@ import time
 import unittest
 from unittest import mock
 
-from specforge.runtime.contracts import FeatureSpec, SampleRef
-from specforge.runtime.data_plane.streaming_ref_channel import (
+from dspark.runtime.contracts import FeatureSpec, SampleRef
+from dspark.runtime.data_plane.streaming_ref_channel import (
     StreamingRefChannel,
     StreamingRefQueue,
 )
@@ -91,7 +91,7 @@ class TestStreamingRefChannel(unittest.TestCase):
 
         with (
             mock.patch(
-                "specforge.runtime.data_plane.streaming_ref_channel.os.fsync",
+                "dspark.runtime.data_plane.streaming_ref_channel.os.fsync",
                 side_effect=OSError("injected fsync failure"),
             ),
             self.assertRaisesRegex(OSError, "injected fsync failure"),
@@ -111,7 +111,7 @@ class TestStreamingRefChannel(unittest.TestCase):
 
         with (
             mock.patch(
-                "specforge.runtime.data_plane.streaming_ref_channel.os.fsync",
+                "dspark.runtime.data_plane.streaming_ref_channel.os.fsync",
                 side_effect=OSError("injected fsync failure"),
             ),
             self.assertRaisesRegex(OSError, "injected fsync failure"),
@@ -139,7 +139,7 @@ class TestStreamingRefChannel(unittest.TestCase):
 
         with (
             mock.patch(
-                "specforge.runtime.data_plane.streaming_ref_channel.os.write",
+                "dspark.runtime.data_plane.streaming_ref_channel.os.write",
                 side_effect=write_one_record_then_fail,
             ),
             self.assertRaisesRegex(OSError, "injected batch write failure"),
@@ -166,7 +166,7 @@ class TestStreamingRefChannel(unittest.TestCase):
 
         with (
             mock.patch(
-                "specforge.runtime.data_plane.streaming_ref_channel.os.write",
+                "dspark.runtime.data_plane.streaming_ref_channel.os.write",
                 side_effect=write_partial_then_fail,
             ),
             self.assertRaisesRegex(OSError, "injected partial write failure"),

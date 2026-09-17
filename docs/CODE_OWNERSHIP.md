@@ -7,10 +7,10 @@ upstream authorship and applicable notices remain in place. See
 
 | Component | What this repository maintains | External boundary |
 | --- | --- | --- |
-| SpecForge-derived platform | In-tree `specforge/`: CLI/configuration, target metadata, draft algorithms, training, checkpoint/export, capture adapters and runtime orchestration; shipped in the platform wheel | PyTorch, Transformers and other installed libraries remain dependencies. The retained `specforge` namespace does not mean an upstream checkout is required at runtime. |
-| SGLang | In-tree adapters under `specforge/offline_capture/sglang_backend/`, patch installers and versioned patch files under `patches/sglang/` | Actual `sglang` implementation is installed separately. The validated Ling route uses a pinned external image/source plus our capture patch. It is a customized backend installation, not SGLang source bundled into the platform wheel. |
-| Mooncake | `specforge/runtime/data_plane/mooncake_store.py` and managed process/config integration | Imports the installed official `mooncake.store` API. This tree does not vendor or patch Mooncake itself; install the official CUDA-compatible wheel/master executable required by the runtime. |
-| TorchSpec references | `specforge/torchspec_bridge.py` is a small stdlib-only launch/checkpoint planner; DFlash2 adapted model/loss/export code is maintained in-tree with source notices | The bridge emits the existing SpecForge `torchrun` plan. It does not import TorchSpec, run its distributed trainer, or require its repository/Ray runtime. |
+| DSpark platform | In-tree `dspark/`: CLI/configuration, target metadata, draft algorithms, training, checkpoint/export, capture adapters and runtime orchestration; shipped in the platform wheel | PyTorch, Transformers and other installed libraries remain dependencies. `specforge/` is an import compatibility bridge, not an upstream runtime installation. |
+| SGLang | In-tree adapters under `dspark/offline_capture/sglang_backend/`, patch installers and versioned patch files under `patches/sglang/` | Actual `sglang` implementation is installed separately. The validated Ling route uses a pinned external image/source plus our capture patch. It is a customized backend installation, not SGLang source bundled into the platform wheel. |
+| Mooncake | `dspark/runtime/data_plane/mooncake_store.py` and managed process/config integration | Imports the installed official `mooncake.store` API. This tree does not vendor or patch Mooncake itself; install the official CUDA-compatible wheel/master executable required by the runtime. |
+| TorchSpec references | `dspark/torchspec_bridge.py` is a small stdlib-only launch/checkpoint planner; DFlash2 adapted model/loss/export code is maintained in-tree with source notices | The bridge emits the existing SpecForge `torchrun` plan. It does not import TorchSpec, run its distributed trainer, or require its repository/Ray runtime. |
 
 The bridge's `executor` is `specforge_torchrun`; its name describes the referenced
 resource/checkpoint contract, not delegation to another installed framework.
@@ -34,8 +34,26 @@ It does not claim that every third-party source line has received legal review.
 The platform is an in-tree derivative with its own composition, not a CLI over
 TorchSpec/AngelSpec. `training/disaggregated.py` assembles our producer/channel/
 consumer; `runtime/` owns task leases, backpressure, acknowledgments and cleanup;
-algorithm providers own model/loss/feature contracts. Renaming the import package
-would not change that ownership and is not required for independent operation.
+algorithm providers own model/loss/feature contracts. The canonical `dspark`
+package exposes these responsibilities directly. Legacy imports resolve to
+the same implementation objects, without a second algorithm registry or trainer.
+
+## Module responsibilities
+
+| Module | Responsibility | Does not own |
+| --- | --- | --- |
+| `dspark.cli` | Parse commands and call application entry points | Training mathematics or backend extraction |
+| `dspark.application` | Resolve config, validate capabilities, compose a run | Model forward passes or storage protocols |
+| `dspark.algorithms` | Draft models, objectives and feature contracts | Process supervision |
+| `dspark.training` | Training lifecycle, metric reduction, checkpoint and resume | Teacher architecture implementations |
+| `dspark.inference` / `offline_capture` | Teacher adapters and captured feature contracts | Draft optimization |
+| `dspark.runtime` | Worker supervision, control flow and feature transport | Algorithm-specific loss |
+| `dspark.export` | Artifact conversion and loader metadata | Serving performance certification |
+| `specforge` | Compatibility imports and legacy module execution | Independent implementation |
+
+Compatibility retains existing environment variables, serialized field names,
+checkpoint tensor keys and wire contracts. Product naming is not a reason to
+invalidate stored artifacts or change runtime safety controls.
 
 The backend-specific producer constraint has been removed: `teacher_server.py`
 runs our HF/vLLM extraction services, `capture_sink.py` maintains our existing

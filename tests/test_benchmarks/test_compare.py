@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from specforge.benchmarks.compare import compare, main
+from dspark.benchmarks.compare import compare, main
 
 
 def report(rate=100):

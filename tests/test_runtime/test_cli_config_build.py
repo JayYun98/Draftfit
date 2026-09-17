@@ -27,9 +27,9 @@ class TestCliConfigBuild(unittest.TestCase):
 
         import yaml
 
-        from specforge.application import build_application_run, resolve_run
-        from specforge.config import load_config
-        from specforge.training import Trainer
+        from dspark.application import build_application_run, resolve_run
+        from dspark.config import load_config
+        from dspark.training import Trainer
 
         workdir = tempfile.mkdtemp(prefix="cli_cfg_")
         cfg_path = fx.write_draft_config(os.path.join(workdir, "draft.json"))
@@ -85,9 +85,9 @@ class TestCliConfigBuild(unittest.TestCase):
 
 class TestCliDispatch(unittest.TestCase):
     def test_train_command_dispatches_one_resolved_run(self):
-        from specforge.application import ResolvedRun
-        from specforge.cli import main
-        from specforge.config import Config
+        from dspark.application import ResolvedRun
+        from dspark.cli import main
+        from dspark.config import Config
 
         cfg = Config.model_validate(
             {
@@ -97,8 +97,8 @@ class TestCliDispatch(unittest.TestCase):
             }
         )
         with (
-            mock.patch("specforge.cli.load_config", return_value=cfg) as load,
-            mock.patch("specforge.cli._train", return_value=3) as train,
+            mock.patch("dspark.cli.load_config", return_value=cfg) as load,
+            mock.patch("dspark.cli._train", return_value=3) as train,
         ):
             self.assertEqual(main(["train", "--config", "run.yaml"]), 0)
         load.assert_called_once_with("run.yaml", [])

@@ -6,14 +6,14 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest import mock
 
-from specforge.tracker import WandbTracker, _public_config
-from specforge.training.tracking import (
+from dspark.tracker import WandbTracker, _public_config
+from dspark.training.tracking import (
     TrackerLogger,
     create_tracker_logger,
     scalar_metrics,
     training_metric_names,
 )
-from specforge.training.trainer import Trainer
+from dspark.training.trainer import Trainer
 
 
 class _TensorDouble:
@@ -147,7 +147,7 @@ class TrackingLoggerTest(unittest.TestCase):
         tracker = _Tracker()
         tracker_class = mock.Mock(return_value=tracker)
         with mock.patch(
-            "specforge.tracker.get_tracker_class", return_value=tracker_class
+            "dspark.tracker.get_tracker_class", return_value=tracker_class
         ) as make:
             logger = create_tracker_logger(
                 mock.Mock(report_to="tensorboard"), "/tmp/output"
@@ -171,10 +171,10 @@ class TrackingLoggerTest(unittest.TestCase):
 
         with (
             TemporaryDirectory() as output_dir,
-            mock.patch("specforge.tracker.wandb", wandb),
-            mock.patch("specforge.tracker.dist.is_available", return_value=True),
-            mock.patch("specforge.tracker.dist.is_initialized", return_value=True),
-            mock.patch("specforge.tracker.dist.get_rank", return_value=0),
+            mock.patch("dspark.tracker.wandb", wandb),
+            mock.patch("dspark.tracker.dist.is_available", return_value=True),
+            mock.patch("dspark.tracker.dist.is_initialized", return_value=True),
+            mock.patch("dspark.tracker.dist.get_rank", return_value=0),
         ):
             tracker = WandbTracker(args, output_dir)
             # A later multiprocessing lifecycle may clear W&B's module-global

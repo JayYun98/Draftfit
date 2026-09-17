@@ -10,10 +10,10 @@ from unittest.mock import Mock
 
 import torch
 
-from specforge.inference.capture_sink import CaptureSink
-from specforge.inference.teacher_server import TeacherService, make_server
-from specforge.offline_capture.sglang import OfflineCaptureBatch
-from specforge.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+from dspark.inference.capture_sink import CaptureSink
+from dspark.inference.teacher_server import TeacherService, make_server
+from dspark.offline_capture.sglang import OfflineCaptureBatch
+from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
 from tests.test_runtime.test_mooncake_store import _FakeMooncakeStore
 
 
@@ -171,7 +171,7 @@ class NativeTeacherBoundaryTests(unittest.TestCase):
             torch.ones(1, 2),
             torch.ones(1, 2),
         )
-        with self.assertLogs("specforge.inference.teacher_server", level="ERROR"):
+        with self.assertLogs("dspark.inference.teacher_server", level="ERROR"):
             rows = self.service.generate(self.body)
         self.assertIn("error", rows[0]["meta_info"]["spec_capture"])
         self.assertFalse(self.raw._d)

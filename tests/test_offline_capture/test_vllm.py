@@ -14,7 +14,7 @@ from safetensors.torch import load_file, save_file
 from transformers import LlamaConfig
 from transformers.models.llama.modeling_llama import LlamaRMSNorm
 
-from specforge.offline_capture.vllm import OfflineVLLMCapture, _load_norm
+from dspark.offline_capture.vllm import OfflineVLLMCapture, _load_norm
 
 
 class VLLMCaptureTests(unittest.TestCase):

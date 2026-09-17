@@ -16,7 +16,7 @@ NUM_NODES="${NUM_NODES:-${RCLI_NUM_NODES:-}}"
 HEAD_IP="${HEAD_IP:-${RCLI_HEAD_IP:-}}"
 RUN_ID="${DISAGG_STORE_ID:-}"
 RUN_ROOT="${DISAGG_RUN_ROOT:-}"
-CONSUMER_STATE_DIR="${DISAGG_CONSUMER_STATE_DIR:-${LOCAL_SCRATCH:-/tmp}/specforge/$RUN_ID/consumer-state}"
+CONSUMER_STATE_DIR="${DISAGG_CONSUMER_STATE_DIR:-${LOCAL_SCRATCH:-/tmp}/dspark/$RUN_ID/consumer-state}"
 CONFIG="${CONFIG:-$ROOT_DIR/examples/configs/qwen3-8b-dflash-disaggregated.yaml}"
 RUN_LABEL="${RUN_LABEL:-qwen3-8b-dflash-2node}"
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from specforge.benchmarks import sglang
+from dspark.benchmarks import sglang
 
 
 class SGLangBenchmarkTest(unittest.TestCase):
@@ -323,7 +323,7 @@ class SGLangBenchmarkTest(unittest.TestCase):
         )
 
     def test_shared_cli_dispatches_sglang_benchmark(self):
-        from specforge.cli import main
+        from dspark.cli import main
 
         with mock.patch.object(sglang, "run", return_value=7) as run:
             status = main(
@@ -340,7 +340,7 @@ class SGLangBenchmarkTest(unittest.TestCase):
         self.assertEqual(run.call_args.args[0].model, "thinkingmachines/Inkling")
 
     def test_cli_help_describes_the_backend_not_an_algorithm(self):
-        from specforge.cli import main
+        from dspark.cli import main
 
         output = StringIO()
         with redirect_stdout(output), self.assertRaises(SystemExit) as exited:

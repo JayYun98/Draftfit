@@ -3,7 +3,7 @@
 
 import unittest
 
-from specforge.runtime.control_plane.flow_control import (
+from dspark.runtime.control_plane.flow_control import (
     FlowControlLimits,
     ProducerFlowControl,
 )

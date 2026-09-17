@@ -15,8 +15,8 @@ from datetime import timedelta
 
 import torch
 
-from specforge.runtime.contracts import TrainBatch
-from specforge.training.strategies.base import StepOutput
+from dspark.runtime.contracts import TrainBatch
+from dspark.training.strategies.base import StepOutput
 
 
 def _batch():
@@ -69,7 +69,7 @@ def _additive_scalar_out(loss_num, loss_den, accuracy_num, accuracy_den):
 
 class TestEvaluatorAggregation(unittest.TestCase):
     def _run(self, outputs):
-        from specforge.eval import Evaluator
+        from dspark.eval import Evaluator
 
         it = iter(outputs)
         return Evaluator().run(lambda b: next(it), [_batch() for _ in outputs])
@@ -119,7 +119,7 @@ class TestEvaluatorAggregation(unittest.TestCase):
 
     def test_zero_batches_returns_empty(self):
         # Fabricated zero metrics would poison best-checkpoint tracking.
-        from specforge.eval import Evaluator
+        from dspark.eval import Evaluator
 
         self.assertEqual(Evaluator().run(lambda b: None, []), {})
         self.assertEqual(Evaluator().run(lambda b: None, None), {})
@@ -136,7 +136,7 @@ class TestEvaluatorAggregation(unittest.TestCase):
         self.assertAlmostEqual(m["eval/avg_acc"], big / (big + 3), places=12)
 
     def test_scalar_strategy_degenerates_gracefully(self):
-        from specforge.eval import Evaluator
+        from dspark.eval import Evaluator
 
         # equal token counts -> the token-weighted fallback equals the plain mean.
         outs = [
@@ -149,7 +149,7 @@ class TestEvaluatorAggregation(unittest.TestCase):
         self.assertAlmostEqual(m["eval/simulated_acc_len"], 0.6, places=6)
 
     def test_scalar_fallback_weights_by_loss_tokens(self):
-        from specforge.eval import Evaluator
+        from dspark.eval import Evaluator
 
         # No accuracy_denom -> fall back to loss-token weights: (3-of-4) +
         # (1-of-2) regrouped as one 4-of-6 batch must agree; a plain mean of
@@ -166,7 +166,7 @@ class TestEvaluatorAggregation(unittest.TestCase):
             self.assertAlmostEqual(m["eval/simulated_acc_len"], 4 / 6, places=6)
 
     def test_scalar_accuracy_weighted_by_accuracy_denom(self):
-        from specforge.eval import Evaluator
+        from dspark.eval import Evaluator
 
         # Realistic DFlash shapes: the accuracy denominator (anchor-block eval
         # positions) differs from the loss-token count. Invariance must come
@@ -251,7 +251,7 @@ def _dp_worker(rank, world_size, port, results_dir):
         world_size=world_size,
         timeout=timedelta(seconds=60),
     )
-    from specforge.eval import Evaluator
+    from dspark.eval import Evaluator
 
     # Scenario 1 — scalar accuracy, uneven shards, accuracy_denom != tokens:
     # both weight sets must be reduced across ranks independently.
@@ -310,7 +310,7 @@ class TestCheckpointManager(unittest.TestCase):
         return {"draft_state_dict": {"w": torch.zeros(2)}, "global_step": step}
 
     def test_rotation_pointers_and_best(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_mgr_")
         mgr = CheckpointManager(out, "run", max_checkpoints=2)
@@ -340,7 +340,7 @@ class TestCheckpointManager(unittest.TestCase):
         self.assertEqual(mgr.load()["global_step"], 4)  # latest
 
     def test_best_survives_restart(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_mgr_rehydrate_")
         mgr = CheckpointManager(out, "run", max_checkpoints=2)
@@ -368,7 +368,7 @@ class TestCheckpointManager(unittest.TestCase):
         self.assertEqual(mgr2.best_step, 1)
 
     def test_read_resume_state_carries_backend(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_mgr_rank_")
         mgr = CheckpointManager(out, "run")
@@ -392,7 +392,7 @@ class TestCheckpointManager(unittest.TestCase):
         self.assertEqual(state2["global_step"], 7)
 
     def test_read_resume_state_requires_rank_file(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_mgr_norank_")
         mgr = CheckpointManager(out, "run")

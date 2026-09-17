@@ -9,12 +9,12 @@ from pathlib import Path
 
 import torch
 
-_loss_module = types.ModuleType("specforge.core.loss")
+_loss_module = types.ModuleType("dspark.core.loss")
 _loss_module.LogSoftmaxLoss = object
 _model_spec = importlib.util.spec_from_file_location(
     "test_eagle3_position_model",
     Path(__file__).resolve().parents[2]
-    / "specforge"
+    / "dspark"
     / "algorithms"
     / "eagle3"
     / "model.py",
@@ -22,15 +22,15 @@ _model_spec = importlib.util.spec_from_file_location(
 assert _model_spec is not None and _model_spec.loader is not None
 _model_module = importlib.util.module_from_spec(_model_spec)
 _missing = object()
-_previous_loss_module = sys.modules.get("specforge.core.loss", _missing)
-sys.modules["specforge.core.loss"] = _loss_module
+_previous_loss_module = sys.modules.get("dspark.core.loss", _missing)
+sys.modules["dspark.core.loss"] = _loss_module
 try:
     _model_spec.loader.exec_module(_model_module)
 finally:
     if _previous_loss_module is _missing:
-        sys.modules.pop("specforge.core.loss", None)
+        sys.modules.pop("dspark.core.loss", None)
     else:
-        sys.modules["specforge.core.loss"] = _previous_loss_module
+        sys.modules["dspark.core.loss"] = _previous_loss_module
 OnlineEagle3Model = _model_module.OnlineEagle3Model
 
 

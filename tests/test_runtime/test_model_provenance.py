@@ -11,7 +11,7 @@ from unittest import mock
 
 import torch.distributed as dist
 
-from specforge.training import provenance
+from dspark.training import provenance
 
 
 def _config(target_model_path: str) -> SimpleNamespace:

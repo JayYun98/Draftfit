@@ -3,8 +3,8 @@
 
 import unittest
 
-from specforge.runtime.contracts import SampleRef
-from specforge.runtime.data_plane.sample_ref_queue import SampleRefQueue
+from dspark.runtime.contracts import SampleRef
+from dspark.runtime.data_plane.sample_ref_queue import SampleRefQueue
 
 
 def _ref(i: int) -> SampleRef:

@@ -12,13 +12,13 @@ from torch import nn
 @unittest.skipUnless(torch.cuda.is_available(), "draft update gate requires CUDA")
 class DraftFamilyGpuSmoke(unittest.TestCase):
     def test_updates_and_reload(self):
-        from specforge.algorithms.common.dflash_family_model import (
+        from dspark.algorithms.common.dflash_family_model import (
             OnlineDFlashModel,
             OnlineDominoModel,
             OnlineDSparkModel,
         )
-        from specforge.modeling.auto import AutoDraftModel
-        from specforge.training.model_loading import load_draft_config_source
+        from dspark.modeling.auto import AutoDraftModel
+        from dspark.training.model_loading import load_draft_config_source
 
         root = Path(__file__).resolve().parents[2]
         for name, wrapper in (

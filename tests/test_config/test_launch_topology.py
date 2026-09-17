@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from specforge.config import Config
+from dspark.config import Config
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE_CONFIG_DIR = REPO_ROOT / "examples" / "configs"

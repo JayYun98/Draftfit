@@ -5,7 +5,8 @@
 The distribution is `dspark-train-platform`; `dspark` is its primary command.
 Legacy `specforge` imports and the command alias remain available. Do not install
 the upstream SpecForge distribution alongside it in the same environment: both
-own the same Python namespace. Use a dedicated environment when migrating.
+would own the legacy Python namespace. The implementation itself is now in
+`dspark`; use a dedicated environment when migrating.
 
 Training resume and export use the restricted tensor/primitive checkpoint loader,
 including per-rank optimizer and RNG payloads. Arbitrary pickle objects are
@@ -55,7 +56,7 @@ replacing the environment's backend:
 ```sh
 uv build --python .venv-cpu/bin/python --no-build-isolation
 uv pip install --python .venv-cpu/bin/python --no-deps dist/dspark_train_platform-0.2.0-py3-none-any.whl
-uv run --no-project --python .venv-cpu/bin/python python -m specforge.assets list
+uv run --no-project --python .venv-cpu/bin/python python -m dspark.assets list
 uv run --no-project --python .venv-cpu/bin/python python -I scripts/check_public_install.py
 ```
 
@@ -90,7 +91,8 @@ serving validation remain separate gates.
   matching project metadata, and a matching manual distribution-name confirmation.
   Forks retaining upstream distribution names are rejected. Do not enable it until identity and release
   checks below are approved. No publication was performed.
-- Package discovery includes only `specforge*`; recipes are copied from the
+- Package discovery includes `dspark*` and the small `specforge` compatibility
+  package; recipes are copied from the
   existing allowlisted source directories. Wheel tests check license inclusion,
   overwrite refusal and obvious local-path/private-key leaks. This bounded
   check is not a full secret/history audit.

@@ -13,7 +13,7 @@ import unittest
 
 import torch
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
+from dspark.algorithms.builtin import builtin_algorithm_registry
 from tests.test_runtime import _fixtures as fx
 
 CUDA = torch.cuda.is_available()
@@ -21,7 +21,7 @@ ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
 
 def _optimizer_factory(module):
-    from specforge.optimizer import BF16Optimizer
+    from dspark.optimizer import BF16Optimizer
 
     return BF16Optimizer(
         module,
@@ -54,7 +54,7 @@ def _direct_offline_loss(model, target_head, batch) -> float:
 class TestEquivOfflineEagle3(unittest.TestCase):
     def test_feature_files_match_direct_objective_through_trainer_fit(self):
         fx.build_single_rank_distributed(port="29555")
-        from specforge.launch import build_offline_runtime
+        from dspark.launch import build_offline_runtime
 
         previous_deterministic = torch.are_deterministic_algorithms_enabled()
         previous_warn_only = torch.is_deterministic_algorithms_warn_only_enabled()

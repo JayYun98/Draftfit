@@ -11,16 +11,16 @@ from pathlib import Path
 import torch
 from transformers import Qwen3Config, Qwen3ForCausalLM
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.algorithms.common.dflash_family_model import (
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.algorithms.common.dflash_family_model import (
     OnlineDFlash2Model,
     OnlineDSparkModel,
 )
-from specforge.modeling.draft.dflash2 import DFlash2Config, DFlash2DraftModel
-from specforge.modeling.draft.dspark import DSparkDraftModel
-from specforge.offline_capture.transformers import OfflineTransformersCapture
-from specforge.runtime.data_plane.feature_dataloader import FeatureDataLoader
-from specforge.runtime.data_plane.feature_store import LocalFeatureStore
+from dspark.modeling.draft.dflash2 import DFlash2Config, DFlash2DraftModel
+from dspark.modeling.draft.dspark import DSparkDraftModel
+from dspark.offline_capture.transformers import OfflineTransformersCapture
+from dspark.runtime.data_plane.feature_dataloader import FeatureDataLoader
+from dspark.runtime.data_plane.feature_store import LocalFeatureStore
 
 
 class TeacherTrainingTest(unittest.TestCase):

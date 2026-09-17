@@ -10,9 +10,9 @@ from typing import get_args
 import torch
 import torch.nn as nn
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.runtime.contracts import DraftStrategyName, TrainBatch
-from specforge.training.strategies.base import PEagleTrainStrategy
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.runtime.contracts import DraftStrategyName, TrainBatch
+from dspark.training.strategies.base import PEagleTrainStrategy
 
 REGISTRY = builtin_algorithm_registry()
 EAGLE3 = REGISTRY.resolve("eagle3")

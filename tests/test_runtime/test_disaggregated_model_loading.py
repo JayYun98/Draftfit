@@ -5,13 +5,13 @@ import unittest
 from types import SimpleNamespace
 from unittest import mock
 
-from specforge.application import resolve_run
-from specforge.config import Config
-from specforge.training.capture_contract import (
+from dspark.application import resolve_run
+from dspark.config import Config
+from dspark.training.capture_contract import (
     ServerCaptureContract,
     resolve_server_capture_contract,
 )
-from specforge.training.disaggregated import _producer_capture_metadata
+from dspark.training.disaggregated import _producer_capture_metadata
 
 
 def _config(*, strategy="dflash", **model_overrides):
@@ -64,7 +64,7 @@ class DisaggregatedModelLoadingTest(unittest.TestCase):
                     return_value=target_config,
                 ),
                 mock.patch(
-                    "specforge.training.model_loading.draft_config_dict",
+                    "dspark.training.model_loading.draft_config_dict",
                     return_value=draft_payload,
                 ) as resolve,
             ):
@@ -92,7 +92,7 @@ class DisaggregatedModelLoadingTest(unittest.TestCase):
             draft_vocab_size=32,
         )
         with mock.patch(
-            "specforge.training.capture_contract.resolve_server_capture_contract",
+            "dspark.training.capture_contract.resolve_server_capture_contract",
             return_value=contract,
         ) as resolve:
             metadata = _producer_capture_metadata(
@@ -123,7 +123,7 @@ class DisaggregatedModelLoadingTest(unittest.TestCase):
                 return_value=SimpleNamespace(hidden_size=64, vocab_size=128),
             ),
             mock.patch(
-                "specforge.training.model_loading.draft_config_dict",
+                "dspark.training.model_loading.draft_config_dict",
                 return_value=draft_payload,
             ),
         ):
@@ -154,7 +154,7 @@ class DisaggregatedModelLoadingTest(unittest.TestCase):
                 return_value=SimpleNamespace(hidden_size=64, vocab_size=128),
             ),
             mock.patch(
-                "specforge.training.model_loading.draft_config_dict",
+                "dspark.training.model_loading.draft_config_dict",
                 return_value=draft_payload,
             ),
         ):

@@ -28,7 +28,7 @@ class DisaggregatedWrapperTest(unittest.TestCase):
         self.capture = self.root / "args.txt"
         self.config = self.root / "run config.yaml"
         self.config.write_text("run_id: wrapper-test\n", encoding="utf-8")
-        executable = self.bin_dir / "specforge"
+        executable = self.bin_dir / "dspark"
         executable.write_text(
             "#!/usr/bin/env bash\n"
             "set -euo pipefail\n"

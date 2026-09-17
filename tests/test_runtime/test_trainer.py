@@ -11,21 +11,21 @@ from unittest import mock
 import torch
 import torch.nn as nn
 
-from specforge.runtime.contracts import TrainBatch
-from specforge.runtime.data_plane.feature_dataloader import FeatureDataLoader
-from specforge.runtime.data_plane.feature_store import LocalFeatureStore
-from specforge.runtime.data_plane.offline_reader import OfflineManifestReader
-from specforge.runtime.data_plane.sample_ref_queue import SampleRefQueue
-from specforge.training.backend import TrainingBackend
-from specforge.training.checkpoint import CheckpointManager
-from specforge.training.controller import (
+from dspark.runtime.contracts import TrainBatch
+from dspark.runtime.data_plane.feature_dataloader import FeatureDataLoader
+from dspark.runtime.data_plane.feature_store import LocalFeatureStore
+from dspark.runtime.data_plane.offline_reader import OfflineManifestReader
+from dspark.runtime.data_plane.sample_ref_queue import SampleRefQueue
+from dspark.training.backend import TrainingBackend
+from dspark.training.checkpoint import CheckpointManager
+from dspark.training.controller import (
     Checkpoint,
     TrainerController,
     TrainerCore,
     _materialize_metrics,
     _reduce_ratio_metrics,
 )
-from specforge.training.strategies.base import DraftTrainStrategy, StepOutput
+from dspark.training.strategies.base import DraftTrainStrategy, StepOutput
 
 
 class TinyModel(nn.Module):
@@ -271,7 +271,7 @@ class TestTrainerCore(unittest.TestCase):
         core = TrainerCore(strat, FakeBackend(strat.model), accumulation_steps=1)
 
         with mock.patch(
-            "specforge.training.controller._materialize_metrics",
+            "dspark.training.controller._materialize_metrics",
             wraps=_materialize_metrics,
         ) as materialize:
             result = core.train_step(_batch())
@@ -470,7 +470,7 @@ class TestTrainerController(unittest.TestCase):
         with (
             tempfile.TemporaryDirectory() as d,
             mock.patch(
-                "specforge.training.controller._materialize_metrics",
+                "dspark.training.controller._materialize_metrics",
                 wraps=_materialize_metrics,
             ) as materialize,
         ):
@@ -511,7 +511,7 @@ class TestTrainerController(unittest.TestCase):
         with (
             tempfile.TemporaryDirectory() as d,
             mock.patch(
-                "specforge.training.controller.sys.stderr.isatty", return_value=True
+                "dspark.training.controller.sys.stderr.isatty", return_value=True
             ),
             mock.patch("torch.distributed.is_available", return_value=True),
             mock.patch("torch.distributed.is_initialized", return_value=False),
@@ -539,7 +539,7 @@ class TestTrainerController(unittest.TestCase):
         with (
             tempfile.TemporaryDirectory() as d,
             mock.patch(
-                "specforge.training.controller.sys.stderr.isatty", return_value=True
+                "dspark.training.controller.sys.stderr.isatty", return_value=True
             ),
             mock.patch("torch.distributed.is_available", return_value=True),
             mock.patch("torch.distributed.is_initialized", return_value=True),
@@ -627,7 +627,7 @@ class TestTrainerController(unittest.TestCase):
         self.assertIsNone(loader._prefetch_state)
 
     def test_public_trainer_fit_has_no_eval_side_channel(self):
-        from specforge.training.trainer import Trainer
+        from dspark.training.trainer import Trainer
 
         self.assertEqual(list(inspect.signature(Trainer.fit).parameters), ["self"])
 

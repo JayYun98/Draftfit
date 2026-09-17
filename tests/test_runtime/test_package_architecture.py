@@ -17,24 +17,24 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # explicit makes an accidental reintroduction fail without importing torch or
 # optional inference backends.
 REMOVED_MODULE_FILES = (
-    "specforge/modeling/target/base.py",
-    "specforge/modeling/target/factory.py",
-    "specforge/modeling/target/dflash_target_model.py",
-    "specforge/modeling/target/eagle3_target_model.py",
-    "specforge/modeling/target/sglang_backend/__init__.py",
-    "specforge/runtime/inference/capture.py",
-    "specforge/runtime/inference/dflash_adapter.py",
-    "specforge/runtime/inference/sglang_adapter.py",
-    "specforge/runtime/training/__init__.py",
-    "specforge/args.py",
-    "specforge/inference/adapters/dflash.py",
-    "specforge/inference/adapters/eagle3.py",
-    "specforge/inference/adapters/policy.py",
-    "specforge/runtime/data_plane/local_rollout_stream.py",
-    "specforge/inference/target_engine/capture_policy.py",
-    "specforge/inference/target_engine/dflash_target_model.py",
-    "specforge/inference/target_engine/eagle3_target_model.py",
-    "specforge/modeling/utils.py",
+    "dspark/modeling/target/base.py",
+    "dspark/modeling/target/factory.py",
+    "dspark/modeling/target/dflash_target_model.py",
+    "dspark/modeling/target/eagle3_target_model.py",
+    "dspark/modeling/target/sglang_backend/__init__.py",
+    "dspark/runtime/inference/capture.py",
+    "dspark/runtime/inference/dflash_adapter.py",
+    "dspark/runtime/inference/sglang_adapter.py",
+    "dspark/runtime/training/__init__.py",
+    "dspark/args.py",
+    "dspark/inference/adapters/dflash.py",
+    "dspark/inference/adapters/eagle3.py",
+    "dspark/inference/adapters/policy.py",
+    "dspark/runtime/data_plane/local_rollout_stream.py",
+    "dspark/inference/target_engine/capture_policy.py",
+    "dspark/inference/target_engine/dflash_target_model.py",
+    "dspark/inference/target_engine/eagle3_target_model.py",
+    "dspark/modeling/utils.py",
 )
 
 REMOVED_TRAINING_ENTRY_FILES = (
@@ -144,34 +144,34 @@ OPERATIONAL_EXAMPLE_REPLACEMENTS = {
 }
 
 REMOVED_PACKAGE_DIRECTORIES = (
-    "specforge/modeling/target/sglang_backend",
-    "specforge/modeling/target/custom_backend",
-    "specforge/inference/target_engine",
+    "dspark/modeling/target/sglang_backend",
+    "dspark/modeling/target/custom_backend",
+    "dspark/inference/target_engine",
     "tests/test_modeling/test_target/test_custom_backend",
     "tests/test_modeling/test_target/test_sglang_backend",
-    "specforge/runtime/inference",
-    "specforge/runtime/training",
+    "dspark/runtime/inference",
+    "dspark/runtime/training",
 )
 
 REMOVED_MODULE_PREFIXES = (
-    "specforge.modeling.target.base",
-    "specforge.modeling.target.factory",
-    "specforge.modeling.target.dflash_target_model",
-    "specforge.modeling.target.eagle3_target_model",
-    "specforge.modeling.target.sglang_backend",
-    "specforge.modeling.target.custom_backend",
-    "specforge.runtime.inference",
-    "specforge.runtime.training",
-    "specforge.args",
-    "specforge.inference.adapters.dflash",
-    "specforge.inference.adapters.eagle3",
-    "specforge.inference.adapters.policy",
-    "specforge.inference.target_engine",
-    "specforge.runtime.data_plane.local_rollout_stream",
-    "specforge.inference.target_engine.capture_policy",
-    "specforge.inference.target_engine.dflash_target_model",
-    "specforge.inference.target_engine.eagle3_target_model",
-    "specforge.modeling.utils",
+    "dspark.modeling.target.base",
+    "dspark.modeling.target.factory",
+    "dspark.modeling.target.dflash_target_model",
+    "dspark.modeling.target.eagle3_target_model",
+    "dspark.modeling.target.sglang_backend",
+    "dspark.modeling.target.custom_backend",
+    "dspark.runtime.inference",
+    "dspark.runtime.training",
+    "dspark.args",
+    "dspark.inference.adapters.dflash",
+    "dspark.inference.adapters.eagle3",
+    "dspark.inference.adapters.policy",
+    "dspark.inference.target_engine",
+    "dspark.runtime.data_plane.local_rollout_stream",
+    "dspark.inference.target_engine.capture_policy",
+    "dspark.inference.target_engine.dflash_target_model",
+    "dspark.inference.target_engine.eagle3_target_model",
+    "dspark.modeling.utils",
     "scripts.train_eagle3",
     "scripts.train_eagle3_dataflow",
     "scripts.train_dflash",
@@ -185,14 +185,14 @@ REMOVED_MODULE_PREFIXES = (
 )
 
 SOURCE_ROOTS = (
-    REPO_ROOT / "specforge",
+    REPO_ROOT / "dspark",
     REPO_ROOT / "scripts",
     REPO_ROOT / "examples",
     REPO_ROOT / "tests",
 )
 
 PRODUCTION_ROOTS = (
-    REPO_ROOT / "specforge",
+    REPO_ROOT / "dspark",
     REPO_ROOT / "scripts",
     REPO_ROOT / "examples",
 )
@@ -270,12 +270,12 @@ CANONICAL_DRAFT_CONFIGS = {
 CANONICAL_DATASET_PRESETS = ("ultrachat", "sharegpt")
 
 DOC_ONLY_PACKAGE_INITIALIZERS = (
-    "specforge/__init__.py",
-    "specforge/core/__init__.py",
-    "specforge/data/__init__.py",
-    "specforge/inference/__init__.py",
-    "specforge/modeling/__init__.py",
-    "specforge/modeling/target/__init__.py",
+    "dspark/__init__.py",
+    "dspark/core/__init__.py",
+    "dspark/data/__init__.py",
+    "dspark/inference/__init__.py",
+    "dspark/modeling/__init__.py",
+    "dspark/modeling/target/__init__.py",
 )
 
 
@@ -323,7 +323,7 @@ class TestPackageArchitecture(unittest.TestCase):
         with open(REPO_ROOT / "pyproject.toml", "rb") as project_file:
             project = tomllib.load(project_file)
         self.assertEqual(
-            {"dspark": "specforge.cli:main", "specforge": "specforge.cli:main"},
+            {"dspark": "dspark.cli:main", "specforge": "dspark.cli:main"},
             project["project"]["scripts"],
         )
 
@@ -415,7 +415,7 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertEqual(
             [],
             violations,
-            "imports must use specforge.inference or specforge.training:\n"
+            "imports must use dspark.inference or dspark.training:\n"
             + "\n".join(violations),
         )
 
@@ -445,11 +445,11 @@ class TestPackageArchitecture(unittest.TestCase):
     def test_launch_exports_only_canonical_topology_builders(self):
         self.assertEqual(
             CANONICAL_LAUNCH_EXPORTS,
-            _literal_all(REPO_ROOT / "specforge" / "launch.py"),
+            _literal_all(REPO_ROOT / "dspark" / "launch.py"),
         )
 
     def test_public_training_lifecycle_has_one_surface(self):
-        trainer_tree = _module_tree(REPO_ROOT / "specforge" / "training" / "trainer.py")
+        trainer_tree = _module_tree(REPO_ROOT / "dspark" / "training" / "trainer.py")
         trainer_class = next(
             node
             for node in trainer_tree.body
@@ -478,9 +478,7 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertTrue({"_controller", "_loader"}.issubset(init_attrs))
         self.assertTrue({"controller", "loader"}.isdisjoint(init_attrs))
 
-        assembly_tree = _module_tree(
-            REPO_ROOT / "specforge" / "training" / "assembly.py"
-        )
+        assembly_tree = _module_tree(REPO_ROOT / "dspark" / "training" / "assembly.py")
         run_class = next(
             node
             for node in assembly_tree.body
@@ -508,7 +506,7 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertEqual([], fit_calls[0].args)
         self.assertEqual([], fit_calls[0].keywords)
 
-        launch_tree = _module_tree(REPO_ROOT / "specforge" / "launch.py")
+        launch_tree = _module_tree(REPO_ROOT / "dspark" / "launch.py")
         launch_functions = {
             node.name: node
             for node in launch_tree.body
@@ -543,12 +541,12 @@ class TestPackageArchitecture(unittest.TestCase):
                     name,
                 )
         self.assertNotIn(
-            "run_interleaved", (REPO_ROOT / "specforge" / "launch.py").read_text()
+            "run_interleaved", (REPO_ROOT / "dspark" / "launch.py").read_text()
         )
 
         for relative_path in (
-            "specforge/training/assembly.py",
-            "specforge/training/disaggregated.py",
+            "dspark/training/assembly.py",
+            "dspark/training/disaggregated.py",
         ):
             for node in ast.walk(_module_tree(REPO_ROOT / relative_path)):
                 if (
@@ -576,7 +574,7 @@ class TestPackageArchitecture(unittest.TestCase):
     def test_server_only_builders_have_one_stream_path(self):
         functions = {
             node.name: node
-            for node in _module_tree(REPO_ROOT / "specforge" / "launch.py").body
+            for node in _module_tree(REPO_ROOT / "dspark" / "launch.py").body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
         consumer_parameters = {
@@ -690,7 +688,7 @@ class TestPackageArchitecture(unittest.TestCase):
     def test_launch_builders_use_generic_draft_model_parameter(self):
         functions = {
             node.name: node
-            for node in _module_tree(REPO_ROOT / "specforge" / "launch.py").body
+            for node in _module_tree(REPO_ROOT / "dspark" / "launch.py").body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
         for name in CANONICAL_LAUNCH_EXPORTS:
@@ -774,8 +772,8 @@ class TestPackageArchitecture(unittest.TestCase):
         for root in (REPO_ROOT / "scripts", REPO_ROOT / "examples"):
             for path in sorted(root.rglob("*.py")):
                 for line_number, module in _imported_modules(path):
-                    if module == "specforge.launch" or module.startswith(
-                        "specforge.training"
+                    if module == "dspark.launch" or module.startswith(
+                        "dspark.training"
                     ):
                         direct_imports.append(
                             f"{path.relative_to(REPO_ROOT)}:{line_number}: {module}"

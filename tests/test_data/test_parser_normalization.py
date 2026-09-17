@@ -1,7 +1,7 @@
 import unittest
 
-from specforge.data.parse import GeneralParser, ThinkingParser
-from specforge.data.template import ChatTemplate
+from dspark.data.parse import GeneralParser, ThinkingParser
+from dspark.data.template import ChatTemplate
 
 
 class DummyTokenizer:

@@ -14,18 +14,22 @@ from pathlib import Path
 
 
 def main():
-    import specforge
+    import dspark
+    from dspark.config import Config
+    from specforge.config import Config as LegacyConfig
+
+    assert Config is LegacyConfig
 
     if not sys.flags.isolated:
         raise RuntimeError("run with python -I to exclude the source checkout")
-    installed = Path(specforge.__file__).resolve()
+    installed = Path(dspark.__file__).resolve()
     distribution = importlib.metadata.distribution("dspark-train-platform")
     commands = {
         entry.name: entry.value
         for entry in distribution.entry_points
         if entry.group == "console_scripts"
     }
-    assert commands["dspark"] == commands["specforge"] == "specforge.cli:main"
+    assert commands["dspark"] == commands["specforge"] == "dspark.cli:main"
     if "site-packages" not in installed.parts:
         raise RuntimeError(f"expected installed wheel, not checkout: {installed}")
     environment = {
@@ -40,7 +44,7 @@ def main():
 
         def cli(*args, error=None):
             result = subprocess.run(
-                [sys.executable, "-I", "-m", "specforge.cli", *map(str, args)],
+                [sys.executable, "-I", "-m", "dspark.cli", *map(str, args)],
                 cwd=root,
                 env=environment,
                 capture_output=True,

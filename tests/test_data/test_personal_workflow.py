@@ -10,8 +10,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from specforge.benchmarks import sglang
-from specforge.cli import main
+from dspark.benchmarks import sglang
+from dspark.cli import main
 
 
 class PersonalWorkflowTest(unittest.TestCase):

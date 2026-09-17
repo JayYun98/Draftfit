@@ -14,7 +14,7 @@ import unittest
 
 import torch
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
+from dspark.algorithms.builtin import builtin_algorithm_registry
 from tests.test_runtime.test_mooncake_store import _FakeMooncakeStore
 
 CUDA = torch.cuda.is_available()
@@ -30,13 +30,11 @@ class TestDSparkDisaggregatedLaunch(unittest.TestCase):
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        from specforge.launch import build_disagg_online_consumer
-        from specforge.optimizer import BF16Optimizer
-        from specforge.runtime.data_plane.mooncake_store import MooncakeFeatureStore
-        from specforge.runtime.data_plane.streaming_ref_channel import (
-            StreamingRefChannel,
-        )
-        from specforge.training.strategies.base import DSparkTrainStrategy
+        from dspark.launch import build_disagg_online_consumer
+        from dspark.optimizer import BF16Optimizer
+        from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+        from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
+        from dspark.training.strategies.base import DSparkTrainStrategy
 
         torch.manual_seed(17)
         torch.cuda.manual_seed_all(17)

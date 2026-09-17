@@ -8,9 +8,9 @@ import types
 import unittest
 from unittest import mock
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.application import bind_run
-from specforge.cli import (
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.application import bind_run
+from dspark.cli import (
     _bootstrap_single_process_env,
     _train,
     _validate_world_size,
@@ -18,9 +18,9 @@ from specforge.cli import (
     _WorkerTermination,
     main,
 )
-from specforge.config import Config
-from specforge.training.assembly import TrainingRun
-from specforge.training.disaggregated import (
+from dspark.config import Config
+from dspark.training.assembly import TrainingRun
+from dspark.training.disaggregated import (
     _ONLINE_CONTROL_SUFFIXES,
     _claim_fresh_control_path,
     build_disaggregated_run,
@@ -166,7 +166,7 @@ class TestTrainingRunLifecycle(unittest.TestCase):
                         os.environ, {"DISAGG_REF_CHANNEL": channel}, clear=False
                     ),
                     mock.patch(
-                        "specforge.training.disaggregated._build_online",
+                        "dspark.training.disaggregated._build_online",
                         side_effect=fail_during_assembly,
                     ),
                 ):
@@ -205,7 +205,7 @@ class TestTrainingRunLifecycle(unittest.TestCase):
         with (
             mock.patch.dict(os.environ, {"DISAGG_REF_CHANNEL": channel}, clear=False),
             mock.patch(
-                "specforge.training.disaggregated._build_online",
+                "dspark.training.disaggregated._build_online",
                 side_effect=RuntimeError("claim rejected"),
             ),
         ):
@@ -236,7 +236,7 @@ class TestCliLifecycle(unittest.TestCase):
             return previous
 
         with (
-            mock.patch("specforge.cli.signal.signal", side_effect=set_signal),
+            mock.patch("dspark.cli.signal.signal", side_effect=set_signal),
             self.assertRaises(_WorkerTermination) as raised,
         ):
             with _worker_signal_unwind():
@@ -274,7 +274,7 @@ class TestCliLifecycle(unittest.TestCase):
         )
         run = mock.Mock()
         run.run.return_value = 3
-        assembly = types.ModuleType("specforge.training.assembly")
+        assembly = types.ModuleType("dspark.training.assembly")
         assembly.build_training_run = mock.Mock(return_value=run)
         accelerate = types.ModuleType("accelerate")
         accelerate_utils = types.ModuleType("accelerate.utils")
@@ -286,8 +286,8 @@ class TestCliLifecycle(unittest.TestCase):
             {
                 "accelerate": accelerate,
                 "accelerate.utils": accelerate_utils,
-                "specforge.distributed": None,
-                "specforge.training.assembly": assembly,
+                "dspark.distributed": None,
+                "dspark.training.assembly": assembly,
             },
         ):
             self.assertEqual(_train(bind_run(cfg, ALGORITHM)), 3)
@@ -336,7 +336,7 @@ class TestCliLifecycle(unittest.TestCase):
         )
         with (
             mock.patch.dict(os.environ, {}, clear=True),
-            mock.patch("specforge.cli.socket.socket", return_value=rendezvous),
+            mock.patch("dspark.cli.socket.socket", return_value=rendezvous),
         ):
             _bootstrap_single_process_env()
             self.assertEqual(os.environ["RANK"], "0")
@@ -352,9 +352,9 @@ class TestCliLifecycle(unittest.TestCase):
 
     def test_hf_export_dispatches_through_shared_cli(self):
         calls = []
-        module = types.ModuleType("specforge.export.to_hf")
+        module = types.ModuleType("dspark.export.to_hf")
         module.export_to_hf = lambda *args, **kwargs: calls.append((args, kwargs))
-        with mock.patch.dict(sys.modules, {"specforge.export.to_hf": module}):
+        with mock.patch.dict(sys.modules, {"dspark.export.to_hf": module}):
             self.assertEqual(
                 main(
                     [

@@ -11,12 +11,12 @@ from unittest import mock
 
 import torch
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.runtime.contracts import FeatureSpec, SampleRef
-from specforge.runtime.control_plane.controller import DataFlowController
-from specforge.runtime.control_plane.metadata_store import SQLiteMetadataStore
-from specforge.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
-from specforge.training.checkpoint import STATE_FILE
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.runtime.contracts import FeatureSpec, SampleRef
+from dspark.runtime.control_plane.controller import DataFlowController
+from dspark.runtime.control_plane.metadata_store import SQLiteMetadataStore
+from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
+from dspark.training.checkpoint import STATE_FILE
 
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
@@ -93,7 +93,7 @@ class TestSharedPlaneConsumerResume(unittest.TestCase):
         store.close()
 
     def _build(self, *, resume_from=None, idle_timeout_s=None):
-        from specforge.launch import build_disagg_online_consumer
+        from dspark.launch import build_disagg_online_consumer
 
         captured = {}
 
@@ -106,10 +106,10 @@ class TestSharedPlaneConsumerResume(unittest.TestCase):
         with (
             mock.patch("torch.distributed.is_initialized", return_value=False),
             mock.patch(
-                "specforge.runtime.data_plane.ref_distributor.RefDistributor",
+                "dspark.runtime.data_plane.ref_distributor.RefDistributor",
                 _FakeDistributor,
             ),
-            mock.patch("specforge.launch._assemble_trainer", side_effect=assemble),
+            mock.patch("dspark.launch._assemble_trainer", side_effect=assemble),
         ):
             trainer = build_disagg_online_consumer(
                 algorithm=ALGORITHM,

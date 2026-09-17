@@ -5,11 +5,7 @@ import unittest
 
 import torch
 
-from specforge.inference.capture import (
-    CaptureConfig,
-    CaptureMismatchError,
-    verify_capture,
-)
+from dspark.inference.capture import CaptureConfig, CaptureMismatchError, verify_capture
 
 H = 8
 DRAFT_V = 16

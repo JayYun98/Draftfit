@@ -5,9 +5,9 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from specforge.cli import main as cli_main
-from specforge.inference.target_adapter import TargetAdapter
-from specforge.target_inspector import inspect_target
+from dspark.cli import main as cli_main
+from dspark.inference.target_adapter import TargetAdapter
+from dspark.target_inspector import inspect_target
 
 
 class TargetInspectorTest(unittest.TestCase):

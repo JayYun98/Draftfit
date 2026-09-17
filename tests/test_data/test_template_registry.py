@@ -2,7 +2,7 @@
 
 import unittest
 
-from specforge.data.template import TEMPLATE_REGISTRY
+from dspark.data.template import TEMPLATE_REGISTRY
 
 
 class TemplateRegistryTest(unittest.TestCase):

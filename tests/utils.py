@@ -69,7 +69,7 @@ def terminate_process_trees(*processes: subprocess.Popen, grace_s: float = 30) -
     # SGLang's launcher exits independently from its scheduler/model workers.
     # Reuse the supervisor's process-group cleanup so a dead launcher cannot
     # leave GPU-owning descendants alive for the next test or workflow step.
-    from specforge.launch_plan import _terminate_processes
+    from dspark.launch_plan import _terminate_processes
 
     exited_group_leaders = tuple(
         process for process in active if process.poll() is not None

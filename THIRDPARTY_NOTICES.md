@@ -1,7 +1,8 @@
 # Third-party implementation notes
 
-This fork keeps the upstream licenses in each copied repository. The local
-changes are integration code and do not replace upstream copyright headers.
+DSpark Train Platform is derived from SpecForge and retains applicable upstream
+licenses and copyright headers. Its locally maintained application, training and
+runtime modules do not replace or erase the authorship of adapted source.
 
 | Source | Pinned workspace revision | Used for |
 |---|---|---|
@@ -16,12 +17,12 @@ changes are integration code and do not replace upstream copyright headers.
 - TorchSpec `torchspec/config/train_config.py`, `torchspec/ray/placement_group.py`,
   and `torchspec/training/checkpoint.py` were reviewed at `bd64d93`. Only the
   declarative launch/checkpoint contract was adapted in
-  `specforge/torchspec_bridge.py`; Ray actors and DCP state wrappers are not
+  `dspark/torchspec_bridge.py`; Ray actors and DCP state wrappers are not
   copied. The reference project's full MIT notice is bundled in
   `licenses/torchspec-LICENSE`.
 - z-lab/dflash DFlash2 grouped-convolution, candidate-selector, configuration,
   and serving-state boundaries were reviewed at `07ebd93`. The local model and
-  training wrapper adapt those boundaries to SpecForge's existing Qwen3 DFlash
+  training wrapper adapt those boundaries to the platform's inherited Qwen3 DFlash
   seams; no z-lab runtime dependency is added. The source notice is bundled in
   `licenses/z-lab-dflash-LICENSE`.
 - AngelSpec `angelspec/training/data_fetcher.py` and
@@ -32,7 +33,7 @@ changes are integration code and do not replace upstream copyright headers.
   in `licenses/angelspec-LICENSE`; this does not imply all its components are copied.
 - mlx-dspark `src/mlx_dspark/config.py` and `src/mlx_dspark/server.py` were
   reviewed at `4143092` for serving-state separation only. No MLX code is
-  imported by SpecForge.
+  imported by this platform.
 
 ## Sync policy
 

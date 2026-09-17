@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from specforge.training.profiling import ProfilingOptions, StepProfiler
+from dspark.training.profiling import ProfilingOptions, StepProfiler
 
 
 class _FakeProfiler:

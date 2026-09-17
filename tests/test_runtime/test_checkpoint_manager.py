@@ -17,11 +17,11 @@ from unittest import mock
 import torch
 
 METRIC = "eval/simulated_acc_len"
-LOGGER = "specforge.training.checkpoint"
+LOGGER = "dspark.training.checkpoint"
 
 
 def _mgr(out, run_id="run", **kw):
-    from specforge.training.checkpoint import CheckpointManager
+    from dspark.training.checkpoint import CheckpointManager
 
     return CheckpointManager(out, run_id, **kw)
 
@@ -42,7 +42,7 @@ def _free_port():
 
 class TestLayoutAndAtomicity(unittest.TestCase):
     def test_incomplete_dir_is_invisible(self):
-        from specforge.training.checkpoint import STATE_FILE
+        from dspark.training.checkpoint import STATE_FILE
 
         out = tempfile.mkdtemp(prefix="ckpt_atomic_")
         mgr = _mgr(out)
@@ -62,7 +62,7 @@ class TestLayoutAndAtomicity(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(mgr.checkpoint_dir(2), STATE_FILE)))
 
     def test_latest_requires_symlink_and_shadow_is_repaired(self):
-        from specforge.training.checkpoint import STATE_FILE
+        from dspark.training.checkpoint import STATE_FILE
 
         out = tempfile.mkdtemp(prefix="ckpt_shadow_")
         mgr = _mgr(out)
@@ -162,7 +162,7 @@ class TestRunScoping(unittest.TestCase):
         self.assertEqual(_steps(b), [5])
 
     def test_glob_metachar_run_id(self):
-        from specforge.training.checkpoint import STATE_FILE
+        from dspark.training.checkpoint import STATE_FILE
 
         out = tempfile.mkdtemp(prefix="ckpt_glob_")
         # decoys that an UNescaped "run[ab]-step*" glob would match
@@ -247,7 +247,7 @@ class TestBestApi(unittest.TestCase):
         self.assertTrue(mgr.is_better({METRIC: 1.6}))
 
     def test_update_best_has_no_force_param(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         params = inspect.signature(CheckpointManager.update_best).parameters
         self.assertNotIn("force", params)
@@ -266,7 +266,7 @@ class TestBestApi(unittest.TestCase):
 
 class TestReadResumeState(unittest.TestCase):
     def test_future_checkpoint_schema_is_rejected_before_resume(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_future_schema_")
         ckpt = _mgr(out).save(
@@ -280,7 +280,7 @@ class TestReadResumeState(unittest.TestCase):
             CheckpointManager.read_resume_state(ckpt)
 
     def test_malformed_rank_state_is_rejected(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_bad_rank_")
         ckpt = _mgr(out).save(_state(1, world_size=1), 1)
@@ -293,7 +293,7 @@ class TestReadResumeState(unittest.TestCase):
             CheckpointManager.read_resume_state(ckpt)
 
     def test_replicated_optimizer_is_restored_from_shared_state(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_replicated_")
         state = _state(
@@ -313,7 +313,7 @@ class TestReadResumeState(unittest.TestCase):
         self.assertEqual(loaded["backend"]["rng"]["torch"].item(), 1)
 
     def test_backend_passthrough_and_path_forms(self):
-        from specforge.training.checkpoint import STATE_FILE, CheckpointManager
+        from dspark.training.checkpoint import STATE_FILE, CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_read_")
         rng = torch.get_rng_state()
@@ -333,7 +333,7 @@ class TestReadResumeState(unittest.TestCase):
         self.assertEqual(root_state["global_step"], 3)
 
     def test_run_root_without_symlinks_uses_latest_complete_step(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_root_")
         mgr = _mgr(out)
@@ -345,7 +345,7 @@ class TestReadResumeState(unittest.TestCase):
         self.assertEqual(state["global_step"], 7)
 
     def test_ambiguous_multi_run_root_is_rejected(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_ambiguous_")
         _mgr(out, "alpha").save(
@@ -356,7 +356,7 @@ class TestReadResumeState(unittest.TestCase):
             CheckpointManager.read_resume_state(out)
 
     def test_require_full_state_raises_without_rank_file(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_norank_")
         ckpt = _mgr(out).save(_state(5, world_size=1), 5)
@@ -367,7 +367,7 @@ class TestReadResumeState(unittest.TestCase):
         self.assertEqual(st["global_step"], 5)
 
     def test_step0_weights_only_is_fine(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_step0_")
         ckpt = _mgr(out).save(_state(0, world_size=1), 0)
@@ -375,7 +375,7 @@ class TestReadResumeState(unittest.TestCase):
         self.assertEqual(st["backend"], {})
 
     def test_world_size_mismatch(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_ws_")
         ckpt = _mgr(out).save(
@@ -387,7 +387,7 @@ class TestReadResumeState(unittest.TestCase):
         self.assertEqual(st["backend"], {})
 
     def test_resume_fails_world_wide_when_any_rank_cannot_read(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_world_read_")
         ckpt = _mgr(out).save(
@@ -413,7 +413,7 @@ class TestReadResumeState(unittest.TestCase):
             CheckpointManager.read_resume_state(ckpt)
 
     def test_resume_rejects_different_checkpoint_identity_across_ranks(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         out = tempfile.mkdtemp(prefix="ckpt_world_identity_")
         ckpt = _mgr(out).save(
@@ -446,7 +446,7 @@ def _dist_worker(rank, world, port, out_dir, results_dir):
         world_size=world,
         timeout=timedelta(seconds=60),
     )
-    from specforge.training.checkpoint import CheckpointManager
+    from dspark.training.checkpoint import CheckpointManager
 
     mgr = CheckpointManager(out_dir, "dist")
     ckpt = mgr.save(
@@ -478,7 +478,7 @@ class TestDistributedSaveAndResume(unittest.TestCase):
     def test_two_rank_save_and_per_rank_resume(self):
         import torch.multiprocessing as mp
 
-        from specforge.training.checkpoint import STATE_FILE
+        from dspark.training.checkpoint import STATE_FILE
 
         out = tempfile.mkdtemp(prefix="ckpt_dist_")
         results = tempfile.mkdtemp(prefix="ckpt_dist_res_")

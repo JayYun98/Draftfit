@@ -21,7 +21,7 @@ import torch.nn.functional as F
 
 REPO = Path(__file__).resolve().parents[2]
 
-_stub_dflash_draft = types.ModuleType("specforge.modeling.draft.dflash")
+_stub_dflash_draft = types.ModuleType("dspark.modeling.draft.dflash")
 
 
 class _DFlashDraftStub(nn.Module):
@@ -31,32 +31,32 @@ class _DFlashDraftStub(nn.Module):
 _stub_dflash_draft.DFlashDraftModel = _DFlashDraftStub
 
 _spec = importlib.util.spec_from_file_location(
-    "specforge.algorithms.common.dflash_family_model",
-    REPO / "specforge" / "algorithms" / "common" / "dflash_family_model.py",
+    "dspark.algorithms.common.dflash_family_model",
+    REPO / "dspark" / "algorithms" / "common" / "dflash_family_model.py",
 )
 _dflash_module = importlib.util.module_from_spec(_spec)
 
-_pkg_specforge = types.ModuleType("specforge")
-_pkg_specforge.__path__ = [str(REPO / "specforge")]
-_pkg_algorithms = types.ModuleType("specforge.algorithms")
-_pkg_algorithms.__path__ = [str(REPO / "specforge" / "algorithms")]
-_pkg_common = types.ModuleType("specforge.algorithms.common")
-_pkg_common.__path__ = [str(REPO / "specforge" / "algorithms" / "common")]
-_pkg_modeling = types.ModuleType("specforge.modeling")
-_pkg_modeling.__path__ = [str(REPO / "specforge" / "modeling")]
-_pkg_draft = types.ModuleType("specforge.modeling.draft")
-_pkg_draft.__path__ = [str(REPO / "specforge" / "modeling" / "draft")]
+_pkg_dspark = types.ModuleType("dspark")
+_pkg_dspark.__path__ = [str(REPO / "dspark")]
+_pkg_algorithms = types.ModuleType("dspark.algorithms")
+_pkg_algorithms.__path__ = [str(REPO / "dspark" / "algorithms")]
+_pkg_common = types.ModuleType("dspark.algorithms.common")
+_pkg_common.__path__ = [str(REPO / "dspark" / "algorithms" / "common")]
+_pkg_modeling = types.ModuleType("dspark.modeling")
+_pkg_modeling.__path__ = [str(REPO / "dspark" / "modeling")]
+_pkg_draft = types.ModuleType("dspark.modeling.draft")
+_pkg_draft.__path__ = [str(REPO / "dspark" / "modeling" / "draft")]
 
 with patch.dict(
     sys.modules,
     {
-        "specforge": _pkg_specforge,
-        "specforge.algorithms": _pkg_algorithms,
-        "specforge.algorithms.common": _pkg_common,
-        "specforge.algorithms.common.dflash_family_model": _dflash_module,
-        "specforge.modeling": _pkg_modeling,
-        "specforge.modeling.draft": _pkg_draft,
-        "specforge.modeling.draft.dflash": _stub_dflash_draft,
+        "dspark": _pkg_dspark,
+        "dspark.algorithms": _pkg_algorithms,
+        "dspark.algorithms.common": _pkg_common,
+        "dspark.algorithms.common.dflash_family_model": _dflash_module,
+        "dspark.modeling": _pkg_modeling,
+        "dspark.modeling.draft": _pkg_draft,
+        "dspark.modeling.draft.dflash": _stub_dflash_draft,
     },
 ):
     _spec.loader.exec_module(_dflash_module)
@@ -573,7 +573,7 @@ class TestDFlashLosses(unittest.TestCase):
 
     def test_dflash_draft_stub_does_not_leak_to_sys_modules(self):
         self.assertIsNot(
-            sys.modules.get("specforge.modeling.draft.dflash"),
+            sys.modules.get("dspark.modeling.draft.dflash"),
             _stub_dflash_draft,
         )
 

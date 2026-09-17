@@ -8,7 +8,7 @@ dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
 description = "Train and fine-tune speculative decoding drafts on your own data"
-authors = [{name = "SGLang Team"}]
+authors = [{name = "JayYun98"}, {name = "SpecForge contributors (upstream engine)"}]
 maintainers = [{name = "JayYun98"}]
 urls = {Homepage = "https://github.com/JayYun98/dspark-train-platform", Upstream = "https://github.com/sgl-project/SpecForge"}
 dependencies = [
@@ -32,11 +32,11 @@ dependencies = [
 ]
 
 [project.scripts]
-dspark = "specforge.cli:main"
-specforge = "specforge.cli:main"
+dspark = "dspark.cli:main"
+specforge = "dspark.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["specforge*"]
+include = ["dspark*", "specforge*"]
 exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
 
 [project.optional-dependencies]

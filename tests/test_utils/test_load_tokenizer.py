@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-import specforge.utils as utils
+import dspark.utils as utils
 
 
 class LoadTokenizerFallbackTest(unittest.TestCase):

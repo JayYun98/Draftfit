@@ -7,7 +7,7 @@ from unittest import mock
 
 import torch
 
-from specforge.runtime.contracts import (
+from dspark.runtime.contracts import (
     FeatureSpec,
     PromptTask,
     SampleRef,
@@ -63,7 +63,7 @@ class TestContracts(unittest.TestCase):
 
     def test_assert_no_tensors_skips_primitive_sequence_recursion(self):
         with mock.patch(
-            "specforge.runtime.contracts.assert_no_tensors",
+            "dspark.runtime.contracts.assert_no_tensors",
             wraps=assert_no_tensors,
         ) as guarded:
             guarded(list(range(4096)))

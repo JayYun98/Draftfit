@@ -21,7 +21,7 @@ import sys
 import unittest
 
 _CAPTURE_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "specforge", "offline_capture")
+    os.path.join(os.path.dirname(__file__), "..", "..", "dspark", "offline_capture")
 )
 
 
@@ -47,11 +47,11 @@ class OfflineSglangBoundaryTest(unittest.TestCase):
         repo_root = os.path.dirname(os.path.dirname(_CAPTURE_DIR))
         code = (
             "import sys; "
-            "import specforge.offline_capture; "
-            "import specforge.offline_capture.sglang_backend; "
+            "import dspark.offline_capture; "
+            "import dspark.offline_capture.sglang_backend; "
             "assert 'torch' not in sys.modules; "
             "assert 'sglang' not in sys.modules; "
-            "assert 'specforge.offline_capture.sglang_backend.capture' "
+            "assert 'dspark.offline_capture.sglang_backend.capture' "
             "not in sys.modules"
         )
         subprocess.run(

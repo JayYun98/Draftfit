@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from specforge.training.assembly import _prompt_cache_key
+from dspark.training.assembly import _prompt_cache_key
 
 
 def _cache_config(path: str):

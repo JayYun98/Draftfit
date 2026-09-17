@@ -5,9 +5,9 @@ from unittest import mock
 
 import torch
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.algorithms.common.providers import OfflineCaptureLayout
-from specforge.offline_capture import OfflineSGLangCapture
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.algorithms.common.providers import OfflineCaptureLayout
+from dspark.offline_capture import OfflineSGLangCapture
 
 
 class OfflineCaptureLayoutTest(unittest.TestCase):

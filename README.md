@@ -116,7 +116,8 @@ is streaming-only and Domino needs an explicit compatible draft configuration.
 ### DFlash2
 
 Select `--strategy dflash2` during preparation. The implementation includes grouped
-convolution and candidate-selector training, adapted from TorchSpec—not a DFlash
+convolution and candidate-selector training, adapted from the pinned TorchSpec
+implementation with z-lab/dflash provenance—not a DFlash
 alias. Tune `training.dflash2_selector_loss_alpha` and the generated draft config.
 It requires the full target vocabulary and homogeneous full or sliding attention;
 USP attention and vocabulary pruning are unsupported.
@@ -164,10 +165,16 @@ and future trace-driven updates, see [Personal inference optimization](docs/PERS
 Reviewed conversation exports work today; automatic OTel/OpenCodex ingestion and
 continual deployment are not yet implemented.
 
-The distribution is `dspark-train-platform`, with the `dspark` command. The internal `specforge` namespace and legacy command remain compatible with existing scripts and checkpoints. This is a maintained derivative, not a claim that its underlying engine was written from scratch.
+The distribution is `dspark-train-platform`, with the `dspark` command and Python
+package. The implementation lives in `dspark/`: application composition, draft
+algorithms, training, feature transport and teacher services are maintained here.
+The legacy `specforge` import and command are compatibility entry points to the
+same implementation, not a separately installed training framework.
 
-The modified engine is shipped in this distribution, not installed from upstream
-SpecForge. Custom SGLang and Mooncake remain explicit external runtimes; see
+The training engine is shipped in this distribution, not installed from upstream
+SpecForge. This remains a SpecForge-derived project with preserved attribution,
+not a claim that every component was written from scratch.
+Custom SGLang and Mooncake remain explicit external runtimes; see
 [code ownership and module boundaries](docs/CODE_OWNERSHIP.md).
 
 The platform builds on SpecForge's training engine and adapts selected ideas and implementations from [TorchSpec](https://github.com/lightseekorg/TorchSpec), [AngelSpec](https://github.com/Tencent/AngelSpec), and DSpark-related projects. Upstream licenses and attribution remain intact. See [third-party notices](THIRDPARTY_NOTICES.md) and [source attribution](docs/SOURCE_ATTRIBUTION.md).

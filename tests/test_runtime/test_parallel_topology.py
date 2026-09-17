@@ -4,8 +4,8 @@
 import unittest
 from unittest import mock
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.launch import (
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.launch import (
     _offline_io,
     _shard_offline_refs,
     build_disagg_offline_runtime,
@@ -28,9 +28,9 @@ class ParallelTopologyTest(unittest.TestCase):
             mock.patch("torch.distributed.is_initialized", return_value=True),
             mock.patch("torch.distributed.get_world_size", side_effect=world_size),
             mock.patch("torch.distributed.get_rank", return_value=1),
-            mock.patch("specforge.distributed.get_dp_group", return_value=dp_group),
+            mock.patch("dspark.distributed.get_dp_group", return_value=dp_group),
             mock.patch(
-                "specforge.distributed.get_draft_dp_group",
+                "dspark.distributed.get_draft_dp_group",
                 return_value=draft_dp_group,
             ),
         ):

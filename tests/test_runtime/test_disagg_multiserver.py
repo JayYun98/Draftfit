@@ -26,14 +26,14 @@ import time
 import unittest
 from unittest.mock import patch
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.inference.adapters.server_capture import (
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.inference.adapters.server_capture import (
     ServerCaptureSchema,
     SGLangServerCaptureAdapter,
 )
-from specforge.launch import _epoch_online_prompts, build_disagg_online_producer
-from specforge.runtime.data_plane.mooncake_store import MooncakeFeatureStore
-from specforge.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
+from dspark.launch import _epoch_online_prompts, build_disagg_online_producer
+from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
 from tests.test_runtime.test_server_capture import (
     AUX_LAYERS,
     HIDDEN,
@@ -119,7 +119,7 @@ class _FailingPublishChannel(StreamingRefChannel):
 class _FsyncFailingPublishChannel(StreamingRefChannel):
     def publish(self, ref):
         with patch(
-            "specforge.runtime.data_plane.streaming_ref_channel.os.fsync",
+            "dspark.runtime.data_plane.streaming_ref_channel.os.fsync",
             side_effect=OSError("injected fsync failure"),
         ):
             super().publish(ref)

@@ -3,8 +3,8 @@
 
 import unittest
 
-from specforge.runtime.control_plane import DataFlowController, NoOpMetadataStore
-from specforge.runtime.control_plane.metadata_store import MetadataStore
+from dspark.runtime.control_plane import DataFlowController, NoOpMetadataStore
+from dspark.runtime.control_plane.metadata_store import MetadataStore
 
 
 class TestNoOpMetadataStore(unittest.TestCase):

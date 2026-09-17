@@ -12,7 +12,7 @@ from transformers import (
     Qwen3Model,
 )
 
-from specforge.offline_capture.transformers import OfflineTransformersCapture
+from dspark.offline_capture.transformers import OfflineTransformersCapture
 
 
 class TransformersCaptureTest(unittest.TestCase):

@@ -8,12 +8,12 @@ import tempfile
 import unittest
 from unittest import mock
 
-from specforge.runtime.contracts import FeatureSpec, SampleRef
-from specforge.runtime.control_plane.controller import DataFlowController
-from specforge.runtime.control_plane.dp_ack import DPAckController, gather_id_union
-from specforge.runtime.control_plane.metadata_store import SQLiteMetadataStore
-from specforge.runtime.data_plane.ref_distributor import InboxChannel, RefDistributor
-from specforge.runtime.data_plane.streaming_ref_channel import (
+from dspark.runtime.contracts import FeatureSpec, SampleRef
+from dspark.runtime.control_plane.controller import DataFlowController
+from dspark.runtime.control_plane.dp_ack import DPAckController, gather_id_union
+from dspark.runtime.control_plane.metadata_store import SQLiteMetadataStore
+from dspark.runtime.data_plane.ref_distributor import InboxChannel, RefDistributor
+from dspark.runtime.data_plane.streaming_ref_channel import (
     StreamingRefChannel,
     StreamingRefQueue,
 )
@@ -212,7 +212,7 @@ class TestRefDistributor(unittest.TestCase):
             inbox.publish_batch = record_batch
 
         with mock.patch(
-            "specforge.runtime.data_plane.streaming_ref_channel.os.fsync"
+            "dspark.runtime.data_plane.streaming_ref_channel.os.fsync"
         ) as fsync:
             self.assertTrue(dist.pump())
 

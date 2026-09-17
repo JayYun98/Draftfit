@@ -8,8 +8,8 @@ from unittest import mock
 
 import torch
 
-import specforge.distributed as sf_dist
-from specforge.training.backend import FSDPTrainingBackend
+import dspark.distributed as sf_dist
+from dspark.training.backend import FSDPTrainingBackend
 
 
 class _Mesh:
@@ -157,7 +157,7 @@ class NPURNGTest(unittest.TestCase):
 
         with (
             mock.patch.object(torch, "npu", accelerator, create=True),
-            mock.patch("specforge.utils.get_device_type", return_value="npu"),
+            mock.patch("dspark.utils.get_device_type", return_value="npu"),
             mock.patch.object(torch, "get_rng_state", return_value=cpu_state),
         ):
             state = FSDPTrainingBackend._rng_state()
@@ -195,12 +195,12 @@ class NPURNGTest(unittest.TestCase):
 
 class NPUEvaluatorTest(unittest.TestCase):
     def test_hccl_collectives_use_the_bound_npu(self):
-        from specforge.eval import Evaluator
+        from dspark.eval import Evaluator
 
         device = SimpleNamespace(type="npu")
         with (
             mock.patch("torch.distributed.get_backend", return_value="hccl"),
-            mock.patch("specforge.utils.get_local_device", return_value=device),
+            mock.patch("dspark.utils.get_local_device", return_value=device),
         ):
             self.assertIs(Evaluator._comm_device(), device)
 

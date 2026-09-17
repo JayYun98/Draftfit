@@ -5,9 +5,9 @@ import unittest
 
 import torch
 
-from specforge.runtime.contracts import FeatureSpec, SampleRef
-from specforge.runtime.control_plane.controller import DataFlowController
-from specforge.runtime.control_plane.metadata_store import NoOpMetadataStore
+from dspark.runtime.contracts import FeatureSpec, SampleRef
+from dspark.runtime.control_plane.controller import DataFlowController
+from dspark.runtime.control_plane.metadata_store import NoOpMetadataStore
 
 
 def _ref(i: int, store_uri="mem://x") -> SampleRef:

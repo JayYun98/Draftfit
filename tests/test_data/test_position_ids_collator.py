@@ -4,7 +4,7 @@ import unittest
 
 import torch
 
-from specforge.data.utils import DataCollatorWithPadding
+from dspark.data.utils import DataCollatorWithPadding
 
 
 def _feature(length, position_ids):

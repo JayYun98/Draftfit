@@ -15,15 +15,15 @@ from unittest import mock
 
 import torch
 
-from specforge.runtime.control_plane.controller import DataFlowController
-from specforge.runtime.control_plane.dp_ack import DPAckController
-from specforge.runtime.control_plane.metadata_store import InMemoryMetadataStore
-from specforge.runtime.data_plane.disaggregated import AuthPolicy
-from specforge.runtime.data_plane.feature_store import (
+from dspark.runtime.control_plane.controller import DataFlowController
+from dspark.runtime.control_plane.dp_ack import DPAckController
+from dspark.runtime.control_plane.metadata_store import InMemoryMetadataStore
+from dspark.runtime.data_plane.disaggregated import AuthPolicy
+from dspark.runtime.data_plane.feature_store import (
     LocalFeatureStore,
     drain_feature_store_removals,
 )
-from specforge.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
 
 
 class _FakeMooncakeStore:
@@ -136,7 +136,7 @@ class TestMooncakeFeatureStore(unittest.TestCase):
         self.assertTrue(fs.health()["hard_pin"])
 
     def test_constructor_falls_back_to_soft_pin(self):
-        import specforge.runtime.data_plane.mooncake_store as mooncake_store
+        import dspark.runtime.data_plane.mooncake_store as mooncake_store
 
         class _SoftPinOnlyConfig:
             def __init__(self):
@@ -158,7 +158,7 @@ class TestMooncakeFeatureStore(unittest.TestCase):
         self.assertIn("falling back to with_soft_pin", "\n".join(logs.output))
 
     def test_constructor_tolerates_config_without_pin_fields(self):
-        import specforge.runtime.data_plane.mooncake_store as mooncake_store
+        import dspark.runtime.data_plane.mooncake_store as mooncake_store
 
         class _ConfigWithoutPinFields:
             def __init__(self):

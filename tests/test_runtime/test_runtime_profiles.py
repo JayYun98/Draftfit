@@ -5,8 +5,8 @@ from pathlib import Path
 
 import yaml
 
-from specforge.config import load_config
-from specforge.launch_plan import _sglang_argv
+from dspark.config import load_config
+from dspark.launch_plan import _sglang_argv
 
 
 class RuntimeProfileTest(unittest.TestCase):

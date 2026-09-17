@@ -130,10 +130,10 @@ class TestPEagleGpuSmoke(unittest.TestCase):
         torch.cuda.set_device(0)
         self.addCleanup(torch.cuda.empty_cache)
 
-        from specforge.algorithms.peagle.model import OnlinePEagleModel
-        from specforge.modeling.auto import AutoDraftModel, AutoDraftModelConfig
-        from specforge.modeling.draft import PEagleDraftModel, resolve_draft
-        from specforge.optimizer import BF16Optimizer
+        from dspark.algorithms.peagle.model import OnlinePEagleModel
+        from dspark.modeling.auto import AutoDraftModel, AutoDraftModelConfig
+        from dspark.modeling.draft import PEagleDraftModel, resolve_draft
+        from dspark.optimizer import BF16Optimizer
 
         with tempfile.TemporaryDirectory(prefix="peagle_gpu_") as workdir:
             config_path = os.path.join(workdir, "config.json")

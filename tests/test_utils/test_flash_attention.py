@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from transformers import LlamaConfig
 
-from specforge.modeling.draft.llama3_eagle import (
+from dspark.modeling.draft.llama3_eagle import (
     LlamaAttention,
     LlamaFlashAttention,
     _std_flash_attn_varlen_backward,
@@ -13,7 +13,7 @@ from specforge.modeling.draft.llama3_eagle import (
     _std_flash_unpad_input,
     prepare_decoder_attention_mask,
 )
-from specforge.utils import padding
+from dspark.utils import padding
 from tests.test_utils.utils import norm_tensor
 
 TTT_LENGTH = 7

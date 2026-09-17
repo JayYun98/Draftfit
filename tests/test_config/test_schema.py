@@ -10,10 +10,10 @@ from dataclasses import replace
 
 from pydantic import ValidationError
 
-from specforge.algorithms import AlgorithmRegistration, AlgorithmRegistry
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.application import resolve_run
-from specforge.config import Config, apply_overrides, load_config
+from dspark.algorithms import AlgorithmRegistration, AlgorithmRegistry
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.application import resolve_run
+from dspark.config import Config, apply_overrides, load_config
 
 MINIMAL = {
     "model": {

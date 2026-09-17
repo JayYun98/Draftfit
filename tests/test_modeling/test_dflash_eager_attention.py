@@ -5,9 +5,9 @@ from torch import nn
 from torch.testing import assert_close
 from transformers import Qwen3Config
 
-from specforge.algorithms.common.dflash_family_model import create_dflash_sdpa_mask
-from specforge.modeling.draft.dflash import Qwen3DFlashAttention
-from specforge.modeling.draft.dflash_kernels import DFlashKernels
+from dspark.algorithms.common.dflash_family_model import create_dflash_sdpa_mask
+from dspark.modeling.draft.dflash import Qwen3DFlashAttention
+from dspark.modeling.draft.dflash_kernels import DFlashKernels
 
 
 def _make_attention(layer_type, implementation, sliding_window):

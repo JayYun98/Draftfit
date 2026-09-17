@@ -10,7 +10,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from specforge.assets import DOCUMENTS, export_assets, list_assets
+from dspark.assets import DOCUMENTS, export_assets, list_assets
 
 
 class AssetTests(unittest.TestCase):
@@ -64,7 +64,7 @@ class AssetTests(unittest.TestCase):
             with zipfile.ZipFile(wheel) as archive:
                 for name in DOCUMENTS:
                     self.assertEqual(
-                        archive.read("specforge/assets/_data/" + name),
+                        archive.read("dspark/assets/_data/" + name),
                         (root / name).read_bytes(),
                     )
 
@@ -93,7 +93,7 @@ class AssetTests(unittest.TestCase):
                 "LICENSE",
             ):
                 shutil.copyfile(root / name, source / name)
-            for name in ("specforge", "configs", "examples/configs"):
+            for name in ("dspark", "specforge", "configs", "examples/configs"):
                 shutil.copytree(
                     root / name,
                     source / name,
@@ -127,7 +127,8 @@ class AssetTests(unittest.TestCase):
                 direct_payload = {
                     name: archive.read(name)
                     for name in archive.namelist()
-                    if name.startswith("specforge/") or name.endswith("/LICENSE")
+                    if name.startswith(("dspark/", "specforge/"))
+                    or name.endswith("/LICENSE")
                 }
             # Build through the source distribution, not just the checkout:
             # missing MANIFEST entries otherwise remain invisible to wheel tests.
@@ -177,7 +178,8 @@ class AssetTests(unittest.TestCase):
                 rebuilt_payload = {
                     name: archive.read(name)
                     for name in archive.namelist()
-                    if name.startswith("specforge/") or name.endswith("/LICENSE")
+                    if name.startswith(("dspark/", "specforge/"))
+                    or name.endswith("/LICENSE")
                 }
                 self.assertEqual(direct_payload, rebuilt_payload)
                 self.assertTrue(
@@ -195,7 +197,7 @@ class AssetTests(unittest.TestCase):
                         )
             # -I -S excludes the checkout, user/site packages, and PYTHONPATH.
             # zipimport also proves resources work without filesystem-only paths.
-            code = "import sys,runpy;sys.path.insert(0,sys.argv.pop(1));runpy.run_module('specforge.assets',run_name='__main__')"
+            code = "import sys,runpy;sys.path.insert(0,sys.argv.pop(1));runpy.run_module('dspark.assets',run_name='__main__')"
             command = [sys.executable, "-I", "-S", "-c", code, str(wheel)]
             listed = subprocess.run(
                 command + ["list"],

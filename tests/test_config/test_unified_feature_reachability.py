@@ -7,9 +7,9 @@ from unittest import mock
 
 from pydantic import ValidationError
 
-from specforge.application import resolve_run
-from specforge.config import Config
-from specforge.training.assembly import (
+from dspark.application import resolve_run
+from dspark.config import Config
+from dspark.training.assembly import (
     _configured_logger,
     _dataloader_num_workers,
     _logger,
@@ -325,7 +325,7 @@ class UnifiedFeatureReachabilityTest(unittest.TestCase):
         tracker_logger = object()
 
         with mock.patch(
-            "specforge.training.tracking.create_tracker_logger",
+            "dspark.training.tracking.create_tracker_logger",
             return_value=tracker_logger,
         ) as create:
             result = _configured_logger(cfg)

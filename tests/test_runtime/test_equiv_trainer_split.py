@@ -19,7 +19,7 @@ CUDA = torch.cuda.is_available()
 
 
 def _optimizer_factory(module):
-    from specforge.optimizer import BF16Optimizer
+    from dspark.optimizer import BF16Optimizer
 
     return BF16Optimizer(
         module,
@@ -34,10 +34,10 @@ def _optimizer_factory(module):
 class TestEquivTrainerSplit(unittest.TestCase):
     def test_trainer_fit_matches_current_core_step(self):
         fx.build_single_rank_distributed(port="29562")
-        from specforge.algorithms.builtin import builtin_algorithm_registry
-        from specforge.launch import build_offline_runtime
-        from specforge.training.backend import FSDPTrainingBackend, ParallelConfig
-        from specforge.training.controller import TrainerCore
+        from dspark.algorithms.builtin import builtin_algorithm_registry
+        from dspark.launch import build_offline_runtime
+        from dspark.training.backend import FSDPTrainingBackend, ParallelConfig
+        from dspark.training.controller import TrainerCore
 
         algorithm = builtin_algorithm_registry().resolve("eagle3")
 

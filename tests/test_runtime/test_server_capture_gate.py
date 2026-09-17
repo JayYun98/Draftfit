@@ -48,8 +48,8 @@ H, TOL = 64, 2e-2  # fixture hidden size; documented bf16 tolerance
 
 
 def _capture_schema(algorithm: str):
-    from specforge.algorithms.builtin import builtin_algorithm_registry
-    from specforge.inference.adapters.server_capture import ServerCaptureSchema
+    from dspark.algorithms.builtin import builtin_algorithm_registry
+    from dspark.inference.adapters.server_capture import ServerCaptureSchema
 
     registration = builtin_algorithm_registry().resolve(algorithm)
     layout = registration.providers.server_streaming_for("text").layout
@@ -232,7 +232,7 @@ class TestServerCaptureGate(unittest.TestCase):
 
     # -- helpers ---------------------------------------------------------------
     def _store(self, store_id):
-        from specforge.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+        from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
 
         return MooncakeFeatureStore(
             store_id=store_id,
@@ -248,7 +248,7 @@ class TestServerCaptureGate(unittest.TestCase):
         )
 
     def _tasks(self, rows):
-        from specforge.runtime.contracts import PromptTask
+        from dspark.runtime.contracts import PromptTask
 
         return [
             PromptTask(
@@ -294,11 +294,9 @@ class TestServerCaptureGate(unittest.TestCase):
 
     # -- tests -------------------------------------------------------------------
     def test_eagle3_zero_copy_end_to_end(self):
-        from specforge.inference.adapters.server_capture import (
-            SGLangServerCaptureAdapter,
-        )
-        from specforge.inference.capture import CaptureConfig
-        from specforge.runtime.contracts import SampleRef
+        from dspark.inference.adapters.server_capture import SGLangServerCaptureAdapter
+        from dspark.inference.capture import CaptureConfig
+        from dspark.runtime.contracts import SampleRef
 
         rows = [[5, 6, 7, 8, 9, 10], [5, 6, 7, 8, 9, 10]]
         store = self._store("gate-eagle3")
@@ -330,7 +328,7 @@ class TestServerCaptureGate(unittest.TestCase):
             self.assertIsInstance(ref, SampleRef, f"expected a ref, got failure: {ref}")
 
         aux_ref, logits_ref = self._hf_reference(rows)
-        from specforge.modeling.target.target_head import TargetHead
+        from dspark.modeling.target.target_head import TargetHead
 
         head = TargetHead.from_pretrained(self.target_dir)
 
@@ -363,13 +361,13 @@ class TestServerCaptureGate(unittest.TestCase):
         self._train_step(fetched, head)
 
     def _train_step(self, fetched, head):
-        from specforge.algorithms.eagle3.model import OnlineEagle3Model
-        from specforge.modeling.auto import AutoDraftModel, AutoDraftModelConfig
-        from specforge.optimizer import BF16Optimizer
-        from specforge.runtime.contracts import TrainBatch
-        from specforge.training.backend import FSDPTrainingBackend, ParallelConfig
-        from specforge.training.controller import TrainerCore
-        from specforge.training.strategies.base import Eagle3TrainStrategy
+        from dspark.algorithms.eagle3.model import OnlineEagle3Model
+        from dspark.modeling.auto import AutoDraftModel, AutoDraftModelConfig
+        from dspark.optimizer import BF16Optimizer
+        from dspark.runtime.contracts import TrainBatch
+        from dspark.training.backend import FSDPTrainingBackend, ParallelConfig
+        from dspark.training.controller import TrainerCore
+        from dspark.training.strategies.base import Eagle3TrainStrategy
         from tests.test_runtime import _fixtures as fx
 
         fx.build_single_rank_distributed(port="29576")
@@ -411,11 +409,9 @@ class TestServerCaptureGate(unittest.TestCase):
             self.assertTrue(torch.isfinite(torch.tensor(result.loss)))
 
     def test_dflash_capture_same_server(self):
-        from specforge.inference.adapters.server_capture import (
-            SGLangServerCaptureAdapter,
-        )
-        from specforge.inference.capture import CaptureConfig
-        from specforge.runtime.contracts import SampleRef
+        from dspark.inference.adapters.server_capture import SGLangServerCaptureAdapter
+        from dspark.inference.capture import CaptureConfig
+        from dspark.runtime.contracts import SampleRef
 
         rows = [[3, 1, 4, 1, 5]]
         store = self._store("gate-dflash")

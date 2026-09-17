@@ -9,14 +9,14 @@ from types import SimpleNamespace
 
 import torch
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.config import Config
-from specforge.training.assembly import (
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.config import Config
+from dspark.training.assembly import (
     _ensure_offline_vocab_mapping,
     _install_dataset_vocab_mapping,
     _prompt_cache_key,
 )
-from specforge.training.vocab_mapping import count_effective_feature_tokens
+from dspark.training.vocab_mapping import count_effective_feature_tokens
 
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 

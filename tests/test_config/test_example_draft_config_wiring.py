@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from typing import Optional
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
+from dspark.algorithms.builtin import builtin_algorithm_registry
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE_CONFIG_DIR = REPO_ROOT / "examples" / "configs"

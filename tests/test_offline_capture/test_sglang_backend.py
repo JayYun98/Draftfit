@@ -7,8 +7,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from accelerate.utils import set_seed
 
-from specforge.distributed import init_distributed
-from specforge.offline_capture import OfflineSGLangCapture
+from dspark.distributed import init_distributed
+from dspark.offline_capture import OfflineSGLangCapture
 from tests.utils import get_available_port
 
 

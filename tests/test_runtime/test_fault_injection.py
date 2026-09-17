@@ -16,12 +16,12 @@ import unittest
 
 import torch
 
-from specforge.runtime.contracts import FeatureSpec, SampleRef, assert_no_tensors
-from specforge.runtime.control_plane.controller import DataFlowController
-from specforge.runtime.data_plane.feature_dataloader import FeatureDataLoader
-from specforge.runtime.data_plane.feature_store import LocalFeatureStore
-from specforge.runtime.data_plane.offline_reader import OfflineManifestReader
-from specforge.runtime.data_plane.sample_ref_queue import SampleRefQueue
+from dspark.runtime.contracts import FeatureSpec, SampleRef, assert_no_tensors
+from dspark.runtime.control_plane.controller import DataFlowController
+from dspark.runtime.data_plane.feature_dataloader import FeatureDataLoader
+from dspark.runtime.data_plane.feature_store import LocalFeatureStore
+from dspark.runtime.data_plane.offline_reader import OfflineManifestReader
+from dspark.runtime.data_plane.sample_ref_queue import SampleRefQueue
 
 
 def _committed_ref(store: LocalFeatureStore, sid: str) -> SampleRef:

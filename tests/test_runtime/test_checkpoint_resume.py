@@ -50,8 +50,8 @@ def _fake_seam():
     """CPU fakes over the real seam ABCs (imported lazily: specforge is heavy)."""
     import torch.nn as nn
 
-    from specforge.training.backend import TrainingBackend
-    from specforge.training.strategies.base import DraftTrainStrategy, StepOutput
+    from dspark.training.backend import TrainingBackend
+    from dspark.training.strategies.base import DraftTrainStrategy, StepOutput
 
     class Draft(nn.Module):
         def __init__(self):
@@ -122,7 +122,7 @@ def _fake_seam():
 @contextlib.contextmanager
 def _no_fsdp_wrap():
     """Force the production backend to register without FSDP (CPU, world 1)."""
-    from specforge.training.backend import FSDPTrainingBackend
+    from dspark.training.backend import FSDPTrainingBackend
 
     orig = FSDPTrainingBackend.prepare_model
 
@@ -140,12 +140,12 @@ def _cpu_two_rank_trainer_resume_worker(
     import torch.distributed as dist
     import torch.nn as nn
 
-    from specforge.optimizer import BF16Optimizer
-    from specforge.runtime.control_plane import DataFlowController
-    from specforge.runtime.data_plane.feature_store import LocalFeatureStore
-    from specforge.runtime.data_plane.offline_reader import OfflineManifestReader
-    from specforge.training import Trainer
-    from specforge.training.strategies.base import StepOutput
+    from dspark.optimizer import BF16Optimizer
+    from dspark.runtime.control_plane import DataFlowController
+    from dspark.runtime.data_plane.feature_store import LocalFeatureStore
+    from dspark.runtime.data_plane.offline_reader import OfflineManifestReader
+    from dspark.training import Trainer
+    from dspark.training.strategies.base import StepOutput
 
     os.environ["FSDP_SHARDING"] = "NO_SHARD"
     dist.init_process_group(
@@ -283,7 +283,7 @@ def _cpu_two_rank_trainer_resume_worker(
     )
     interrupted.fit()
     checkpoint = os.path.realpath(os.path.join(out_dir, "resume", "two-rank-latest"))
-    from specforge.training.checkpoint import CheckpointManager
+    from dspark.training.checkpoint import CheckpointManager
 
     checkpoint_state = CheckpointManager.read_resume_state(checkpoint)
     if checkpoint_state["world_size"] != world or set(checkpoint_state["backend"]) != {
@@ -390,11 +390,11 @@ class TestTrainerResumeEntrypoint(unittest.TestCase):
         max_grad_norm=1.0,
         total_steps=100,
     ):
-        from specforge.optimizer import BF16Optimizer
-        from specforge.runtime.control_plane import DataFlowController
-        from specforge.runtime.data_plane.feature_store import LocalFeatureStore
-        from specforge.runtime.data_plane.offline_reader import OfflineManifestReader
-        from specforge.training.trainer import Trainer
+        from dspark.optimizer import BF16Optimizer
+        from dspark.runtime.control_plane import DataFlowController
+        from dspark.runtime.data_plane.feature_store import LocalFeatureStore
+        from dspark.runtime.data_plane.offline_reader import OfflineManifestReader
+        from dspark.training.trainer import Trainer
 
         Composite, Strategy, _ = _fake_seam()
         seen = [] if seen is None else seen
@@ -437,7 +437,7 @@ class TestTrainerResumeEntrypoint(unittest.TestCase):
         return trainer, model, seen
 
     def test_resume_continues_where_the_run_stopped(self):
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         workdir = tempfile.mkdtemp(prefix="trainer_resume_cpu_")
         feat_dir = _write_feature_files(os.path.join(workdir, "features"), n=8)
@@ -676,7 +676,7 @@ class TestTrainerResumeEntrypoint(unittest.TestCase):
     def test_resume_rejects_partial_weights_except_provider_owned_omissions(self):
         import torch.nn as nn
 
-        from specforge.algorithms.common.providers import (
+        from dspark.algorithms.common.providers import (
             OMITTED_STATE_FINGERPRINT_CONTRACT_KEY,
             StepRuntimeConfig,
             checkpoint_key_fingerprint,
@@ -780,7 +780,7 @@ class TestTrainerResumeEntrypoint(unittest.TestCase):
             )
 
     def test_bound_algorithm_resume_contract_is_saved_and_validated(self):
-        from specforge.algorithms.common.providers import StepRuntimeConfig
+        from dspark.algorithms.common.providers import StepRuntimeConfig
 
         workdir = tempfile.mkdtemp(prefix="trainer_resume_contract_")
         feat_dir = _write_feature_files(os.path.join(workdir, "features"), n=4)
@@ -864,18 +864,18 @@ class TestTrainerResumeEntrypoint(unittest.TestCase):
 
         import torch.nn as nn
 
-        from specforge.algorithms.common.providers import (
+        from dspark.algorithms.common.providers import (
             MODEL_PROVENANCE_CONTRACT_KEY,
             OMITTED_STATE_FINGERPRINT_CONTRACT_KEY,
             STEP_OPTIONS_CONTRACT_KEY,
             StepRuntimeConfig,
             checkpoint_key_fingerprint,
         )
-        from specforge.launch import _assemble_trainer
-        from specforge.optimizer import BF16Optimizer
-        from specforge.runtime.control_plane import DataFlowController
-        from specforge.runtime.data_plane.feature_store import LocalFeatureStore
-        from specforge.runtime.data_plane.offline_reader import OfflineManifestReader
+        from dspark.launch import _assemble_trainer
+        from dspark.optimizer import BF16Optimizer
+        from dspark.runtime.control_plane import DataFlowController
+        from dspark.runtime.data_plane.feature_store import LocalFeatureStore
+        from dspark.runtime.data_plane.offline_reader import OfflineManifestReader
 
         _, BaseStrategy, _ = _fake_seam()
 
@@ -1155,7 +1155,7 @@ class TestFitReentry(unittest.TestCase):
     """fit() at/after max_steps and re-entry after a mid-epoch return (CPU fakes)."""
 
     def _controller(self, seen, max_steps, out_dir, **kw):
-        from specforge.training.controller import TrainerController, TrainerCore
+        from dspark.training.controller import TrainerController, TrainerCore
 
         num_epochs = kw.pop("num_epochs", 1)
         Composite, Strategy, Backend = _fake_seam()
@@ -1174,7 +1174,7 @@ class TestFitReentry(unittest.TestCase):
 
     @staticmethod
     def _batches(n):
-        from specforge.runtime.contracts import TrainBatch
+        from dspark.runtime.contracts import TrainBatch
 
         return [
             TrainBatch(
@@ -1324,13 +1324,13 @@ class TestCheckpointResume(unittest.TestCase):
 
         fx.build_single_rank_distributed(port="29563")
 
-        from specforge.algorithms.eagle3.model import OnlineEagle3Model
-        from specforge.modeling.auto import AutoDraftModel, AutoDraftModelConfig
-        from specforge.modeling.target.target_head import TargetHead
-        from specforge.optimizer import BF16Optimizer
-        from specforge.training.backend import FSDPTrainingBackend, ParallelConfig
-        from specforge.training.controller import TrainerController, TrainerCore
-        from specforge.training.strategies.base import Eagle3TrainStrategy
+        from dspark.algorithms.eagle3.model import OnlineEagle3Model
+        from dspark.modeling.auto import AutoDraftModel, AutoDraftModelConfig
+        from dspark.modeling.target.target_head import TargetHead
+        from dspark.optimizer import BF16Optimizer
+        from dspark.training.backend import FSDPTrainingBackend, ParallelConfig
+        from dspark.training.controller import TrainerController, TrainerCore
+        from dspark.training.strategies.base import Eagle3TrainStrategy
 
         TTT, BS, N = 3, 2, 6
         workdir = tempfile.mkdtemp(prefix="ckpt_resume_")
@@ -1383,7 +1383,7 @@ class TestCheckpointResume(unittest.TestCase):
         self.assertEqual(step, 3)
         ck = ctrl.save_checkpoint(step)
 
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         # run-scoped on-disk names
         ckpt_dir = ck.checkpoint_uri[len("file://") :]
@@ -1456,10 +1456,10 @@ class TestCheckpointResume(unittest.TestCase):
 
         fx.build_single_rank_distributed(port="29564")
 
-        from specforge.optimizer import BF16Optimizer
-        from specforge.training.backend import FSDPTrainingBackend, ParallelConfig
-        from specforge.training.controller import TrainerController, TrainerCore
-        from specforge.training.strategies.base import Eagle3TrainStrategy
+        from dspark.optimizer import BF16Optimizer
+        from dspark.training.backend import FSDPTrainingBackend, ParallelConfig
+        from dspark.training.controller import TrainerController, TrainerCore
+        from dspark.training.strategies.base import Eagle3TrainStrategy
 
         TTT, BS, TOTAL, CUT = 3, 2, 6, 3
         workdir = tempfile.mkdtemp(prefix="ckpt_continuity_")
@@ -1539,7 +1539,7 @@ class TestCheckpointResume(unittest.TestCase):
         }
 
         # Phase 2: fresh model, restore through the one checkpoint reader.
-        from specforge.training.checkpoint import CheckpointManager
+        from dspark.training.checkpoint import CheckpointManager
 
         state = CheckpointManager.read_resume_state(ck.checkpoint_uri)
         self.assertEqual(state["epoch_batch"], CUT)

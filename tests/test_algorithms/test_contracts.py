@@ -4,7 +4,7 @@ import unittest
 from dataclasses import FrozenInstanceError, fields, is_dataclass
 from enum import Enum
 
-from specforge.algorithms import (
+from dspark.algorithms import (
     AlgorithmCapabilities,
     AlgorithmSpec,
     DraftRequirement,

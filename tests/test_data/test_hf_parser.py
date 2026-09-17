@@ -5,9 +5,9 @@ import unittest
 from tokenizers import Tokenizer, models, pre_tokenizers
 from transformers import PreTrainedTokenizerFast
 
-from specforge.data.parse import HFParser
-from specforge.data.preprocessing import preprocess_conversations
-from specforge.data.template import TEMPLATE_REGISTRY
+from dspark.data.parse import HFParser
+from dspark.data.preprocessing import preprocess_conversations
+from dspark.data.template import TEMPLATE_REGISTRY
 
 
 class HFParserTest(unittest.TestCase):

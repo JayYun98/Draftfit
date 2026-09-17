@@ -5,14 +5,14 @@ import unittest
 from types import SimpleNamespace
 from unittest import mock
 
-from specforge.training.disaggregated import (
+from dspark.training.disaggregated import (
     _ONLINE_SCHEDULE_SUFFIX,
     _online_flow_window,
     _online_schedule_payload,
     _read_online_total_steps,
     _write_control,
 )
-from specforge.training.schedule import (
+from dspark.training.schedule import (
     resolve_online_total_steps,
     resolve_total_steps,
     validate_fixed_accumulation_plan,

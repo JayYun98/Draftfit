@@ -5,23 +5,23 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from specforge.inference.acceptance import validate_acceptance_summary
-from specforge.inference.parity import (
+from dspark.inference.acceptance import validate_acceptance_summary
+from dspark.inference.parity import (
     compare_feature_manifests,
     compare_state_replay,
     compare_state_snapshots,
     compare_token_ids,
     feature_manifest,
 )
-from specforge.inference.state import TargetStateAdapter, TargetStateSnapshot
-from specforge.inference.target_adapter import (
+from dspark.inference.state import TargetStateAdapter, TargetStateSnapshot
+from dspark.inference.target_adapter import (
     ChatTemplateRenderer,
     LingRenderer,
     LingTargetAdapter,
     TargetAdapter,
 )
-from specforge.sweep import build_sweep
-from specforge.torchspec_bridge import TorchSpecLaunch
+from dspark.sweep import build_sweep
+from dspark.torchspec_bridge import TorchSpecLaunch
 
 
 class _Tokenizer:
@@ -327,7 +327,7 @@ class InferenceContractTest(unittest.TestCase):
                 [
                     sys.executable,
                     "-m",
-                    "specforge.cli",
+                    "dspark.cli",
                     "validate",
                     "acceptance",
                     "--summary",
@@ -380,7 +380,7 @@ class InferenceContractTest(unittest.TestCase):
                 [
                     sys.executable,
                     "-m",
-                    "specforge.cli",
+                    "dspark.cli",
                     "validate",
                     "tokens",
                     "--expected",

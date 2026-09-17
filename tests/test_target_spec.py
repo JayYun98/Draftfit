@@ -7,11 +7,11 @@ from types import SimpleNamespace
 import torch
 from torch import nn
 
-from specforge.algorithms.common.dflash_family_model import OnlineDFlashModel
-from specforge.algorithms.model_providers import populate_dspark_generated_config
-from specforge.cli import main as cli_main
-from specforge.config import Config
-from specforge.target_spec import TargetSpec
+from dspark.algorithms.common.dflash_family_model import OnlineDFlashModel
+from dspark.algorithms.model_providers import populate_dspark_generated_config
+from dspark.cli import main as cli_main
+from dspark.config import Config
+from dspark.target_spec import TargetSpec
 
 
 def _inspection(lane="hybrid_stateful", state="conv_plus_kv"):

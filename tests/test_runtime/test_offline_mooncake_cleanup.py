@@ -10,9 +10,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from specforge.algorithms.builtin import builtin_algorithm_registry
-from specforge.runtime.data_plane.disagg_ingest import ingest_offline_features
-from specforge.training.disaggregated import _build_offline
+from dspark.algorithms.builtin import builtin_algorithm_registry
+from dspark.runtime.data_plane.disagg_ingest import ingest_offline_features
+from dspark.training.disaggregated import _build_offline
 
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
@@ -67,18 +67,18 @@ class OfflineMooncakeCleanupTest(unittest.TestCase):
         with (
             patch.dict(os.environ, environment),
             patch(
-                "specforge.training.disaggregated._offline_store",
+                "dspark.training.disaggregated._offline_store",
                 return_value=store,
             ),
             patch(
-                "specforge.runtime.data_plane.disagg_ingest.ingest_offline_features",
+                "dspark.runtime.data_plane.disagg_ingest.ingest_offline_features",
                 side_effect=ingest,
             ),
             patch(
-                "specforge.runtime.data_plane.disagg_ingest.write_ref_manifest"
+                "dspark.runtime.data_plane.disagg_ingest.write_ref_manifest"
             ) as write_manifest,
             patch(
-                "specforge.training.disaggregated._hold_mooncake_producer",
+                "dspark.training.disaggregated._hold_mooncake_producer",
                 side_effect=hold_side_effect,
             ),
         ):
@@ -274,11 +274,11 @@ class OfflineIngestTrackingTest(unittest.TestCase):
         raw = {"input_ids": SimpleNamespace(numel=lambda: 4)}
         with (
             patch(
-                "specforge.runtime.data_plane.disagg_ingest.list_feature_files",
+                "dspark.runtime.data_plane.disagg_ingest.list_feature_files",
                 return_value=["feature-0", "feature-1"],
             ),
             patch(
-                "specforge.runtime.data_plane.disagg_ingest.load_feature_file",
+                "dspark.runtime.data_plane.disagg_ingest.load_feature_file",
                 return_value=raw,
             ),
             self.assertRaisesRegex(RuntimeError, "second put failed"),

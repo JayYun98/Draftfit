@@ -59,29 +59,26 @@ from datasets import Dataset
 from tqdm import tqdm
 from transformers import AutoConfig
 
-from specforge.algorithms.common.providers import OfflineCaptureLayout
-from specforge.application import resolve_offline_capture
-from specforge.config import Config
-from specforge.data.preprocessing import (
-    build_eagle3_dataset,
-    generate_vocab_mapping_file,
-)
-from specforge.data.utils import prepare_dp_dataloaders
-from specforge.distributed import (
+from dspark.algorithms.common.providers import OfflineCaptureLayout
+from dspark.application import resolve_offline_capture
+from dspark.config import Config
+from dspark.data.preprocessing import build_eagle3_dataset, generate_vocab_mapping_file
+from dspark.data.utils import prepare_dp_dataloaders
+from dspark.distributed import (
     destroy_distributed,
     get_dp_group,
     get_tp_group,
     init_distributed,
     is_tp_rank_0,
 )
-from specforge.inference.capture_manifest import (
+from dspark.inference.capture_manifest import (
     build_capture_manifest,
     load_capture_manifest,
     write_capture_manifest,
 )
-from specforge.offline_capture import OfflineSGLangCapture  # noqa: F401 - legacy import
-from specforge.offline_capture import load_offline_capture
-from specforge.utils import (
+from dspark.offline_capture import OfflineSGLangCapture  # noqa: F401 - legacy import
+from dspark.offline_capture import load_offline_capture
+from dspark.utils import (
     get_local_device,
     load_tokenizer,
     print_args_with_dots,

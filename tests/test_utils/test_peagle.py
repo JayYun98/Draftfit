@@ -5,15 +5,15 @@ from unittest.mock import MagicMock, patch
 import torch
 from transformers import LlamaConfig
 
-from specforge.algorithms.peagle.model import (
+from dspark.algorithms.peagle.model import (
     OnlinePEagleModel,
     compute_peagle_metrics,
     create_peagle_mask_mod,
     generate_cod_sample_indices,
 )
-from specforge.modeling.auto import AutoDraftModel
-from specforge.modeling.draft.peagle import PEagleDraftModel
-from specforge.training.model_utils import resolve_mask_token_id
+from dspark.modeling.auto import AutoDraftModel
+from dspark.modeling.draft.peagle import PEagleDraftModel
+from dspark.training.model_utils import resolve_mask_token_id
 
 
 class TestPEagleTrainingSemantics(unittest.TestCase):
@@ -107,7 +107,7 @@ class TestPEagleTrainingSemantics(unittest.TestCase):
             return torch.tensor(0.0, device=logits.device)
 
         with patch(
-            "specforge.algorithms.peagle.model.LogSoftmaxLoss.apply",
+            "dspark.algorithms.peagle.model.LogSoftmaxLoss.apply",
             side_effect=fake_loss,
         ):
             _loss, metrics = compute_peagle_metrics(
