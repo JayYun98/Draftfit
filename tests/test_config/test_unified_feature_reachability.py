@@ -7,9 +7,9 @@ from unittest import mock
 
 from pydantic import ValidationError
 
-from dspark.application import resolve_run
-from dspark.config import Config
-from dspark.training.assembly import (
+from speculative_train_platform.application import resolve_run
+from speculative_train_platform.config import Config
+from speculative_train_platform.training.assembly import (
     _configured_logger,
     _dataloader_num_workers,
     _logger,
@@ -325,7 +325,7 @@ class UnifiedFeatureReachabilityTest(unittest.TestCase):
         tracker_logger = object()
 
         with mock.patch(
-            "dspark.training.tracking.create_tracker_logger",
+            "speculative_train_platform.training.tracking.create_tracker_logger",
             return_value=tracker_logger,
         ) as create:
             result = _configured_logger(cfg)

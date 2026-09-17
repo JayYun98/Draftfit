@@ -18,15 +18,21 @@ import unittest
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
-from dspark.runtime.contracts import assert_no_tensors
-from dspark.runtime.data_plane import LocalFeatureStore, OfflineManifestReader
-from dspark.runtime.data_plane.disagg_ingest import (
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.runtime.contracts import assert_no_tensors
+from speculative_train_platform.runtime.data_plane import (
+    LocalFeatureStore,
+    OfflineManifestReader,
+)
+from speculative_train_platform.runtime.data_plane.disagg_ingest import (
     ingest_offline_features,
     read_ref_manifest,
     write_ref_manifest,
 )
-from dspark.runtime.data_plane.disaggregated import AuthPolicy, SharedDirFeatureStore
+from speculative_train_platform.runtime.data_plane.disaggregated import (
+    AuthPolicy,
+    SharedDirFeatureStore,
+)
 from tests.test_runtime import _fixtures as fx
 
 CUDA = torch.cuda.is_available()
@@ -153,8 +159,8 @@ class TestDisaggLaunchFSDP(unittest.TestCase):
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        from dspark.launch import build_disagg_offline_runtime
-        from dspark.optimizer import BF16Optimizer
+        from speculative_train_platform.launch import build_disagg_offline_runtime
+        from speculative_train_platform.optimizer import BF16Optimizer
 
         TTT, ACC, MAX_OPT_STEPS, N = 3, 2, 2, 8
         work = tempfile.mkdtemp(prefix="disagg_fsdp_")

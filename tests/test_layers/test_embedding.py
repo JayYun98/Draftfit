@@ -6,8 +6,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from accelerate.utils import set_seed
 
-from dspark.distributed import init_distributed
-from dspark.layers import VocabParallelEmbedding
+from speculative_train_platform.distributed import init_distributed
+from speculative_train_platform.layers import VocabParallelEmbedding
 from tests.utils import get_available_port
 
 

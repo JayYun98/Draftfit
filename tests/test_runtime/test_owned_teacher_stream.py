@@ -9,18 +9,36 @@ from pathlib import Path
 import torch
 from transformers import Qwen3Config, Qwen3ForCausalLM
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
-from dspark.algorithms.common.dflash_family_model import OnlineDFlash2Model
-from dspark.inference.adapters.server_capture import TeacherServerCaptureAdapter
-from dspark.inference.capture import CaptureConfig, CaptureMismatchError
-from dspark.inference.capture_sink import CaptureSink
-from dspark.inference.teacher_server import TeacherService, make_server
-from dspark.launch import build_disagg_online_producer
-from dspark.modeling.draft.dflash2 import DFlash2DraftModel
-from dspark.offline_capture.transformers import OfflineTransformersCapture
-from dspark.runtime.data_plane.feature_dataloader import FeatureDataLoader
-from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
-from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.algorithms.common.dflash_family_model import (
+    OnlineDFlash2Model,
+)
+from speculative_train_platform.inference.adapters.server_capture import (
+    TeacherServerCaptureAdapter,
+)
+from speculative_train_platform.inference.capture import (
+    CaptureConfig,
+    CaptureMismatchError,
+)
+from speculative_train_platform.inference.capture_sink import CaptureSink
+from speculative_train_platform.inference.teacher_server import (
+    TeacherService,
+    make_server,
+)
+from speculative_train_platform.launch import build_disagg_online_producer
+from speculative_train_platform.modeling.draft.dflash2 import DFlash2DraftModel
+from speculative_train_platform.offline_capture.transformers import (
+    OfflineTransformersCapture,
+)
+from speculative_train_platform.runtime.data_plane.feature_dataloader import (
+    FeatureDataLoader,
+)
+from speculative_train_platform.runtime.data_plane.mooncake_store import (
+    MooncakeFeatureStore,
+)
+from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
+    StreamingRefChannel,
+)
 from tests.test_dflash2_integration import tiny_config
 from tests.test_runtime.test_server_capture import (
     _capture_schema,

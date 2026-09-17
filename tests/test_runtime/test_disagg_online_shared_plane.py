@@ -11,12 +11,18 @@ from unittest import mock
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
-from dspark.runtime.contracts import FeatureSpec, SampleRef
-from dspark.runtime.control_plane.controller import DataFlowController
-from dspark.runtime.control_plane.metadata_store import SQLiteMetadataStore
-from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
-from dspark.training.checkpoint import STATE_FILE
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.runtime.contracts import FeatureSpec, SampleRef
+from speculative_train_platform.runtime.control_plane.controller import (
+    DataFlowController,
+)
+from speculative_train_platform.runtime.control_plane.metadata_store import (
+    SQLiteMetadataStore,
+)
+from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
+    StreamingRefChannel,
+)
+from speculative_train_platform.training.checkpoint import STATE_FILE
 
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
@@ -93,7 +99,7 @@ class TestSharedPlaneConsumerResume(unittest.TestCase):
         store.close()
 
     def _build(self, *, resume_from=None, idle_timeout_s=None):
-        from dspark.launch import build_disagg_online_consumer
+        from speculative_train_platform.launch import build_disagg_online_consumer
 
         captured = {}
 
@@ -106,10 +112,13 @@ class TestSharedPlaneConsumerResume(unittest.TestCase):
         with (
             mock.patch("torch.distributed.is_initialized", return_value=False),
             mock.patch(
-                "dspark.runtime.data_plane.ref_distributor.RefDistributor",
+                "speculative_train_platform.runtime.data_plane.ref_distributor.RefDistributor",
                 _FakeDistributor,
             ),
-            mock.patch("dspark.launch._assemble_trainer", side_effect=assemble),
+            mock.patch(
+                "speculative_train_platform.launch._assemble_trainer",
+                side_effect=assemble,
+            ),
         ):
             trainer = build_disagg_online_consumer(
                 algorithm=ALGORITHM,

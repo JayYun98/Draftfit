@@ -12,8 +12,12 @@ import unittest
 
 import torch
 
-from dspark.runtime.data_plane.feature_store import LocalFeatureStore
-from dspark.runtime.data_plane.offline_reader import OfflineManifestReader
+from speculative_train_platform.runtime.data_plane.feature_store import (
+    LocalFeatureStore,
+)
+from speculative_train_platform.runtime.data_plane.offline_reader import (
+    OfflineManifestReader,
+)
 
 
 class TestLocalFeatureStore(unittest.TestCase):

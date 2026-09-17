@@ -6,14 +6,14 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest import mock
 
-from dspark.tracker import WandbTracker, _public_config
-from dspark.training.tracking import (
+from speculative_train_platform.tracker import WandbTracker, _public_config
+from speculative_train_platform.training.tracking import (
     TrackerLogger,
     create_tracker_logger,
     scalar_metrics,
     training_metric_names,
 )
-from dspark.training.trainer import Trainer
+from speculative_train_platform.training.trainer import Trainer
 
 
 class _TensorDouble:
@@ -147,7 +147,8 @@ class TrackingLoggerTest(unittest.TestCase):
         tracker = _Tracker()
         tracker_class = mock.Mock(return_value=tracker)
         with mock.patch(
-            "dspark.tracker.get_tracker_class", return_value=tracker_class
+            "speculative_train_platform.tracker.get_tracker_class",
+            return_value=tracker_class,
         ) as make:
             logger = create_tracker_logger(
                 mock.Mock(report_to="tensorboard"), "/tmp/output"
@@ -171,10 +172,18 @@ class TrackingLoggerTest(unittest.TestCase):
 
         with (
             TemporaryDirectory() as output_dir,
-            mock.patch("dspark.tracker.wandb", wandb),
-            mock.patch("dspark.tracker.dist.is_available", return_value=True),
-            mock.patch("dspark.tracker.dist.is_initialized", return_value=True),
-            mock.patch("dspark.tracker.dist.get_rank", return_value=0),
+            mock.patch("speculative_train_platform.tracker.wandb", wandb),
+            mock.patch(
+                "speculative_train_platform.tracker.dist.is_available",
+                return_value=True,
+            ),
+            mock.patch(
+                "speculative_train_platform.tracker.dist.is_initialized",
+                return_value=True,
+            ),
+            mock.patch(
+                "speculative_train_platform.tracker.dist.get_rank", return_value=0
+            ),
         ):
             tracker = WandbTracker(args, output_dir)
             # A later multiprocessing lifecycle may clear W&B's module-global

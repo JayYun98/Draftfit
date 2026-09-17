@@ -8,7 +8,6 @@ from unittest import mock
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
 from scripts.prepare_hidden_states import (
     HiddenStatesGenerator,
     _generate_shared_vocab_mapping,
@@ -18,6 +17,7 @@ from scripts.prepare_hidden_states import (
     parse_args,
     resolve_offline_capture_plan,
 )
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

@@ -6,10 +6,17 @@ import os
 import tempfile
 import unittest
 
-from dspark.runtime.contracts import FeatureSpec, SampleRef
-from dspark.runtime.control_plane.controller import DataFlowController
-from dspark.runtime.control_plane.metadata_store import SQLiteMetadataStore
-from dspark.runtime.data_plane.ref_serialization import ref_from_dict, ref_to_dict
+from speculative_train_platform.runtime.contracts import FeatureSpec, SampleRef
+from speculative_train_platform.runtime.control_plane.controller import (
+    DataFlowController,
+)
+from speculative_train_platform.runtime.control_plane.metadata_store import (
+    SQLiteMetadataStore,
+)
+from speculative_train_platform.runtime.data_plane.ref_serialization import (
+    ref_from_dict,
+    ref_to_dict,
+)
 
 
 def _ref(sample_id: str) -> SampleRef:

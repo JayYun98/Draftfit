@@ -1,9 +1,11 @@
 # Environment management with uv
 
 Use uv (0.9.18 or newer); contributor Python is 3.12. The owned distribution
-contains the platform implementation in `dspark` and a legacy `specforge` import
-bridge. Do not install upstream SpecForge beside it: that package would collide
-with the compatibility bridge. See [code ownership](CODE_OWNERSHIP.md).
+contains the implementation in `speculative_train_platform` with `dspark` and
+`specforge` compatibility imports. Use a fresh environment when migrating from
+the old `dspark-train-platform` distribution or upstream SpecForge. Do not
+co-install them: they would own the same legacy package files and uninstalling
+either could damage the other. See [code ownership](CODE_OWNERSHIP.md).
 
 ## CPU preparation and contributor checks
 
@@ -16,7 +18,7 @@ uv pip sync --python .venv/bin/python requirements-cpu.lock \
 uv run --no-project --python .venv/bin/python python -m tests.public_cpu
 uv build --python .venv/bin/python --no-build-isolation
 uv pip install --python .venv/bin/python --no-deps \
-  dist/dspark_train_platform-0.2.0-py3-none-any.whl
+  dist/speculative_train_platform-0.2.0-py3-none-any.whl
 uv run --no-project --python .venv/bin/python python -I scripts/check_public_install.py
 ```
 
@@ -43,7 +45,7 @@ or pinned custom image first. Inside that image, use its actual Python path:
 ```sh
 # Replace /opt/runtime/bin/python with the interpreter supplied by the image.
 uv pip install --python /opt/runtime/bin/python --no-deps --no-build-isolation -e .
-uv run --no-project --python /opt/runtime/bin/python python -m dspark.cli algorithms
+uv run --no-project --python /opt/runtime/bin/python python -m speculative_train_platform.cli algorithms
 ```
 
 `--no-deps` is intentional only for an already provisioned runtime, not a complete
@@ -78,11 +80,11 @@ PEagle remains streaming-only. Export/serving support is a separate check.
 For online capture, select the backend during project preparation:
 
 ```sh
-dspark target prepare /path/to/target --local-only --strategy dspark \
+speculative-train-platform target prepare /path/to/target --local-only --strategy dspark \
   --teacher-backend transformers --train-data ./data/train.jsonl \
   --output-dir ./online-draft
-dspark train -c ./online-draft/train.json --plan
-dspark train -c ./online-draft/train.json
+speculative-train-platform train -c ./online-draft/train.json --plan
+speculative-train-platform train -c ./online-draft/train.json
 ```
 
 Use `--teacher-backend vllm` in its separate pinned runtime. Native managed
@@ -140,12 +142,12 @@ connector files are private temporary files, not a scalable streaming transport.
 Create the training run from those files:
 
 ```sh
-dspark target prepare /path/to/target --local-only --strategy dspark \
+speculative-train-platform target prepare /path/to/target --local-only --strategy dspark \
   --hidden-states ./features/transformers --output-dir ./offline-draft \
   --draft-config /path/to/draft.json \
   --set model.target_backend=transformers --set data.max_length=2048
-dspark train -c ./offline-draft/train.json --plan
-dspark train -c ./offline-draft/train.json
+speculative-train-platform train -c ./offline-draft/train.json --plan
+speculative-train-platform train -c ./offline-draft/train.json
 ```
 
 For vLLM change both feature path and backend. Keep the draft config, revision,

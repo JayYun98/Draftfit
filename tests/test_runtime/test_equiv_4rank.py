@@ -37,8 +37,11 @@ def _has_standard_flash_attention() -> bool:
 
 
 def _build_model(workdir: str, attention_backend: str):
-    from dspark.algorithms.eagle3.model import OnlineEagle3Model
-    from dspark.modeling.auto import AutoDraftModel, AutoDraftModelConfig
+    from speculative_train_platform.algorithms.eagle3.model import OnlineEagle3Model
+    from speculative_train_platform.modeling.auto import (
+        AutoDraftModel,
+        AutoDraftModelConfig,
+    )
 
     draft_config = AutoDraftModelConfig.from_file(os.path.join(workdir, "draft.json"))
     draft_model = AutoDraftModel.from_config(
@@ -67,12 +70,23 @@ def _worker(rank: int, world_size: int, port: int, workdir: str) -> None:
     try:
         import torch.distributed as dist
 
-        from dspark.algorithms.builtin import builtin_algorithm_registry
-        from dspark.distributed import get_draft_sp_group, get_tp_group
-        from dspark.launch import _shard_offline_refs, build_offline_runtime
-        from dspark.modeling.target.target_head import TargetHead
-        from dspark.optimizer import BF16Optimizer
-        from dspark.runtime.data_plane import FeatureDataLoader, LocalFeatureStore
+        from speculative_train_platform.algorithms.builtin import (
+            builtin_algorithm_registry,
+        )
+        from speculative_train_platform.distributed import (
+            get_draft_sp_group,
+            get_tp_group,
+        )
+        from speculative_train_platform.launch import (
+            _shard_offline_refs,
+            build_offline_runtime,
+        )
+        from speculative_train_platform.modeling.target.target_head import TargetHead
+        from speculative_train_platform.optimizer import BF16Optimizer
+        from speculative_train_platform.runtime.data_plane import (
+            FeatureDataLoader,
+            LocalFeatureStore,
+        )
 
         torch.manual_seed(0)
         torch.cuda.manual_seed_all(0)
@@ -184,7 +198,7 @@ def _worker(rank: int, world_size: int, port: int, workdir: str) -> None:
         with open(os.path.join(workdir, "results", f"rank{rank}.json"), "w") as out:
             json.dump(result, out)
     finally:
-        from dspark.distributed import destroy_distributed
+        from speculative_train_platform.distributed import destroy_distributed
 
         destroy_distributed()
 

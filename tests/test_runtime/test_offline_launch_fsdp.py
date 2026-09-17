@@ -15,7 +15,7 @@ import unittest
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
 
 CUDA = torch.cuda.is_available()
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
@@ -31,8 +31,8 @@ class TestOfflineLaunchFSDP(unittest.TestCase):
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        from dspark.launch import build_offline_runtime
-        from dspark.optimizer import BF16Optimizer
+        from speculative_train_platform.launch import build_offline_runtime
+        from speculative_train_platform.optimizer import BF16Optimizer
 
         TTT, ACC, MAX_OPT_STEPS, N = 3, 2, 2, 8
         workdir = tempfile.mkdtemp(prefix="launch_fsdp_")

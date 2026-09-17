@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Optional
 
 from transformers import AutoTokenizer
 
-from dspark.data.preprocessing import preprocess_conversations
-from dspark.data.template import TEMPLATE_REGISTRY
-from dspark.utils import load_tokenizer
+from speculative_train_platform.data.preprocessing import preprocess_conversations
+from speculative_train_platform.data.template import TEMPLATE_REGISTRY
+from speculative_train_platform.utils import load_tokenizer
 
 
 class TestTemplatePreprocessing(unittest.TestCase):

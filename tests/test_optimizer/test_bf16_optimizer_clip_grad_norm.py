@@ -6,8 +6,11 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from dspark.optimizer import BF16Optimizer
-from dspark.training.backend import FSDPTrainingBackend, ParallelConfig
+from speculative_train_platform.optimizer import BF16Optimizer
+from speculative_train_platform.training.backend import (
+    FSDPTrainingBackend,
+    ParallelConfig,
+)
 
 
 def _make_optimizer(seed=0, **kwargs):

@@ -17,8 +17,10 @@ import torch.nn as nn
 from torch.utils.flop_counter import FlopCounterMode
 from transformers import Qwen3Config
 
-from dspark.algorithms.common.dflash_family_model import OnlineDominoModel
-from dspark.modeling.draft.dflash import DFlashDraftModel
+from speculative_train_platform.algorithms.common.dflash_family_model import (
+    OnlineDominoModel,
+)
+from speculative_train_platform.modeling.draft.dflash import DFlashDraftModel
 
 H200_BF16_TFLOPS = 989.5  # SXM, dense
 SEQ = 768

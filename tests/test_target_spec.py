@@ -7,11 +7,15 @@ from types import SimpleNamespace
 import torch
 from torch import nn
 
-from dspark.algorithms.common.dflash_family_model import OnlineDFlashModel
-from dspark.algorithms.model_providers import populate_dspark_generated_config
-from dspark.cli import main as cli_main
-from dspark.config import Config
-from dspark.target_spec import TargetSpec
+from speculative_train_platform.algorithms.common.dflash_family_model import (
+    OnlineDFlashModel,
+)
+from speculative_train_platform.algorithms.model_providers import (
+    populate_dspark_generated_config,
+)
+from speculative_train_platform.cli import main as cli_main
+from speculative_train_platform.config import Config
+from speculative_train_platform.target_spec import TargetSpec
 
 
 def _inspection(lane="hybrid_stateful", state="conv_plus_kv"):

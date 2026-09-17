@@ -3,8 +3,8 @@ import unittest
 import torch
 from datasets import Dataset
 
-from dspark.data.preprocessing import build_eagle3_dataset
-from dspark.data.template import TEMPLATE_REGISTRY, ChatTemplate
+from speculative_train_platform.data.preprocessing import build_eagle3_dataset
+from speculative_train_platform.data.template import TEMPLATE_REGISTRY, ChatTemplate
 
 
 class DummyTokenizer:

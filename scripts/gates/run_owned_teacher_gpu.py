@@ -109,21 +109,28 @@ def main(argv=None):
         torch.backends.cudnn.allow_tf32 = False
     from transformers import AutoModelForCausalLM, AutoTokenizer, Qwen3Config
 
-    from dspark.algorithms.common.dflash_family_model import (
+    from speculative_train_platform.algorithms.common.dflash_family_model import (
         OnlineDFlash2Model,
         OnlineDSparkModel,
     )
-    from dspark.export.to_hf import export_to_hf
-    from dspark.inference.adapters.server_capture import (
+    from speculative_train_platform.export.to_hf import export_to_hf
+    from speculative_train_platform.inference.adapters.server_capture import (
         ServerCaptureSchema,
         TeacherServerCaptureAdapter,
     )
-    from dspark.inference.capture import CaptureConfig
-    from dspark.modeling.draft.dflash2 import DFlash2Config, DFlash2DraftModel
-    from dspark.modeling.draft.dspark import DSparkDraftModel
-    from dspark.offline_capture.transformers import OfflineTransformersCapture
-    from dspark.runtime.contracts import PromptTask, SampleRef
-    from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+    from speculative_train_platform.inference.capture import CaptureConfig
+    from speculative_train_platform.modeling.draft.dflash2 import (
+        DFlash2Config,
+        DFlash2DraftModel,
+    )
+    from speculative_train_platform.modeling.draft.dspark import DSparkDraftModel
+    from speculative_train_platform.offline_capture.transformers import (
+        OfflineTransformersCapture,
+    )
+    from speculative_train_platform.runtime.contracts import PromptTask, SampleRef
+    from speculative_train_platform.runtime.data_plane.mooncake_store import (
+        MooncakeFeatureStore,
+    )
 
     if not torch.cuda.is_available() or torch.cuda.device_count() < 2:
         raise RuntimeError(
@@ -214,7 +221,7 @@ def main(argv=None):
     command = [
         args.teacher_python,
         "-m",
-        "dspark.inference.teacher_server",
+        "speculative_train_platform.inference.teacher_server",
         "--target-backend",
         args.backend,
         "--model-path",

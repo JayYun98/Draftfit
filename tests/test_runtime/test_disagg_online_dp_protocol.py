@@ -21,7 +21,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
 
 try:
     import torch.distributed as dist
@@ -135,7 +135,7 @@ def _rank0_setup_error_worker(
         _init_gloo(rank, init_method)
         initialized = True
 
-        from dspark.launch import build_disagg_online_consumer
+        from speculative_train_platform.launch import build_disagg_online_consumer
 
         try:
             build_disagg_online_consumer(
@@ -183,8 +183,10 @@ def _dp_ack_worker(
         _init_gloo(rank, init_method)
         initialized = True
 
-        from dspark.runtime.control_plane.dp_ack import DPAckController
-        from dspark.runtime.control_plane.metadata_store import (
+        from speculative_train_platform.runtime.control_plane.dp_ack import (
+            DPAckController,
+        )
+        from speculative_train_platform.runtime.control_plane.metadata_store import (
             InMemoryMetadataStore,
             SQLiteMetadataStore,
         )
@@ -403,9 +405,13 @@ class TestSingleRankConsumerLifecycle(unittest.TestCase):
         feature_store=None,
         metadata_db_path=None,
     ):
-        from dspark.launch import build_disagg_online_consumer
-        from dspark.runtime.control_plane.metadata_store import InMemoryMetadataStore
-        from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
+        from speculative_train_platform.launch import build_disagg_online_consumer
+        from speculative_train_platform.runtime.control_plane.metadata_store import (
+            InMemoryMetadataStore,
+        )
+        from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
+            StreamingRefChannel,
+        )
 
         captured = {}
 
@@ -424,10 +430,13 @@ class TestSingleRankConsumerLifecycle(unittest.TestCase):
         with (
             mock.patch.object(dist, "is_initialized", return_value=False),
             mock.patch(
-                "dspark.runtime.data_plane.ref_distributor.RefDistributor",
+                "speculative_train_platform.runtime.data_plane.ref_distributor.RefDistributor",
                 _FakeRefDistributor,
             ),
-            mock.patch("dspark.launch._assemble_trainer", side_effect=assemble),
+            mock.patch(
+                "speculative_train_platform.launch._assemble_trainer",
+                side_effect=assemble,
+            ),
         ):
             trainer = build_disagg_online_consumer(
                 algorithm=ALGORITHM,

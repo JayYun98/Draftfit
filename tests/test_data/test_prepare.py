@@ -6,7 +6,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from dspark.data.prepare import (
+from speculative_train_platform.data.prepare import (
     load_local_rows,
     normalize_row,
     prepare_dataset,
@@ -185,7 +185,10 @@ class LocalDatasetPreparationTest(unittest.TestCase):
                     ]
                 }
 
-        with patch("dspark.data.prepare._input_rows", return_value=source_rows()):
+        with patch(
+            "speculative_train_platform.data.prepare._input_rows",
+            return_value=source_rows(),
+        ):
             rows = load_local_rows("unused.jsonl", max_rows=2)
 
         self.assertEqual(len(rows), 2)
@@ -196,7 +199,9 @@ class LocalDatasetPreparationTest(unittest.TestCase):
             path = Path(directory) / "large.json"
             path.write_text("[]", encoding="utf-8")
 
-            with patch("dspark.data.prepare.MAX_JSON_FILE_BYTES", 1):
+            with patch(
+                "speculative_train_platform.data.prepare.MAX_JSON_FILE_BYTES", 1
+            ):
                 with self.assertRaisesRegex(ValueError, "use JSONL"):
                     load_local_rows(path)
 
@@ -293,7 +298,7 @@ class LocalDatasetPreparationTest(unittest.TestCase):
             eval_path = root / "test.jsonl"
 
             with patch(
-                "dspark.data.prepare._write_jsonl",
+                "speculative_train_platform.data.prepare._write_jsonl",
                 side_effect=RuntimeError("write failed"),
             ):
                 with self.assertRaisesRegex(RuntimeError, "write failed"):
@@ -337,7 +342,7 @@ class LocalDatasetPreparationTest(unittest.TestCase):
                 raise RuntimeError("write failed")
 
             with patch(
-                "dspark.data.prepare._write_jsonl",
+                "speculative_train_platform.data.prepare._write_jsonl",
                 side_effect=replace_then_fail,
             ):
                 with self.assertRaisesRegex(RuntimeError, "write failed"):
@@ -415,7 +420,7 @@ class LocalDatasetPreparationTest(unittest.TestCase):
             self.assertFalse({"a", "b"} & train_ids and {"a", "b"} & eval_ids)
 
     def test_cli_data_prepare_dispatches_without_source_only_imports(self):
-        from dspark.cli import main
+        from speculative_train_platform.cli import main
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -454,7 +459,7 @@ class LocalDatasetPreparationTest(unittest.TestCase):
             self.assertEqual(Path(summary["train_path"]), output_path)
 
     def test_cli_data_prepare_help_does_not_treat_percent_as_formatting(self):
-        from dspark.cli import main
+        from speculative_train_platform.cli import main
 
         with redirect_stdout(StringIO()), self.assertRaises(SystemExit) as exited:
             main(["data", "prepare", "--help"])

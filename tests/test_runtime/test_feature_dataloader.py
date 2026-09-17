@@ -12,12 +12,20 @@ from unittest import mock
 
 import torch
 
-from dspark.data.preprocessing import process_offline_eagle3_sample
-from dspark.runtime.data_plane.feature_dataloader import FeatureDataLoader
-from dspark.runtime.data_plane.feature_store import LocalFeatureStore
-from dspark.runtime.data_plane.offline_reader import OfflineManifestReader
-from dspark.runtime.data_plane.sample_ref_queue import SampleRefQueue
-from dspark.runtime.data_plane.streaming_ref_channel import (
+from speculative_train_platform.data.preprocessing import process_offline_eagle3_sample
+from speculative_train_platform.runtime.data_plane.feature_dataloader import (
+    FeatureDataLoader,
+)
+from speculative_train_platform.runtime.data_plane.feature_store import (
+    LocalFeatureStore,
+)
+from speculative_train_platform.runtime.data_plane.offline_reader import (
+    OfflineManifestReader,
+)
+from speculative_train_platform.runtime.data_plane.sample_ref_queue import (
+    SampleRefQueue,
+)
+from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
     StreamingRefChannel,
     StreamingRefQueue,
 )
@@ -589,7 +597,7 @@ class TestFeatureDataLoader(unittest.TestCase):
         self.assertIsNone(loader._prefetch_state)
 
     def test_prefetch_close_is_bounded_if_store_get_stalls(self):
-        import dspark.runtime.data_plane.feature_dataloader as loader_module
+        import speculative_train_platform.runtime.data_plane.feature_dataloader as loader_module
 
         with tempfile.TemporaryDirectory() as d:
             self._write_offline_files(d, n=1)

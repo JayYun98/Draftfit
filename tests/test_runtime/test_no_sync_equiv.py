@@ -26,13 +26,19 @@ def _worker(rank, world_size, workdir, results_dir):
 
     fx.init_rank_distributed(rank, world_size, port="29581")
 
-    from dspark.algorithms.eagle3.model import OnlineEagle3Model
-    from dspark.modeling.auto import AutoDraftModel, AutoDraftModelConfig
-    from dspark.modeling.target.target_head import TargetHead
-    from dspark.optimizer import BF16Optimizer
-    from dspark.training.backend import FSDPTrainingBackend, ParallelConfig
-    from dspark.training.controller import TrainerCore
-    from dspark.training.strategies.base import Eagle3TrainStrategy
+    from speculative_train_platform.algorithms.eagle3.model import OnlineEagle3Model
+    from speculative_train_platform.modeling.auto import (
+        AutoDraftModel,
+        AutoDraftModelConfig,
+    )
+    from speculative_train_platform.modeling.target.target_head import TargetHead
+    from speculative_train_platform.optimizer import BF16Optimizer
+    from speculative_train_platform.training.backend import (
+        FSDPTrainingBackend,
+        ParallelConfig,
+    )
+    from speculative_train_platform.training.controller import TrainerCore
+    from speculative_train_platform.training.strategies.base import Eagle3TrainStrategy
 
     torch.manual_seed(0)
     torch.use_deterministic_algorithms(True, warn_only=True)

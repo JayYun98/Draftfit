@@ -49,7 +49,7 @@ def build_single_rank_distributed(port="29561"):
     os.environ.setdefault("MASTER_ADDR", "127.0.0.1")
     os.environ.setdefault("MASTER_PORT", port)
     torch.cuda.set_device(0)
-    from dspark.distributed import init_distributed
+    from speculative_train_platform.distributed import init_distributed
 
     init_distributed(timeout=10, tp_size=1)
 
@@ -76,7 +76,7 @@ def init_rank_distributed(
     os.environ["MASTER_PORT"] = port
     os.environ["SPECFORGE_DEVICE"] = "cuda"
     torch.cuda.set_device(rank)
-    from dspark.distributed import init_distributed
+    from speculative_train_platform.distributed import init_distributed
 
     init_distributed(
         timeout=60,
@@ -159,8 +159,11 @@ def build_offline_eagle3_loader(
     ref_slice: slice | None = None,
 ):
     """Build the canonical fixed-ref EAGLE3 loader used by runtime tests."""
-    from dspark.algorithms.builtin import builtin_algorithm_registry
-    from dspark.runtime.data_plane import FeatureDataLoader, LocalFeatureStore
+    from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+    from speculative_train_platform.runtime.data_plane import (
+        FeatureDataLoader,
+        LocalFeatureStore,
+    )
 
     algorithm = builtin_algorithm_registry().resolve("eagle3")
     provider = algorithm.providers.offline_for("text")
@@ -185,9 +188,12 @@ def build_offline_eagle3_loader(
 
 def build_eagle3(workdir, ttt=3):
     """Build (eagle3_model, target_head) sharing one set of weights, on cuda."""
-    from dspark.algorithms.eagle3.model import OnlineEagle3Model
-    from dspark.modeling.auto import AutoDraftModel, AutoDraftModelConfig
-    from dspark.modeling.target.target_head import TargetHead
+    from speculative_train_platform.algorithms.eagle3.model import OnlineEagle3Model
+    from speculative_train_platform.modeling.auto import (
+        AutoDraftModel,
+        AutoDraftModelConfig,
+    )
+    from speculative_train_platform.modeling.target.target_head import TargetHead
 
     cfg = write_draft_config(os.path.join(workdir, "draft.json"))
     target_dir = write_target_head_dir(os.path.join(workdir, "target"))
@@ -286,9 +292,13 @@ def build_dflash(
     """
     from transformers import AutoConfig, Qwen3Config, Qwen3ForCausalLM
 
-    from dspark.algorithms.common.dflash_family_model import OnlineDFlashModel
-    from dspark.modeling.draft.dflash import DFlashDraftModel
-    from dspark.modeling.target.target_utils import TargetEmbeddingsAndHead
+    from speculative_train_platform.algorithms.common.dflash_family_model import (
+        OnlineDFlashModel,
+    )
+    from speculative_train_platform.modeling.draft.dflash import DFlashDraftModel
+    from speculative_train_platform.modeling.target.target_utils import (
+        TargetEmbeddingsAndHead,
+    )
 
     # Tiny Qwen3 target saved to disk; the draft config is derived from it.
     tcfg = Qwen3Config(
@@ -355,9 +365,13 @@ def build_domino(
     """
     from transformers import AutoConfig, Qwen3Config, Qwen3ForCausalLM
 
-    from dspark.algorithms.common.dflash_family_model import OnlineDominoModel
-    from dspark.modeling.draft.domino import DominoDraftModel
-    from dspark.modeling.target.target_utils import TargetEmbeddingsAndHead
+    from speculative_train_platform.algorithms.common.dflash_family_model import (
+        OnlineDominoModel,
+    )
+    from speculative_train_platform.modeling.draft.domino import DominoDraftModel
+    from speculative_train_platform.modeling.target.target_utils import (
+        TargetEmbeddingsAndHead,
+    )
 
     tcfg = Qwen3Config(
         hidden_size=hidden,
@@ -426,9 +440,13 @@ def build_dspark(
     """Build a tiny OnlineDSparkModel on CUDA without model downloads."""
     from transformers import AutoConfig, Qwen3Config, Qwen3ForCausalLM
 
-    from dspark.algorithms.common.dflash_family_model import OnlineDSparkModel
-    from dspark.modeling.draft.dspark import DSparkDraftModel
-    from dspark.modeling.target.target_utils import TargetEmbeddingsAndHead
+    from speculative_train_platform.algorithms.common.dflash_family_model import (
+        OnlineDSparkModel,
+    )
+    from speculative_train_platform.modeling.draft.dspark import DSparkDraftModel
+    from speculative_train_platform.modeling.target.target_utils import (
+        TargetEmbeddingsAndHead,
+    )
 
     target_config = Qwen3Config(
         hidden_size=hidden,

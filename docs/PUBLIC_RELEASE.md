@@ -2,11 +2,12 @@
 
 ## Isolated CPU environment
 
-The distribution is `dspark-train-platform`; `dspark` is its primary command.
-Legacy `specforge` imports and the command alias remain available. Do not install
+The distribution and primary command are `speculative-train-platform`.
+Legacy `dspark` and `specforge` imports and commands remain available. Do not install
 the upstream SpecForge distribution alongside it in the same environment: both
 would own the legacy Python namespace. The implementation itself is now in
-`dspark`; use a dedicated environment when migrating.
+`speculative_train_platform`; use a dedicated environment when migrating from
+either upstream SpecForge or the previous `dspark-train-platform` distribution.
 
 Training resume and export use the restricted tensor/primitive checkpoint loader,
 including per-rank optimizer and RNG payloads. Arbitrary pickle objects are
@@ -55,8 +56,8 @@ replacing the environment's backend:
 
 ```sh
 uv build --python .venv-cpu/bin/python --no-build-isolation
-uv pip install --python .venv-cpu/bin/python --no-deps dist/dspark_train_platform-0.2.0-py3-none-any.whl
-uv run --no-project --python .venv-cpu/bin/python python -m dspark.assets list
+uv pip install --python .venv-cpu/bin/python --no-deps dist/speculative_train_platform-0.2.0-py3-none-any.whl
+uv run --no-project --python .venv-cpu/bin/python python -m speculative_train_platform.assets list
 uv run --no-project --python .venv-cpu/bin/python python -I scripts/check_public_install.py
 ```
 
@@ -91,7 +92,8 @@ serving validation remain separate gates.
   matching project metadata, and a matching manual distribution-name confirmation.
   Forks retaining upstream distribution names are rejected. Do not enable it until identity and release
   checks below are approved. No publication was performed.
-- Package discovery includes `dspark*` and the small `specforge` compatibility
+- Package discovery includes `speculative_train_platform*` and the small
+  `dspark` and `specforge` compatibility
   package; recipes are copied from the
   existing allowlisted source directories. Wheel tests check license inclusion,
   overwrite refusal and obvious local-path/private-key leaks. This bounded
@@ -99,7 +101,7 @@ serving validation remain separate gates.
 
 ## Decisions still required from the maintainer
 
-1. Review the `dspark-train-platform` distribution identity and `dspark` command
+1. Review the `speculative-train-platform` distribution and command identity
    before publication. The internal `specforge` namespace and legacy command remain
    for checkpoint/import compatibility, and upstream authorship remains credited.
    Publication is still opt-in; changing metadata does not publish a package.

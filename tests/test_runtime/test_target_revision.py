@@ -7,12 +7,15 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from dspark.config import Config
-from dspark.modeling.target.target_utils import (
+from speculative_train_platform.config import Config
+from speculative_train_platform.modeling.target.target_utils import (
     TargetEmbeddingsAndHead,
     load_target_config,
 )
-from dspark.training.assembly import _load_text_tokenizer, _prompt_cache_key
+from speculative_train_platform.training.assembly import (
+    _load_text_tokenizer,
+    _prompt_cache_key,
+)
 
 
 class TargetRevisionTests(unittest.TestCase):
@@ -33,11 +36,11 @@ class TargetRevisionTests(unittest.TestCase):
             filename.write_text(json.dumps({"hidden_size": 2, "vocab_size": 4}))
             with (
                 patch(
-                    "dspark.modeling.target.target_utils.AutoConfig.from_pretrained",
+                    "speculative_train_platform.modeling.target.target_utils.AutoConfig.from_pretrained",
                     side_effect=ValueError("unknown"),
                 ) as config,
                 patch(
-                    "dspark.modeling.target.target_utils.hf_hub_download",
+                    "speculative_train_platform.modeling.target.target_utils.hf_hub_download",
                     return_value=str(filename),
                 ) as download,
             ):
@@ -54,11 +57,11 @@ class TargetRevisionTests(unittest.TestCase):
         config = SimpleNamespace(hidden_size=2, vocab_size=4, tie_word_embeddings=False)
         with (
             patch(
-                "dspark.modeling.target.target_utils.load_target_config",
+                "speculative_train_platform.modeling.target.target_utils.load_target_config",
                 return_value=config,
             ) as load,
             patch(
-                "dspark.modeling.target.target_utils.snapshot_download",
+                "speculative_train_platform.modeling.target.target_utils.snapshot_download",
                 return_value="/fake/cache",
             ) as download,
             patch.object(TargetEmbeddingsAndHead, "_load_weights"),
@@ -70,7 +73,9 @@ class TargetRevisionTests(unittest.TestCase):
             self.assertEqual(download.call_args.kwargs["revision"], "abc123")
 
     def test_managed_capture_server_revision(self):
-        from dspark.training.capture_contract import ServerCaptureContract
+        from speculative_train_platform.training.capture_contract import (
+            ServerCaptureContract,
+        )
         from tests.test_runtime.test_launch_plan import (
             _managed_config,
             build_launch_plan,
@@ -80,7 +85,7 @@ class TargetRevisionTests(unittest.TestCase):
             cfg = _managed_config(str(Path(directory) / "attempt"))
             cfg.model.target_revision = "abc123"
             with patch(
-                "dspark.training.capture_contract.resolve_server_capture_contract",
+                "speculative_train_platform.training.capture_contract.resolve_server_capture_contract",
                 return_value=ServerCaptureContract(
                     method="dflash",
                     aux_layer_ids=(1, 2, 3),

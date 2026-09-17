@@ -6,8 +6,11 @@ import unittest
 
 import torch
 
-from dspark.runtime.contracts import assert_no_tensors
-from dspark.runtime.data_plane.disaggregated import AuthPolicy, SharedDirFeatureStore
+from speculative_train_platform.runtime.contracts import assert_no_tensors
+from speculative_train_platform.runtime.data_plane.disaggregated import (
+    AuthPolicy,
+    SharedDirFeatureStore,
+)
 
 
 class _FakeClock:

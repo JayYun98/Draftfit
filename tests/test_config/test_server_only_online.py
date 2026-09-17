@@ -6,8 +6,8 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from dspark.application import resolve_run
-from dspark.config import Config
+from speculative_train_platform.application import resolve_run
+from speculative_train_platform.config import Config
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE_CONFIG_DIR = REPO_ROOT / "examples" / "configs"

@@ -3,7 +3,7 @@ import os
 import tempfile
 import unittest
 
-from dspark.inference.capture_manifest import (
+from speculative_train_platform.inference.capture_manifest import (
     build_capture_manifest,
     load_capture_manifest,
     validate_capture_manifest,

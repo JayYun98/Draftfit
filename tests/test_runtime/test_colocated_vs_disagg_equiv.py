@@ -12,7 +12,7 @@ import unittest
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
 from tests.test_runtime import _fixtures as fx
 
 CUDA = torch.cuda.is_available()
@@ -20,7 +20,7 @@ ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
 
 def _optimizer_factory(module):
-    from dspark.optimizer import BF16Optimizer
+    from speculative_train_platform.optimizer import BF16Optimizer
 
     return BF16Optimizer(
         module,
@@ -40,9 +40,16 @@ def _draft_state(trainer):
 class TestColocatedVsDisaggEquiv(unittest.TestCase):
     def test_current_builders_produce_identical_losses_and_weights(self):
         fx.build_single_rank_distributed(port="29571")
-        from dspark.launch import build_disagg_offline_runtime, build_offline_runtime
-        from dspark.runtime.data_plane.disagg_ingest import ingest_offline_features
-        from dspark.runtime.data_plane.disaggregated import SharedDirFeatureStore
+        from speculative_train_platform.launch import (
+            build_disagg_offline_runtime,
+            build_offline_runtime,
+        )
+        from speculative_train_platform.runtime.data_plane.disagg_ingest import (
+            ingest_offline_features,
+        )
+        from speculative_train_platform.runtime.data_plane.disaggregated import (
+            SharedDirFeatureStore,
+        )
 
         previous_deterministic = torch.are_deterministic_algorithms_enabled()
         previous_warn_only = torch.is_deterministic_algorithms_warn_only_enabled()

@@ -5,7 +5,7 @@ import unittest
 
 import torch
 
-from dspark.core.chunking import checkpointed_chunk_reduce
+from speculative_train_platform.core.chunking import checkpointed_chunk_reduce
 
 
 class CheckpointedChunkReduceTest(unittest.TestCase):

@@ -14,7 +14,7 @@ import unittest
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
 
 CUDA = torch.cuda.is_available()
 ALGORITHM = builtin_algorithm_registry().resolve("domino")
@@ -24,7 +24,10 @@ class TestDominoLambdaSchedule(unittest.TestCase):
     """CPU: the StepContext-driven lambda_base schedule (no model needed)."""
 
     def test_lambda_base_decays_over_total_steps(self):
-        from dspark.training.strategies.base import DominoTrainStrategy, StepContext
+        from speculative_train_platform.training.strategies.base import (
+            DominoTrainStrategy,
+            StepContext,
+        )
 
         # _lambda_base reads only ctx + lambda_start/decay_ratio, not the model.
         s = DominoTrainStrategy(None, lambda_start=1.0, decay_ratio=0.5)
@@ -45,8 +48,11 @@ class TestDominoLambdaSchedule(unittest.TestCase):
         )
 
     def test_strategy_preserves_every_model_diagnostic(self):
-        from dspark.runtime.contracts import TrainBatch
-        from dspark.training.strategies.base import DominoTrainStrategy, StepContext
+        from speculative_train_platform.runtime.contracts import TrainBatch
+        from speculative_train_platform.training.strategies.base import (
+            DominoTrainStrategy,
+            StepContext,
+        )
 
         class DiagnosticModel(torch.nn.Module):
             def __init__(self):
@@ -102,8 +108,8 @@ class TestDominoOfflineLaunch(unittest.TestCase):
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        from dspark.launch import build_offline_runtime
-        from dspark.optimizer import BF16Optimizer
+        from speculative_train_platform.launch import build_offline_runtime
+        from speculative_train_platform.optimizer import BF16Optimizer
 
         hidden, sequence_length = 64, 32
         workdir = tempfile.mkdtemp(prefix="domino_offline_")

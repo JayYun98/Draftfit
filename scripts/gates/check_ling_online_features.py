@@ -81,14 +81,18 @@ def main():
     if args.mode == "online":
         from transformers import AutoTokenizer
 
-        from dspark.algorithms.builtin import builtin_algorithm_registry
-        from dspark.inference.adapters.server_capture import (
+        from speculative_train_platform.algorithms.builtin import (
+            builtin_algorithm_registry,
+        )
+        from speculative_train_platform.inference.adapters.server_capture import (
             ServerCaptureSchema,
             SGLangServerCaptureAdapter,
         )
-        from dspark.inference.capture import CaptureConfig
-        from dspark.runtime.contracts import PromptTask, SampleRef
-        from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+        from speculative_train_platform.inference.capture import CaptureConfig
+        from speculative_train_platform.runtime.contracts import PromptTask, SampleRef
+        from speculative_train_platform.runtime.data_plane.mooncake_store import (
+            MooncakeFeatureStore,
+        )
 
         destination.mkdir(parents=True, exist_ok=False)
         tokenizer = AutoTokenizer.from_pretrained(
@@ -173,8 +177,8 @@ def main():
         )
         return
 
-    from dspark.distributed import init_distributed
-    from dspark.offline_capture.sglang import OfflineSGLangCapture
+    from speculative_train_platform.distributed import init_distributed
+    from speculative_train_platform.offline_capture.sglang import OfflineSGLangCapture
 
     saved = torch.load(destination / "online.pt", map_location="cpu", weights_only=True)
     if saved["identity"] != identity:

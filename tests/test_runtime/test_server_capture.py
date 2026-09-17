@@ -22,24 +22,30 @@ from typing import Any, Dict, List
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
-from dspark.inference.adapters.server_capture import (
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.inference.adapters.server_capture import (
     ServerCaptureFailure,
     ServerCaptureSchema,
     SGLangServerCaptureAdapter,
 )
-from dspark.inference.capture import (
+from speculative_train_platform.inference.capture import (
     CaptureConfig,
     CaptureMismatchError,
     verify_capture_specs,
 )
-from dspark.inference.parity import (
+from speculative_train_platform.inference.parity import (
     compare_feature_manifests,
     compare_token_ids,
     feature_manifest,
 )
-from dspark.runtime.contracts import FeatureSpec, PromptTask, SampleRef
-from dspark.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+from speculative_train_platform.runtime.contracts import (
+    FeatureSpec,
+    PromptTask,
+    SampleRef,
+)
+from speculative_train_platform.runtime.data_plane.mooncake_store import (
+    MooncakeFeatureStore,
+)
 
 HIDDEN = 8
 AUX_LAYERS = (2, 5, 8)
@@ -631,7 +637,7 @@ class TestServerCaptureAdapter(unittest.TestCase):
         self.assertIsInstance(results[1], SampleRef)
 
     def test_rollout_worker_ref_path(self):
-        from dspark.inference.rollout_worker import RolloutWorker
+        from speculative_train_platform.inference.rollout_worker import RolloutWorker
 
         backend = _FakeMooncakeStore()
         server = _StubCaptureServer(backend, error_sample_ids={"run0:t1"})
@@ -834,7 +840,9 @@ class TestLoaderGcPump(unittest.TestCase):
     def test_loader_gc_pump_frees_lease_deferred_removes(self):
         import time as _time
 
-        from dspark.runtime.data_plane.feature_dataloader import FeatureDataLoader
+        from speculative_train_platform.runtime.data_plane.feature_dataloader import (
+            FeatureDataLoader,
+        )
 
         TTL = 0.05
 
@@ -888,8 +896,10 @@ class TestServerCaptureProducerWiring(unittest.TestCase):
     """The example's exact path: build_disagg_online_producer(feature_source=...)."""
 
     def test_producer_streams_refs_via_feature_source(self):
-        from dspark.launch import build_disagg_online_producer
-        from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
+        from speculative_train_platform.launch import build_disagg_online_producer
+        from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
+            StreamingRefChannel,
+        )
 
         backend = _FakeMooncakeStore()
         server = _StubCaptureServer(backend)

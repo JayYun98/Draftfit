@@ -16,7 +16,7 @@ class BuildWithAssets(build_py):
                 if source.is_file() and source.suffix in (".json", ".yaml", ".yml"):
                     target = (
                         Path(self.build_lib)
-                        / "dspark/assets/_data"
+                        / "speculative_train_platform/assets/_data"
                         / source.relative_to(root)
                     )
                     target.parent.mkdir(parents=True, exist_ok=True)
@@ -42,7 +42,9 @@ class BuildWithAssets(build_py):
             "docs/ENVIRONMENT.md",
             "docs/OWNED_GPU_ENVIRONMENT.md",
         ):
-            target = Path(self.build_lib) / "dspark/assets/_data" / name
+            target = (
+                Path(self.build_lib) / "speculative_train_platform/assets/_data" / name
+            )
             target.parent.mkdir(parents=True, exist_ok=True)
             copyfile(root / name, target)
 

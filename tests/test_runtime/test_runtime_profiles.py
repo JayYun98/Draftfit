@@ -5,8 +5,8 @@ from pathlib import Path
 
 import yaml
 
-from dspark.config import load_config
-from dspark.launch_plan import _sglang_argv
+from speculative_train_platform.config import load_config
+from speculative_train_platform.launch_plan import _sglang_argv
 
 
 class RuntimeProfileTest(unittest.TestCase):

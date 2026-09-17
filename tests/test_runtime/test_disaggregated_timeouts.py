@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest.mock import call, patch
 
-from dspark.training.disaggregated import (
+from speculative_train_platform.training.disaggregated import (
     _hold_mooncake_producer,
     _optional_timeout_s,
     _wait_for,
@@ -15,11 +15,15 @@ class DisaggregatedTimeoutTest(unittest.TestCase):
     def test_wait_is_unbounded_by_default(self):
         with (
             patch(
-                "dspark.training.disaggregated.os.path.exists",
+                "speculative_train_platform.training.disaggregated.os.path.exists",
                 side_effect=(False, True),
             ),
-            patch("dspark.training.disaggregated.time.sleep") as sleep,
-            patch("dspark.training.disaggregated.time.monotonic") as monotonic,
+            patch(
+                "speculative_train_platform.training.disaggregated.time.sleep"
+            ) as sleep,
+            patch(
+                "speculative_train_platform.training.disaggregated.time.monotonic"
+            ) as monotonic,
         ):
             _wait_for("/control/ready")
 
@@ -29,12 +33,12 @@ class DisaggregatedTimeoutTest(unittest.TestCase):
     def test_explicit_wait_timeout_is_terminal(self):
         with (
             patch(
-                "dspark.training.disaggregated.os.path.exists",
+                "speculative_train_platform.training.disaggregated.os.path.exists",
                 return_value=False,
             ),
-            patch("dspark.training.disaggregated.time.sleep"),
+            patch("speculative_train_platform.training.disaggregated.time.sleep"),
             patch(
-                "dspark.training.disaggregated.time.monotonic",
+                "speculative_train_platform.training.disaggregated.time.monotonic",
                 side_effect=(10.0, 12.0),
             ),
         ):
@@ -45,7 +49,9 @@ class DisaggregatedTimeoutTest(unittest.TestCase):
         environment = {"DISAGG_BACKEND": "mooncake"}
         with (
             patch.dict(os.environ, environment, clear=True),
-            patch("dspark.training.disaggregated._wait_for") as wait_for,
+            patch(
+                "speculative_train_platform.training.disaggregated._wait_for"
+            ) as wait_for,
         ):
             _hold_mooncake_producer("/control/manifest.json")
 

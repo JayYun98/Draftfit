@@ -17,7 +17,7 @@ class _UnexpectedCheckpointObject:
 
 class ExportCheckpointSecurityTest(unittest.TestCase):
     def test_resume_rejects_objects_in_shared_and_rank_payloads(self):
-        from dspark.training.checkpoint import CheckpointManager
+        from speculative_train_platform.training.checkpoint import CheckpointManager
 
         with tempfile.TemporaryDirectory() as directory:
             manager = CheckpointManager(directory, "security")
@@ -38,7 +38,9 @@ class ExportCheckpointSecurityTest(unittest.TestCase):
                 manager.read_resume_state(str(checkpoint))
 
     def test_export_loader_accepts_normal_checkpoint_payload(self):
-        from dspark.export.checkpoint_io import resolve_training_state
+        from speculative_train_platform.export.checkpoint_io import (
+            resolve_training_state,
+        )
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "training_state.pt"
@@ -58,7 +60,9 @@ class ExportCheckpointSecurityTest(unittest.TestCase):
         self.assertTrue(torch.equal(state["draft_state_dict"]["weight"], torch.ones(2)))
 
     def test_export_loader_rejects_pickle_objects_without_executing_them(self):
-        from dspark.export.checkpoint_io import resolve_training_state
+        from speculative_train_platform.export.checkpoint_io import (
+            resolve_training_state,
+        )
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "malicious.pt"

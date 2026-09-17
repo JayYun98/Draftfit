@@ -8,8 +8,8 @@ import time
 import unittest
 from unittest import mock
 
-from dspark.runtime.contracts import FeatureSpec, SampleRef
-from dspark.runtime.data_plane.streaming_ref_channel import (
+from speculative_train_platform.runtime.contracts import FeatureSpec, SampleRef
+from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
     StreamingRefChannel,
     StreamingRefQueue,
 )
@@ -91,7 +91,7 @@ class TestStreamingRefChannel(unittest.TestCase):
 
         with (
             mock.patch(
-                "dspark.runtime.data_plane.streaming_ref_channel.os.fsync",
+                "speculative_train_platform.runtime.data_plane.streaming_ref_channel.os.fsync",
                 side_effect=OSError("injected fsync failure"),
             ),
             self.assertRaisesRegex(OSError, "injected fsync failure"),
@@ -111,7 +111,7 @@ class TestStreamingRefChannel(unittest.TestCase):
 
         with (
             mock.patch(
-                "dspark.runtime.data_plane.streaming_ref_channel.os.fsync",
+                "speculative_train_platform.runtime.data_plane.streaming_ref_channel.os.fsync",
                 side_effect=OSError("injected fsync failure"),
             ),
             self.assertRaisesRegex(OSError, "injected fsync failure"),
@@ -139,7 +139,7 @@ class TestStreamingRefChannel(unittest.TestCase):
 
         with (
             mock.patch(
-                "dspark.runtime.data_plane.streaming_ref_channel.os.write",
+                "speculative_train_platform.runtime.data_plane.streaming_ref_channel.os.write",
                 side_effect=write_one_record_then_fail,
             ),
             self.assertRaisesRegex(OSError, "injected batch write failure"),
@@ -166,7 +166,7 @@ class TestStreamingRefChannel(unittest.TestCase):
 
         with (
             mock.patch(
-                "dspark.runtime.data_plane.streaming_ref_channel.os.write",
+                "speculative_train_platform.runtime.data_plane.streaming_ref_channel.os.write",
                 side_effect=write_partial_then_fail,
             ),
             self.assertRaisesRegex(OSError, "injected partial write failure"),

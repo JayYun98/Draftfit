@@ -18,10 +18,10 @@ from urllib.error import HTTPError
 
 from pydantic import ValidationError
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
-from dspark.cli import _config_for_role, main
-from dspark.config import Config, apply_overrides
-from dspark.launch_plan import (
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.cli import _config_for_role, main
+from speculative_train_platform.config import Config, apply_overrides
+from speculative_train_platform.launch_plan import (
     CommandSpec,
     LaunchPlan,
     ReadinessSpec,
@@ -29,9 +29,11 @@ from dspark.launch_plan import (
     _http_ready,
     _managed_preflight,
 )
-from dspark.launch_plan import build_launch_plan as _build_launch_plan
-from dspark.launch_plan import run_commands
-from dspark.training.capture_contract import ServerCaptureContract
+from speculative_train_platform.launch_plan import (
+    build_launch_plan as _build_launch_plan,
+)
+from speculative_train_platform.launch_plan import run_commands
+from speculative_train_platform.training.capture_contract import ServerCaptureContract
 from tests.utils import wait_for_processes_to_stop
 
 ALGORITHM = builtin_algorithm_registry().resolve("dflash")
@@ -243,7 +245,7 @@ class LaunchPlanTest(unittest.TestCase):
                 "--nproc_per_node",
                 "2",
                 "--module",
-                "dspark.cli",
+                "speculative_train_platform.cli",
                 "train",
                 "--config",
                 "run.yaml",
@@ -571,7 +573,7 @@ class LaunchPlanTest(unittest.TestCase):
                     Config.model_validate(raw)
 
     def test_owned_teacher_launch_routes_and_preflight_skip_sglang(self):
-        from dspark.launch_plan import _managed_preflight
+        from speculative_train_platform.launch_plan import _managed_preflight
 
         with tempfile.TemporaryDirectory() as root:
             for backend in ("transformers", "vllm"):
@@ -592,7 +594,7 @@ class LaunchPlanTest(unittest.TestCase):
                     ] = "explicit-capture-store"
                 cfg = Config.model_validate(raw)
                 with mock.patch(
-                    "dspark.training.capture_contract.resolve_server_capture_contract",
+                    "speculative_train_platform.training.capture_contract.resolve_server_capture_contract",
                     return_value=CAPTURE_CONTRACT,
                 ):
                     plan = build_launch_plan(cfg, config_path="run.yaml", env={})
@@ -605,7 +607,11 @@ class LaunchPlanTest(unittest.TestCase):
                     self.assertEqual(command.env["DISAGG_STORE_ID"], expected_store)
                 self.assertEqual(
                     argv[:3],
-                    (sys.executable, "-m", "dspark.inference.teacher_server"),
+                    (
+                        sys.executable,
+                        "-m",
+                        "speculative_train_platform.inference.teacher_server",
+                    ),
                 )
                 self.assertEqual(argv[argv.index("--target-backend") + 1], backend)
                 self.assertEqual(argv[argv.index("--revision") + 1], "a" * 40)
@@ -627,16 +633,16 @@ class LaunchPlanTest(unittest.TestCase):
                 )
                 with (
                     mock.patch(
-                        "dspark.launch_plan.shutil.which",
+                        "speculative_train_platform.launch_plan.shutil.which",
                         return_value="mooncake_master",
                     ),
                     mock.patch(
-                        "dspark.launch_plan.importlib.util.find_spec",
+                        "speculative_train_platform.launch_plan.importlib.util.find_spec",
                         side_effect=lambda name: (
                             object() if name == "mooncake.store" else None
                         ),
                     ) as lookup,
-                    mock.patch("dspark.launch_plan.socket.socket"),
+                    mock.patch("speculative_train_platform.launch_plan.socket.socket"),
                 ):
                     _managed_preflight(plan)
                 lookup.assert_called_once_with("mooncake.store")
@@ -660,7 +666,7 @@ class LaunchPlanTest(unittest.TestCase):
             raw["model"]["sglang_context_length"] = 135
             validated = Config.model_validate(raw)
             with mock.patch(
-                "dspark.training.capture_contract.resolve_server_capture_contract",
+                "speculative_train_platform.training.capture_contract.resolve_server_capture_contract",
                 return_value=CAPTURE_CONTRACT,
             ):
                 plan = build_launch_plan(validated, config_path="run.yaml", env={})
@@ -675,7 +681,7 @@ class LaunchPlanTest(unittest.TestCase):
             raw["model"]["sglang_disable_radix_cache"] = False
             validated = Config.model_validate(raw)
             with mock.patch(
-                "dspark.training.capture_contract.resolve_server_capture_contract",
+                "speculative_train_platform.training.capture_contract.resolve_server_capture_contract",
                 return_value=CAPTURE_CONTRACT,
             ):
                 plan = build_launch_plan(validated, config_path="run.yaml", env={})
@@ -726,7 +732,7 @@ class LaunchPlanTest(unittest.TestCase):
             )
             cfg = Config.model_validate(raw)
             with mock.patch(
-                "dspark.training.capture_contract.resolve_server_capture_contract",
+                "speculative_train_platform.training.capture_contract.resolve_server_capture_contract",
                 return_value=CAPTURE_CONTRACT,
             ):
                 plan = build_launch_plan(
@@ -821,10 +827,13 @@ class LaunchPlanTest(unittest.TestCase):
         cfg = Config.from_file(str(path))
         with (
             mock.patch(
-                "dspark.training.capture_contract.resolve_server_capture_contract",
+                "speculative_train_platform.training.capture_contract.resolve_server_capture_contract",
                 return_value=CAPTURE_CONTRACT,
             ),
-            mock.patch("dspark.launch_plan.os.path.exists", return_value=False),
+            mock.patch(
+                "speculative_train_platform.launch_plan.os.path.exists",
+                return_value=False,
+            ),
         ):
             plan = build_launch_plan(cfg, config_path=str(path), env={})
 
@@ -860,7 +869,7 @@ class LaunchPlanTest(unittest.TestCase):
         )
         algorithm = builtin_algorithm_registry().resolve("dspark")
         with mock.patch(
-            "dspark.training.capture_contract.resolve_server_capture_contract",
+            "speculative_train_platform.training.capture_contract.resolve_server_capture_contract",
             return_value=contract,
         ):
             plan = _build_launch_plan(
@@ -920,7 +929,7 @@ class LaunchPlanTest(unittest.TestCase):
             control_dir = os.path.join(root, "attempt")
             cfg = _managed_config(control_dir)
             with mock.patch(
-                "dspark.training.capture_contract.resolve_server_capture_contract",
+                "speculative_train_platform.training.capture_contract.resolve_server_capture_contract",
                 return_value=CAPTURE_CONTRACT,
             ):
                 parent = build_launch_plan(
@@ -1172,7 +1181,9 @@ class LaunchPlanTest(unittest.TestCase):
                 json.dump(raw, stream)
             with (
                 mock.patch.dict(os.environ, {}, clear=True),
-                mock.patch("dspark.launch_plan.run_commands") as run,
+                mock.patch(
+                    "speculative_train_platform.launch_plan.run_commands"
+                ) as run,
                 mock.patch("builtins.print") as output,
             ):
                 self.assertEqual(main(["train", "-c", path, "--plan"]), 0)
@@ -1195,7 +1206,9 @@ class LaunchPlanTest(unittest.TestCase):
 
             with (
                 mock.patch.dict(os.environ, MOONCAKE_ENV, clear=True),
-                mock.patch("dspark.cli._train", return_value=0) as train,
+                mock.patch(
+                    "speculative_train_platform.cli._train", return_value=0
+                ) as train,
             ):
                 self.assertEqual(
                     main(["train", "-c", path, "--role", "producer"]),
@@ -1279,7 +1292,8 @@ class LaunchPlanTest(unittest.TestCase):
                     self.assertEqual(len(started), 2)
 
             with mock.patch(
-                "dspark.launch_plan.os.killpg", side_effect=ProcessLookupError
+                "speculative_train_platform.launch_plan.os.killpg",
+                side_effect=ProcessLookupError,
             ):
                 status = run_commands(
                     plan,
@@ -1303,7 +1317,8 @@ class LaunchPlanTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as parent:
             plan = _managed_plan(os.path.join(parent, "attempt"))
             with mock.patch(
-                "dspark.launch_plan.os.killpg", side_effect=ProcessLookupError
+                "speculative_train_platform.launch_plan.os.killpg",
+                side_effect=ProcessLookupError,
             ):
                 status = run_commands(
                     plan,
@@ -1325,7 +1340,8 @@ class LaunchPlanTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as parent:
             plan = _managed_plan(os.path.join(parent, "attempt"))
             with mock.patch(
-                "dspark.launch_plan.os.killpg", side_effect=ProcessLookupError
+                "speculative_train_platform.launch_plan.os.killpg",
+                side_effect=ProcessLookupError,
             ):
                 status = run_commands(
                     plan,
@@ -1372,9 +1388,13 @@ class LaunchPlanTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as parent:
             plan = _managed_plan(os.path.join(parent, "attempt"))
             with (
-                mock.patch("dspark.launch_plan.signal.signal", side_effect=set_signal),
                 mock.patch(
-                    "dspark.launch_plan.os.killpg", side_effect=ProcessLookupError
+                    "speculative_train_platform.launch_plan.signal.signal",
+                    side_effect=set_signal,
+                ),
+                mock.patch(
+                    "speculative_train_platform.launch_plan.os.killpg",
+                    side_effect=ProcessLookupError,
                 ),
             ):
                 status = run_commands(
@@ -1405,7 +1425,8 @@ class LaunchPlanTest(unittest.TestCase):
 
             with (
                 mock.patch(
-                    "dspark.launch_plan.os.killpg", side_effect=ProcessLookupError
+                    "speculative_train_platform.launch_plan.os.killpg",
+                    side_effect=ProcessLookupError,
                 ),
                 self.assertRaisesRegex(TimeoutError, "capture timeout"),
             ):
@@ -1443,7 +1464,10 @@ class LaunchPlanTest(unittest.TestCase):
                 }
             )
             with (
-                mock.patch("dspark.launch_plan.os.killpg", side_effect=killpg),
+                mock.patch(
+                    "speculative_train_platform.launch_plan.os.killpg",
+                    side_effect=killpg,
+                ),
                 self.assertRaisesRegex(
                     RuntimeError,
                     "capture exited during readiness",
@@ -1475,14 +1499,17 @@ class LaunchPlanTest(unittest.TestCase):
             port_probe.bind.side_effect = OSError("occupied")
             with (
                 mock.patch(
-                    "dspark.launch_plan.shutil.which",
+                    "speculative_train_platform.launch_plan.shutil.which",
                     return_value="/usr/bin/mooncake_master",
                 ),
                 mock.patch(
-                    "dspark.launch_plan.importlib.util.find_spec",
+                    "speculative_train_platform.launch_plan.importlib.util.find_spec",
                     return_value=object(),
                 ),
-                mock.patch("dspark.launch_plan.socket.socket", return_value=port_probe),
+                mock.patch(
+                    "speculative_train_platform.launch_plan.socket.socket",
+                    return_value=port_probe,
+                ),
                 self.assertRaisesRegex(RuntimeError, "is unavailable"),
             ):
                 run_commands(plan, popen=mock.Mock())
@@ -1492,10 +1519,12 @@ class LaunchPlanTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as parent,
             socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener,
             mock.patch(
-                "dspark.launch_plan.shutil.which", return_value="mooncake_master"
+                "speculative_train_platform.launch_plan.shutil.which",
+                return_value="mooncake_master",
             ),
             mock.patch(
-                "dspark.launch_plan.importlib.util.find_spec", return_value=object()
+                "speculative_train_platform.launch_plan.importlib.util.find_spec",
+                return_value=object(),
             ),
         ):
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -1527,7 +1556,9 @@ class LaunchPlanTest(unittest.TestCase):
         for budget, expected in ((300, 5.0), (0.5, 0.5)):
             with (
                 self.subTest(budget=budget),
-                mock.patch("dspark.launch_plan.urllib_request.urlopen") as urlopen,
+                mock.patch(
+                    "speculative_train_platform.launch_plan.urllib_request.urlopen"
+                ) as urlopen,
             ):
                 urlopen.return_value.__enter__.return_value.status = 200
                 readiness = ReadinessSpec(
@@ -1548,7 +1579,7 @@ class LaunchPlanTest(unittest.TestCase):
             with (
                 self.subTest(status=status),
                 mock.patch(
-                    "dspark.launch_plan.urllib_request.urlopen",
+                    "speculative_train_platform.launch_plan.urllib_request.urlopen",
                     side_effect=HTTPError(
                         readiness.url, status, "response", None, None
                     ),
@@ -1568,7 +1599,10 @@ class LaunchPlanTest(unittest.TestCase):
                 CommandSpec("consumer", ("consumer",)),
             ),
         )
-        with mock.patch("dspark.launch_plan.os.killpg", side_effect=ProcessLookupError):
+        with mock.patch(
+            "speculative_train_platform.launch_plan.os.killpg",
+            side_effect=ProcessLookupError,
+        ):
             status = run_commands(plan, popen=lambda *_args, **_kwargs: next(processes))
         self.assertEqual(status, 7)
         self.assertTrue(producer.terminated)
@@ -1595,7 +1629,9 @@ class LaunchPlanTest(unittest.TestCase):
             if signum == 0:
                 raise ProcessLookupError
 
-        with mock.patch("dspark.launch_plan.os.killpg", side_effect=killpg):
+        with mock.patch(
+            "speculative_train_platform.launch_plan.os.killpg", side_effect=killpg
+        ):
             status = run_commands(plan, popen=lambda *_args, **_kwargs: next(processes))
 
         self.assertEqual(status, 128 + signal.SIGKILL)
@@ -1614,7 +1650,7 @@ class LaunchPlanTest(unittest.TestCase):
                 CommandSpec("consumer", ("consumer",)),
             ),
         )
-        with mock.patch("dspark.launch_plan.time.sleep"):
+        with mock.patch("speculative_train_platform.launch_plan.time.sleep"):
             status = run_commands(plan, popen=lambda *_args, **_kwargs: next(processes))
         self.assertEqual(status, 0)
         self.assertFalse(consumer.terminated)
@@ -1632,7 +1668,10 @@ class LaunchPlanTest(unittest.TestCase):
             ),
         )
         with (
-            mock.patch("dspark.launch_plan.os.killpg", side_effect=ProcessLookupError),
+            mock.patch(
+                "speculative_train_platform.launch_plan.os.killpg",
+                side_effect=ProcessLookupError,
+            ),
             self.assertRaises(KeyboardInterrupt),
         ):
             run_commands(plan, popen=lambda *_args, **_kwargs: next(processes))
@@ -1664,7 +1703,7 @@ time.sleep(60)
             marker = os.path.join(root, "children.txt")
             runner_code = f"""
 import sys
-from dspark.launch_plan import CommandSpec, LaunchPlan, run_commands
+from speculative_train_platform.launch_plan import CommandSpec, LaunchPlan, run_commands
 
 plan = LaunchPlan(
     "command",

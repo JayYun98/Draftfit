@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-import dspark.utils as utils
+import speculative_train_platform.utils as utils
 
 
 class LoadTokenizerFallbackTest(unittest.TestCase):

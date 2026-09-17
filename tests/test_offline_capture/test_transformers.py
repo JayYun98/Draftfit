@@ -12,7 +12,9 @@ from transformers import (
     Qwen3Model,
 )
 
-from dspark.offline_capture.transformers import OfflineTransformersCapture
+from speculative_train_platform.offline_capture.transformers import (
+    OfflineTransformersCapture,
+)
 
 
 class TransformersCaptureTest(unittest.TestCase):

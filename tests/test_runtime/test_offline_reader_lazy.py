@@ -22,13 +22,19 @@ from unittest import mock
 
 import torch
 
-from dspark.inference.capture_manifest import (
+from speculative_train_platform.inference.capture_manifest import (
     build_capture_manifest,
     write_capture_manifest,
 )
-from dspark.runtime.data_plane.feature_dataloader import FeatureDataLoader
-from dspark.runtime.data_plane.feature_store import LocalFeatureStore
-from dspark.runtime.data_plane.offline_reader import OfflineManifestReader
+from speculative_train_platform.runtime.data_plane.feature_dataloader import (
+    FeatureDataLoader,
+)
+from speculative_train_platform.runtime.data_plane.feature_store import (
+    LocalFeatureStore,
+)
+from speculative_train_platform.runtime.data_plane.offline_reader import (
+    OfflineManifestReader,
+)
 
 _KEYS = ("input_ids", "loss_mask", "hidden_states")
 _SEQ = 8

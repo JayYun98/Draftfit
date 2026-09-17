@@ -11,10 +11,10 @@ from torch import nn
 from transformers import Qwen3Config
 from transformers.models.qwen3.modeling_qwen3 import Qwen3MLP, Qwen3RMSNorm
 
-from dspark.algorithms.dflash import providers
-from dspark.modeling.draft import dflash_kernels
-from dspark.modeling.draft.dflash import DFlashDraftModel
-from dspark.modeling.draft.dflash_kernels import DFlashKernels
+from speculative_train_platform.algorithms.dflash import providers
+from speculative_train_platform.modeling.draft import dflash_kernels
+from speculative_train_platform.modeling.draft.dflash import DFlashDraftModel
+from speculative_train_platform.modeling.draft.dflash_kernels import DFlashKernels
 
 
 def _cfg(*, enabled: bool, strategy: str = "dflash"):
@@ -96,7 +96,7 @@ class TestLigerKernelIntegration(unittest.TestCase):
                 return_value=kernels,
             ),
             mock.patch(
-                "dspark.algorithms.model_providers.build_dflash_draft",
+                "speculative_train_platform.algorithms.model_providers.build_dflash_draft",
                 return_value=mock.sentinel.model,
             ) as build,
         ):

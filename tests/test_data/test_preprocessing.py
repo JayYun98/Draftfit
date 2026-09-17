@@ -3,8 +3,8 @@ import unittest
 import torch
 from transformers import AutoTokenizer
 
-from dspark.data.preprocessing import preprocess_conversations
-from dspark.data.template import TEMPLATE_REGISTRY
+from speculative_train_platform.data.preprocessing import preprocess_conversations
+from speculative_train_platform.data.template import TEMPLATE_REGISTRY
 
 
 # Utility function for visual debugging

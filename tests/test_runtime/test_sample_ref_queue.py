@@ -3,8 +3,10 @@
 
 import unittest
 
-from dspark.runtime.contracts import SampleRef
-from dspark.runtime.data_plane.sample_ref_queue import SampleRefQueue
+from speculative_train_platform.runtime.contracts import SampleRef
+from speculative_train_platform.runtime.data_plane.sample_ref_queue import (
+    SampleRefQueue,
+)
 
 
 def _ref(i: int) -> SampleRef:

@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from dspark.core.loss import LogSoftmaxLoss, _compute_loss
+from speculative_train_platform.core.loss import LogSoftmaxLoss, _compute_loss
 from tests.test_utils.utils import norm_tensor
 
 

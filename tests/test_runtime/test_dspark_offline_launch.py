@@ -7,7 +7,7 @@ import unittest
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
 
 CUDA = torch.cuda.is_available()
 ALGORITHM = builtin_algorithm_registry().resolve("dspark")
@@ -22,9 +22,11 @@ class TestDSparkOfflineLaunch(unittest.TestCase):
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        from dspark.launch import build_offline_runtime
-        from dspark.optimizer import BF16Optimizer
-        from dspark.training.strategies.base import DSparkTrainStrategy
+        from speculative_train_platform.launch import build_offline_runtime
+        from speculative_train_platform.optimizer import BF16Optimizer
+        from speculative_train_platform.training.strategies.base import (
+            DSparkTrainStrategy,
+        )
 
         hidden, sequence_length = 64, 12
         workdir = tempfile.mkdtemp(prefix="dspark_offline_")

@@ -5,8 +5,8 @@ import unittest
 
 from pydantic import ValidationError
 
-from dspark.application import resolve_run
-from dspark.config import Config
+from speculative_train_platform.application import resolve_run
+from speculative_train_platform.config import Config
 
 ONLINE_DEPLOYMENT = {
     "mode": "disaggregated",

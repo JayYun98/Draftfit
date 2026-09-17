@@ -3,7 +3,7 @@
 
 import unittest
 
-from dspark.runtime.control_plane.flow_control import (
+from speculative_train_platform.runtime.control_plane.flow_control import (
     FlowControlLimits,
     ProducerFlowControl,
 )

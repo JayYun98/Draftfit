@@ -16,8 +16,11 @@ from unittest import mock
 import torch
 from transformers import LlamaConfig, Qwen3Config
 
-from dspark.modeling.auto import AutoDraftModel, AutoDraftModelConfig
-from dspark.modeling.draft import (
+from speculative_train_platform.modeling.auto import (
+    AutoDraftModel,
+    AutoDraftModelConfig,
+)
+from speculative_train_platform.modeling.draft import (
     DRAFT_REGISTRY,
     DFlashDraftModel,
     DominoDraftModel,

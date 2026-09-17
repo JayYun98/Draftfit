@@ -5,7 +5,7 @@ from unittest import mock
 import torch
 from torch import nn
 
-from dspark.algorithms.common.dflash_family_model import (
+from speculative_train_platform.algorithms.common.dflash_family_model import (
     OnlineDFlashModel,
     OnlineDominoModel,
     OnlineDSparkModel,

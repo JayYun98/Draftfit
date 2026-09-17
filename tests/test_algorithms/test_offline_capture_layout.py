@@ -5,9 +5,9 @@ from unittest import mock
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
-from dspark.algorithms.common.providers import OfflineCaptureLayout
-from dspark.offline_capture import OfflineSGLangCapture
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.algorithms.common.providers import OfflineCaptureLayout
+from speculative_train_platform.offline_capture import OfflineSGLangCapture
 
 
 class OfflineCaptureLayoutTest(unittest.TestCase):

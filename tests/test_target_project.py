@@ -7,9 +7,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from dspark.cli import main
-from dspark.config import Config
-from dspark.target_project import algorithm_catalog, prepare_project
+from speculative_train_platform.cli import main
+from speculative_train_platform.config import Config
+from speculative_train_platform.target_project import algorithm_catalog, prepare_project
 
 
 class TargetProjectTest(unittest.TestCase):
@@ -31,7 +31,9 @@ class TargetProjectTest(unittest.TestCase):
             )
 
     def test_metadata_validation_without_model_construction(self):
-        from dspark.application.project_validation import validate_draft_metadata
+        from speculative_train_platform.application.project_validation import (
+            validate_draft_metadata,
+        )
 
         arguments = dict(
             strategy="dspark",
@@ -133,11 +135,13 @@ class TargetProjectTest(unittest.TestCase):
         )
 
     def test_metadata_only_dspark_and_dflash_build_real_small_draft_models(self):
-        from dspark.modeling.auto import AutoDraftModel
-        from dspark.training.model_loading import load_draft_config_source
+        from speculative_train_platform.modeling.auto import AutoDraftModel
+        from speculative_train_platform.training.model_loading import (
+            load_draft_config_source,
+        )
 
         with patch(
-            "dspark.modeling.target.target_utils.load_target_config",
+            "speculative_train_platform.modeling.target.target_utils.load_target_config",
             side_effect=AssertionError("must not load target"),
         ):
             for strategy in ("dspark", "dflash", "dflash2"):
@@ -300,7 +304,7 @@ class TargetProjectTest(unittest.TestCase):
             with (
                 self.subTest(override=override),
                 patch(
-                    "dspark.training.model_loading.resolve_draft_config",
+                    "speculative_train_platform.training.model_loading.resolve_draft_config",
                     side_effect=AssertionError(
                         "must reject before resolving remote draft config"
                     ),
@@ -314,16 +318,21 @@ class TargetProjectTest(unittest.TestCase):
                 self.assertFalse((self.root / "project").exists())
 
     def test_inspection_pins_metadata_fetches_before_reading_remote_files(self):
-        from dspark.target_inspector import inspect_target
+        from speculative_train_platform.target_inspector import inspect_target
 
         sha = "a" * 40
         with (
-            patch("dspark.target_inspector._remote_api", return_value={"sha": sha}),
             patch(
-                "dspark.target_inspector._remote_json", return_value=self.metadata
+                "speculative_train_platform.target_inspector._remote_api",
+                return_value={"sha": sha},
+            ),
+            patch(
+                "speculative_train_platform.target_inspector._remote_json",
+                return_value=self.metadata,
             ) as get_json,
             patch(
-                "dspark.target_inspector._remote_text", return_value=None
+                "speculative_train_platform.target_inspector._remote_text",
+                return_value=None,
             ) as get_text,
         ):
             result = inspect_target("user/target", revision="branch")

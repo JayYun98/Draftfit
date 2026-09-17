@@ -5,11 +5,11 @@ import unittest
 
 import torch
 
-from dspark.inference.batch_partition import TargetBatchPartition
-from dspark.inference.capture import CaptureConfig
-from dspark.inference.rollout_worker import RolloutWorker
-from dspark.runtime.control_plane import DataFlowController
-from dspark.runtime.data_plane import LocalFeatureStore
+from speculative_train_platform.inference.batch_partition import TargetBatchPartition
+from speculative_train_platform.inference.capture import CaptureConfig
+from speculative_train_platform.inference.rollout_worker import RolloutWorker
+from speculative_train_platform.runtime.control_plane import DataFlowController
+from speculative_train_platform.runtime.data_plane import LocalFeatureStore
 
 H = 8
 
@@ -110,7 +110,7 @@ class TestRolloutWorker(unittest.TestCase):
             ctrl, store, FakeSource(bad_layers=True), _capture(), run_id="run"
         )
         w.start()
-        from dspark.inference.capture import CaptureMismatchError
+        from speculative_train_platform.inference.capture import CaptureMismatchError
 
         with self.assertRaises(CaptureMismatchError):
             w.run_once(max_tasks=8)
@@ -125,7 +125,7 @@ class TestRolloutWorker(unittest.TestCase):
         store = LocalFeatureStore("st")
         w = RolloutWorker(ctrl, store, MixedLayerSource(), _capture(), run_id="run")
         w.start()
-        from dspark.inference.capture import CaptureMismatchError
+        from speculative_train_platform.inference.capture import CaptureMismatchError
 
         with self.assertRaises(CaptureMismatchError):
             w.run_once(max_tasks=8)

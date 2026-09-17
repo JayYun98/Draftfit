@@ -10,10 +10,15 @@ import unittest
 from unittest import mock
 from urllib.request import Request, urlopen
 
-from dspark.runtime.contracts import FeatureSpec, SampleRef
-from dspark.runtime.data_plane.http_inbox import InboxHTTPServer, RemoteInboxChannel
-from dspark.runtime.data_plane.ref_distributor import RefDistributor
-from dspark.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
+from speculative_train_platform.runtime.contracts import FeatureSpec, SampleRef
+from speculative_train_platform.runtime.data_plane.http_inbox import (
+    InboxHTTPServer,
+    RemoteInboxChannel,
+)
+from speculative_train_platform.runtime.data_plane.ref_distributor import RefDistributor
+from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
+    StreamingRefChannel,
+)
 
 
 def _ref(sample_id: str) -> SampleRef:
@@ -101,7 +106,7 @@ class TestHTTPInbox(unittest.TestCase):
 
     def test_pull_treats_connection_reset_as_transient(self):
         with mock.patch(
-            "dspark.runtime.data_plane.http_inbox.urlopen",
+            "speculative_train_platform.runtime.data_plane.http_inbox.urlopen",
             side_effect=ConnectionResetError("peer reset"),
         ):
             self.assertEqual(self.remote.poll(), [])

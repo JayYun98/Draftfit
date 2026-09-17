@@ -7,7 +7,7 @@ import unittest
 
 import torch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
 
 CUDA = torch.cuda.is_available()
 ALGORITHM = builtin_algorithm_registry().resolve("dflash")
@@ -22,8 +22,8 @@ class TestDFlashOfflineLaunch(unittest.TestCase):
 
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-        from dspark.launch import build_offline_runtime
-        from dspark.optimizer import BF16Optimizer
+        from speculative_train_platform.launch import build_offline_runtime
+        from speculative_train_platform.optimizer import BF16Optimizer
 
         hidden, sequence_length = 64, 32
         workdir = tempfile.mkdtemp(prefix="dflash_offline_")

@@ -1,5 +1,8 @@
-"""DSpark Train Platform: owned draft training and teacher capture runtime.
+"""Compatibility namespace for existing DSpark imports and pickles."""
 
-Training is configured through :mod:`dspark.cli`; implementation types live
-in their owning subpackages and are not re-exported through a compatibility API.
-"""
+from speculative_train_platform._legacy import install
+from speculative_train_platform._legacy import (  # noqa: F401
+    resolve_attribute as __getattr__,
+)
+
+install(__name__)

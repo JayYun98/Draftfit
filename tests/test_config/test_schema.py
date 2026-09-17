@@ -10,10 +10,13 @@ from dataclasses import replace
 
 from pydantic import ValidationError
 
-from dspark.algorithms import AlgorithmRegistration, AlgorithmRegistry
-from dspark.algorithms.builtin import builtin_algorithm_registry
-from dspark.application import resolve_run
-from dspark.config import Config, apply_overrides, load_config
+from speculative_train_platform.algorithms import (
+    AlgorithmRegistration,
+    AlgorithmRegistry,
+)
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.application import resolve_run
+from speculative_train_platform.config import Config, apply_overrides, load_config
 
 MINIMAL = {
     "model": {

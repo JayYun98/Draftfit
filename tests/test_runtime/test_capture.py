@@ -5,7 +5,11 @@ import unittest
 
 import torch
 
-from dspark.inference.capture import CaptureConfig, CaptureMismatchError, verify_capture
+from speculative_train_platform.inference.capture import (
+    CaptureConfig,
+    CaptureMismatchError,
+    verify_capture,
+)
 
 H = 8
 DRAFT_V = 16

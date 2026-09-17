@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from dataclasses import dataclass
 
-from dspark.algorithms import (
+from speculative_train_platform.algorithms import (
     AlgorithmCapabilities,
     AlgorithmRegistration,
     AlgorithmRegistry,

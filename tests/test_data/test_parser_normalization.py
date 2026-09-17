@@ -1,7 +1,7 @@
 import unittest
 
-from dspark.data.parse import GeneralParser, ThinkingParser
-from dspark.data.template import ChatTemplate
+from speculative_train_platform.data.parse import GeneralParser, ThinkingParser
+from speculative_train_platform.data.template import ChatTemplate
 
 
 class DummyTokenizer:

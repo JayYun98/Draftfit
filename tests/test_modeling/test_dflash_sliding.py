@@ -6,8 +6,10 @@ import torch
 from torch import nn
 from transformers import Qwen3Config
 
-from dspark.algorithms.common.dflash_family_model import OnlineDFlashModel
-from dspark.modeling.draft.dflash import (
+from speculative_train_platform.algorithms.common.dflash_family_model import (
+    OnlineDFlashModel,
+)
+from speculative_train_platform.modeling.draft.dflash import (
     DFlashDraftModel,
     resolve_dflash_attention_layout,
 )
@@ -116,7 +118,7 @@ class TestDFlashSlidingDispatch(unittest.TestCase):
                 return_value=noise_embedding,
             ),
             mock.patch(
-                "dspark.algorithms.common.dflash_family_model."
+                "speculative_train_platform.algorithms.common.dflash_family_model."
                 "create_dflash_sdpa_mask",
                 side_effect=(full_mask, sliding_mask),
             ) as create_mask,
@@ -158,7 +160,7 @@ class TestDFlashSlidingDispatch(unittest.TestCase):
                 return_value=torch.randn(1, 2, model.config.hidden_size),
             ),
             mock.patch(
-                "dspark.algorithms.common.dflash_family_model."
+                "speculative_train_platform.algorithms.common.dflash_family_model."
                 "create_dflash_block_mask",
                 return_value=torch.tensor([1]),
             ),

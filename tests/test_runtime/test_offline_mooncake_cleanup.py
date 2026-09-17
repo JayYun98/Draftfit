@@ -10,9 +10,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
-from dspark.runtime.data_plane.disagg_ingest import ingest_offline_features
-from dspark.training.disaggregated import _build_offline
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.runtime.data_plane.disagg_ingest import (
+    ingest_offline_features,
+)
+from speculative_train_platform.training.disaggregated import _build_offline
 
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
@@ -67,18 +69,18 @@ class OfflineMooncakeCleanupTest(unittest.TestCase):
         with (
             patch.dict(os.environ, environment),
             patch(
-                "dspark.training.disaggregated._offline_store",
+                "speculative_train_platform.training.disaggregated._offline_store",
                 return_value=store,
             ),
             patch(
-                "dspark.runtime.data_plane.disagg_ingest.ingest_offline_features",
+                "speculative_train_platform.runtime.data_plane.disagg_ingest.ingest_offline_features",
                 side_effect=ingest,
             ),
             patch(
-                "dspark.runtime.data_plane.disagg_ingest.write_ref_manifest"
+                "speculative_train_platform.runtime.data_plane.disagg_ingest.write_ref_manifest"
             ) as write_manifest,
             patch(
-                "dspark.training.disaggregated._hold_mooncake_producer",
+                "speculative_train_platform.training.disaggregated._hold_mooncake_producer",
                 side_effect=hold_side_effect,
             ),
         ):
@@ -274,11 +276,11 @@ class OfflineIngestTrackingTest(unittest.TestCase):
         raw = {"input_ids": SimpleNamespace(numel=lambda: 4)}
         with (
             patch(
-                "dspark.runtime.data_plane.disagg_ingest.list_feature_files",
+                "speculative_train_platform.runtime.data_plane.disagg_ingest.list_feature_files",
                 return_value=["feature-0", "feature-1"],
             ),
             patch(
-                "dspark.runtime.data_plane.disagg_ingest.load_feature_file",
+                "speculative_train_platform.runtime.data_plane.disagg_ingest.load_feature_file",
                 return_value=raw,
             ),
             self.assertRaisesRegex(RuntimeError, "second put failed"),

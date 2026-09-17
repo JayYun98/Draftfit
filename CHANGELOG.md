@@ -6,6 +6,19 @@ one-to-one commit mappings.
 
 ## Unreleased — private DSpark Train Platform baseline
 
+### Product name migration
+
+- The current product is **Speculative Train Platform**, distributed as
+  `speculative-train-platform`, with the matching command and canonical
+  `speculative_train_platform` Python package.
+- `dspark` and `specforge` imports/commands remain compatibility aliases.
+  DSpark continues to name a draft algorithm; its configuration and checkpoint
+  identifiers are unchanged. Original upstream notices remain intact.
+- Use a fresh environment instead of installing the renamed distribution beside
+  `dspark-train-platform` or upstream SpecForge: compatibility files overlap.
+
+The entries below describe earlier milestones and retain their historical names.
+
 ### Product boundary
 
 - Reframed the fork as a configuration-first platform for a user-selected,

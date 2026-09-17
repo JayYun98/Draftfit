@@ -1,4 +1,4 @@
-# DSpark Train Platform
+# Speculative Train Platform
 
 Train a speculative decoding draft for **your target model, your data, and your workload**.
 
@@ -23,7 +23,7 @@ cd dspark-train-platform
 
 # In an activated, provisioned training environment, preserve backend versions:
 uv pip install --python "${VIRTUAL_ENV:?Activate the runtime environment}/bin/python" --no-deps --no-build-isolation -e .
-dspark algorithms
+speculative-train-platform algorithms
 ```
 
 `--no-deps` assumes the required dependencies are already installed. Environment
@@ -37,7 +37,7 @@ Convert your OpenAI `messages` or ShareGPT conversations into training JSONL,
 with a deterministic held-out split:
 
 ```sh
-dspark data prepare --input ./my-conversations.jsonl \
+speculative-train-platform data prepare --input ./my-conversations.jsonl \
   --output ./data/train.jsonl --split-eval --eval-output ./data/holdout.jsonl
 ```
 
@@ -48,20 +48,20 @@ in the same split; unsupported semantic fields are rejected rather than dropped.
 Inspect a downloaded target, or use a Hugging Face model ID with an exact revision:
 
 ```sh
-dspark target inspect /path/to/target --local-only
-dspark target inspect ORG/MODEL --revision EXACT_COMMIT
+speculative-train-platform target inspect /path/to/target --local-only
+speculative-train-platform target inspect ORG/MODEL --revision EXACT_COMMIT
 ```
 
 Prepare a DSpark run from conversation JSONL. Each training row contains a `conversations` array with `role` and `content` fields, including an assistant response. The chat template must produce the correct assistant loss mask.
 
 ```sh
-dspark target prepare /path/to/target --local-only \
+speculative-train-platform target prepare /path/to/target --local-only \
   --strategy dspark --train-data /path/to/train.jsonl \
   --output-dir ./my-draft \
   --set model.draft_num_hidden_layers=5
 
-dspark train -c ./my-draft/train.json --plan
-dspark train -c ./my-draft/train.json
+speculative-train-platform train -c ./my-draft/train.json --plan
+speculative-train-platform train -c ./my-draft/train.json
 ```
 
 The generated online configuration assigns the live target to **GPU 0** and draft training to **GPU 1**. SGLang is the default teacher; select `--teacher-backend transformers` or `--teacher-backend vllm` for the experimental platform-owned teacher services. All three use the same Mooncake transport and draft trainer, not a TorchSpec/AngelSpec subprocess. Review the plan and backend environment before launch. Preparation refuses to overwrite an existing project.
@@ -71,11 +71,11 @@ The generated online configuration assigns the live target to **GPU 0** and draf
 Provide its checkpoint during preparation so its existing architecture is used instead of generic defaults:
 
 ```sh
-dspark target prepare /path/to/target --local-only \
+speculative-train-platform target prepare /path/to/target --local-only \
   --strategy dspark --train-data /path/to/train.jsonl \
   --draft-checkpoint /path/to/draft-export \
   --output-dir ./my-finetune
-dspark train -c ./my-finetune/train.json
+speculative-train-platform train -c ./my-finetune/train.json
 ```
 
 This is a weights-only warm start with a new optimizer and schedule. To continue an interrupted run instead, set `training.resume_from=/path/to/training-checkpoint`. Do not combine warm start and resume. Optimizer resume requires the same trainer world size.
@@ -99,17 +99,17 @@ The existing bounded SGLang/Ling validation remains separate evidence.
 ### Export
 
 ```sh
-dspark export --to hf \
+speculative-train-platform export --to hf \
   --checkpoint /path/to/completed-checkpoint \
   --draft-config ./my-draft/draft.json \
   --output-dir ./exports/my-draft
 ```
 
-Check `dspark export --help` for method-specific embedding or vocabulary inputs. Export success is separate from serving compatibility: reload the exact artifact and compare it against target-only inference before deployment.
+Check `speculative-train-platform export --help` for method-specific embedding or vocabulary inputs. Export success is separate from serving compatibility: reload the exact artifact and compare it against target-only inference before deployment.
 
 ## Draft methods and target support
 
-Run `dspark algorithms` for available methods and feature contracts. DSpark,
+Run `speculative-train-platform algorithms` for available methods and feature contracts. DSpark,
 DFlash, DFlash2, EAGLE3, PEagle and Domino have integrated training paths; PEagle
 is streaming-only and Domino needs an explicit compatible draft configuration.
 
@@ -135,7 +135,7 @@ Compatibility is a combination of **target revision + draft method + capture bac
 Benchmark your held-out text conversations against an already-running server:
 
 ```sh
-dspark benchmark --model /path/to/target \
+speculative-train-platform benchmark --model /path/to/target \
   --data-path ./data/holdout.jsonl --num-prompts 100 \
   --max-new-tokens 128 --concurrency 1 \
   --base-url http://127.0.0.1:30000 --output-json ./baseline.json
@@ -165,11 +165,18 @@ and future trace-driven updates, see [Personal inference optimization](docs/PERS
 Reviewed conversation exports work today; automatic OTel/OpenCodex ingestion and
 continual deployment are not yet implemented.
 
-The distribution is `dspark-train-platform`, with the `dspark` command and Python
-package. The implementation lives in `dspark/`: application composition, draft
+The distribution and primary command are `speculative-train-platform`; the Python
+package is `speculative_train_platform`. The implementation lives in that package:
+application composition, draft
 algorithms, training, feature transport and teacher services are maintained here.
-The legacy `specforge` import and command are compatibility entry points to the
+The legacy `dspark` and `specforge` imports and commands are compatibility entry points to the
 same implementation, not a separately installed training framework.
+
+DSpark names one supported draft algorithm, not the platform. Existing algorithm
+settings and checkpoint identifiers remain unchanged. Use a fresh environment
+when migrating from `dspark-train-platform` or upstream SpecForge; the old and
+new distributions must not be installed together because compatibility files overlap.
+The repository URL retains its existing name.
 
 The training engine is shipped in this distribution, not installed from upstream
 SpecForge. This remains a SpecForge-derived project with preserved attribution,

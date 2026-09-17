@@ -10,7 +10,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from dspark.assets import DOCUMENTS, export_assets, list_assets
+from speculative_train_platform.assets import DOCUMENTS, export_assets, list_assets
 
 
 class AssetTests(unittest.TestCase):
@@ -60,11 +60,11 @@ class AssetTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             version = (root / "version.txt").read_text().strip()
-            wheel = wheels / f"dspark_train_platform-{version}-py3-none-any.whl"
+            wheel = wheels / f"speculative_train_platform-{version}-py3-none-any.whl"
             with zipfile.ZipFile(wheel) as archive:
                 for name in DOCUMENTS:
                     self.assertEqual(
-                        archive.read("dspark/assets/_data/" + name),
+                        archive.read("speculative_train_platform/assets/_data/" + name),
                         (root / name).read_bytes(),
                     )
 
@@ -93,7 +93,13 @@ class AssetTests(unittest.TestCase):
                 "LICENSE",
             ):
                 shutil.copyfile(root / name, source / name)
-            for name in ("dspark", "specforge", "configs", "examples/configs"):
+            for name in (
+                "speculative_train_platform",
+                "dspark",
+                "specforge",
+                "configs",
+                "examples/configs",
+            ):
                 shutil.copytree(
                     root / name,
                     source / name,
@@ -127,7 +133,9 @@ class AssetTests(unittest.TestCase):
                 direct_payload = {
                     name: archive.read(name)
                     for name in archive.namelist()
-                    if name.startswith(("dspark/", "specforge/"))
+                    if name.startswith(
+                        ("speculative_train_platform/", "dspark/", "specforge/")
+                    )
                     or name.endswith("/LICENSE")
                 }
             # Build through the source distribution, not just the checkout:
@@ -178,7 +186,9 @@ class AssetTests(unittest.TestCase):
                 rebuilt_payload = {
                     name: archive.read(name)
                     for name in archive.namelist()
-                    if name.startswith(("dspark/", "specforge/"))
+                    if name.startswith(
+                        ("speculative_train_platform/", "dspark/", "specforge/")
+                    )
                     or name.endswith("/LICENSE")
                 }
                 self.assertEqual(direct_payload, rebuilt_payload)
@@ -197,7 +207,7 @@ class AssetTests(unittest.TestCase):
                         )
             # -I -S excludes the checkout, user/site packages, and PYTHONPATH.
             # zipimport also proves resources work without filesystem-only paths.
-            code = "import sys,runpy;sys.path.insert(0,sys.argv.pop(1));runpy.run_module('dspark.assets',run_name='__main__')"
+            code = "import sys,runpy;sys.path.insert(0,sys.argv.pop(1));runpy.run_module('speculative_train_platform.assets',run_name='__main__')"
             command = [sys.executable, "-I", "-S", "-c", code, str(wheel)]
             listed = subprocess.run(
                 command + ["list"],

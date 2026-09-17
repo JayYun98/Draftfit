@@ -17,24 +17,24 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # explicit makes an accidental reintroduction fail without importing torch or
 # optional inference backends.
 REMOVED_MODULE_FILES = (
-    "dspark/modeling/target/base.py",
-    "dspark/modeling/target/factory.py",
-    "dspark/modeling/target/dflash_target_model.py",
-    "dspark/modeling/target/eagle3_target_model.py",
-    "dspark/modeling/target/sglang_backend/__init__.py",
-    "dspark/runtime/inference/capture.py",
-    "dspark/runtime/inference/dflash_adapter.py",
-    "dspark/runtime/inference/sglang_adapter.py",
-    "dspark/runtime/training/__init__.py",
-    "dspark/args.py",
-    "dspark/inference/adapters/dflash.py",
-    "dspark/inference/adapters/eagle3.py",
-    "dspark/inference/adapters/policy.py",
-    "dspark/runtime/data_plane/local_rollout_stream.py",
-    "dspark/inference/target_engine/capture_policy.py",
-    "dspark/inference/target_engine/dflash_target_model.py",
-    "dspark/inference/target_engine/eagle3_target_model.py",
-    "dspark/modeling/utils.py",
+    "speculative_train_platform/modeling/target/base.py",
+    "speculative_train_platform/modeling/target/factory.py",
+    "speculative_train_platform/modeling/target/dflash_target_model.py",
+    "speculative_train_platform/modeling/target/eagle3_target_model.py",
+    "speculative_train_platform/modeling/target/sglang_backend/__init__.py",
+    "speculative_train_platform/runtime/inference/capture.py",
+    "speculative_train_platform/runtime/inference/dflash_adapter.py",
+    "speculative_train_platform/runtime/inference/sglang_adapter.py",
+    "speculative_train_platform/runtime/training/__init__.py",
+    "speculative_train_platform/args.py",
+    "speculative_train_platform/inference/adapters/dflash.py",
+    "speculative_train_platform/inference/adapters/eagle3.py",
+    "speculative_train_platform/inference/adapters/policy.py",
+    "speculative_train_platform/runtime/data_plane/local_rollout_stream.py",
+    "speculative_train_platform/inference/target_engine/capture_policy.py",
+    "speculative_train_platform/inference/target_engine/dflash_target_model.py",
+    "speculative_train_platform/inference/target_engine/eagle3_target_model.py",
+    "speculative_train_platform/modeling/utils.py",
 )
 
 REMOVED_TRAINING_ENTRY_FILES = (
@@ -144,34 +144,34 @@ OPERATIONAL_EXAMPLE_REPLACEMENTS = {
 }
 
 REMOVED_PACKAGE_DIRECTORIES = (
-    "dspark/modeling/target/sglang_backend",
-    "dspark/modeling/target/custom_backend",
-    "dspark/inference/target_engine",
+    "speculative_train_platform/modeling/target/sglang_backend",
+    "speculative_train_platform/modeling/target/custom_backend",
+    "speculative_train_platform/inference/target_engine",
     "tests/test_modeling/test_target/test_custom_backend",
     "tests/test_modeling/test_target/test_sglang_backend",
-    "dspark/runtime/inference",
-    "dspark/runtime/training",
+    "speculative_train_platform/runtime/inference",
+    "speculative_train_platform/runtime/training",
 )
 
 REMOVED_MODULE_PREFIXES = (
-    "dspark.modeling.target.base",
-    "dspark.modeling.target.factory",
-    "dspark.modeling.target.dflash_target_model",
-    "dspark.modeling.target.eagle3_target_model",
-    "dspark.modeling.target.sglang_backend",
-    "dspark.modeling.target.custom_backend",
-    "dspark.runtime.inference",
-    "dspark.runtime.training",
-    "dspark.args",
-    "dspark.inference.adapters.dflash",
-    "dspark.inference.adapters.eagle3",
-    "dspark.inference.adapters.policy",
-    "dspark.inference.target_engine",
-    "dspark.runtime.data_plane.local_rollout_stream",
-    "dspark.inference.target_engine.capture_policy",
-    "dspark.inference.target_engine.dflash_target_model",
-    "dspark.inference.target_engine.eagle3_target_model",
-    "dspark.modeling.utils",
+    "speculative_train_platform.modeling.target.base",
+    "speculative_train_platform.modeling.target.factory",
+    "speculative_train_platform.modeling.target.dflash_target_model",
+    "speculative_train_platform.modeling.target.eagle3_target_model",
+    "speculative_train_platform.modeling.target.sglang_backend",
+    "speculative_train_platform.modeling.target.custom_backend",
+    "speculative_train_platform.runtime.inference",
+    "speculative_train_platform.runtime.training",
+    "speculative_train_platform.args",
+    "speculative_train_platform.inference.adapters.dflash",
+    "speculative_train_platform.inference.adapters.eagle3",
+    "speculative_train_platform.inference.adapters.policy",
+    "speculative_train_platform.inference.target_engine",
+    "speculative_train_platform.runtime.data_plane.local_rollout_stream",
+    "speculative_train_platform.inference.target_engine.capture_policy",
+    "speculative_train_platform.inference.target_engine.dflash_target_model",
+    "speculative_train_platform.inference.target_engine.eagle3_target_model",
+    "speculative_train_platform.modeling.utils",
     "scripts.train_eagle3",
     "scripts.train_eagle3_dataflow",
     "scripts.train_dflash",
@@ -185,14 +185,14 @@ REMOVED_MODULE_PREFIXES = (
 )
 
 SOURCE_ROOTS = (
-    REPO_ROOT / "dspark",
+    REPO_ROOT / "speculative_train_platform",
     REPO_ROOT / "scripts",
     REPO_ROOT / "examples",
     REPO_ROOT / "tests",
 )
 
 PRODUCTION_ROOTS = (
-    REPO_ROOT / "dspark",
+    REPO_ROOT / "speculative_train_platform",
     REPO_ROOT / "scripts",
     REPO_ROOT / "examples",
 )
@@ -270,12 +270,12 @@ CANONICAL_DRAFT_CONFIGS = {
 CANONICAL_DATASET_PRESETS = ("ultrachat", "sharegpt")
 
 DOC_ONLY_PACKAGE_INITIALIZERS = (
-    "dspark/__init__.py",
-    "dspark/core/__init__.py",
-    "dspark/data/__init__.py",
-    "dspark/inference/__init__.py",
-    "dspark/modeling/__init__.py",
-    "dspark/modeling/target/__init__.py",
+    "speculative_train_platform/__init__.py",
+    "speculative_train_platform/core/__init__.py",
+    "speculative_train_platform/data/__init__.py",
+    "speculative_train_platform/inference/__init__.py",
+    "speculative_train_platform/modeling/__init__.py",
+    "speculative_train_platform/modeling/target/__init__.py",
 )
 
 
@@ -323,7 +323,11 @@ class TestPackageArchitecture(unittest.TestCase):
         with open(REPO_ROOT / "pyproject.toml", "rb") as project_file:
             project = tomllib.load(project_file)
         self.assertEqual(
-            {"dspark": "dspark.cli:main", "specforge": "dspark.cli:main"},
+            {
+                "speculative-train-platform": "speculative_train_platform.cli:main",
+                "dspark": "speculative_train_platform.cli:main",
+                "specforge": "speculative_train_platform.cli:main",
+            },
             project["project"]["scripts"],
         )
 
@@ -415,7 +419,7 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertEqual(
             [],
             violations,
-            "imports must use dspark.inference or dspark.training:\n"
+            "imports must use speculative_train_platform.inference or speculative_train_platform.training:\n"
             + "\n".join(violations),
         )
 
@@ -445,11 +449,13 @@ class TestPackageArchitecture(unittest.TestCase):
     def test_launch_exports_only_canonical_topology_builders(self):
         self.assertEqual(
             CANONICAL_LAUNCH_EXPORTS,
-            _literal_all(REPO_ROOT / "dspark" / "launch.py"),
+            _literal_all(REPO_ROOT / "speculative_train_platform" / "launch.py"),
         )
 
     def test_public_training_lifecycle_has_one_surface(self):
-        trainer_tree = _module_tree(REPO_ROOT / "dspark" / "training" / "trainer.py")
+        trainer_tree = _module_tree(
+            REPO_ROOT / "speculative_train_platform" / "training" / "trainer.py"
+        )
         trainer_class = next(
             node
             for node in trainer_tree.body
@@ -478,7 +484,9 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertTrue({"_controller", "_loader"}.issubset(init_attrs))
         self.assertTrue({"controller", "loader"}.isdisjoint(init_attrs))
 
-        assembly_tree = _module_tree(REPO_ROOT / "dspark" / "training" / "assembly.py")
+        assembly_tree = _module_tree(
+            REPO_ROOT / "speculative_train_platform" / "training" / "assembly.py"
+        )
         run_class = next(
             node
             for node in assembly_tree.body
@@ -506,7 +514,9 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertEqual([], fit_calls[0].args)
         self.assertEqual([], fit_calls[0].keywords)
 
-        launch_tree = _module_tree(REPO_ROOT / "dspark" / "launch.py")
+        launch_tree = _module_tree(
+            REPO_ROOT / "speculative_train_platform" / "launch.py"
+        )
         launch_functions = {
             node.name: node
             for node in launch_tree.body
@@ -541,12 +551,13 @@ class TestPackageArchitecture(unittest.TestCase):
                     name,
                 )
         self.assertNotIn(
-            "run_interleaved", (REPO_ROOT / "dspark" / "launch.py").read_text()
+            "run_interleaved",
+            (REPO_ROOT / "speculative_train_platform" / "launch.py").read_text(),
         )
 
         for relative_path in (
-            "dspark/training/assembly.py",
-            "dspark/training/disaggregated.py",
+            "speculative_train_platform/training/assembly.py",
+            "speculative_train_platform/training/disaggregated.py",
         ):
             for node in ast.walk(_module_tree(REPO_ROOT / relative_path)):
                 if (
@@ -574,7 +585,9 @@ class TestPackageArchitecture(unittest.TestCase):
     def test_server_only_builders_have_one_stream_path(self):
         functions = {
             node.name: node
-            for node in _module_tree(REPO_ROOT / "dspark" / "launch.py").body
+            for node in _module_tree(
+                REPO_ROOT / "speculative_train_platform" / "launch.py"
+            ).body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
         consumer_parameters = {
@@ -688,7 +701,9 @@ class TestPackageArchitecture(unittest.TestCase):
     def test_launch_builders_use_generic_draft_model_parameter(self):
         functions = {
             node.name: node
-            for node in _module_tree(REPO_ROOT / "dspark" / "launch.py").body
+            for node in _module_tree(
+                REPO_ROOT / "speculative_train_platform" / "launch.py"
+            ).body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
         for name in CANONICAL_LAUNCH_EXPORTS:
@@ -772,8 +787,9 @@ class TestPackageArchitecture(unittest.TestCase):
         for root in (REPO_ROOT / "scripts", REPO_ROOT / "examples"):
             for path in sorted(root.rglob("*.py")):
                 for line_number, module in _imported_modules(path):
-                    if module == "dspark.launch" or module.startswith(
-                        "dspark.training"
+                    if (
+                        module == "speculative_train_platform.launch"
+                        or module.startswith("speculative_train_platform.training")
                     ):
                         direct_imports.append(
                             f"{path.relative_to(REPO_ROOT)}:{line_number}: {module}"

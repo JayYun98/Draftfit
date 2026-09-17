@@ -5,9 +5,13 @@ import types
 import unittest
 from unittest import mock
 
-from dspark.algorithms.builtin import builtin_algorithm_registry
-from dspark.config import Config
-from dspark.training.assembly import ModelBundle, _prepare_prompts, build_training_run
+from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from speculative_train_platform.config import Config
+from speculative_train_platform.training.assembly import (
+    ModelBundle,
+    _prepare_prompts,
+    build_training_run,
+)
 
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
@@ -42,7 +46,7 @@ class TestEvalAssembly(unittest.TestCase):
         )
         tokenizer = object()
         with mock.patch(
-            "dspark.data.prompt_builder.prepare_prompt_tasks",
+            "speculative_train_platform.data.prompt_builder.prepare_prompt_tasks",
             return_value=[{"task_id": "eval"}],
         ) as prepare:
             result = _prepare_prompts(
@@ -83,11 +87,12 @@ class TestEvalAssembly(unittest.TestCase):
         trainer = object()
         with (
             mock.patch(
-                "dspark.training.assembly.build_model_bundle",
+                "speculative_train_platform.training.assembly.build_model_bundle",
                 return_value=bundle,
             ),
             mock.patch(
-                "dspark.launch.build_offline_runtime", return_value=trainer
+                "speculative_train_platform.launch.build_offline_runtime",
+                return_value=trainer,
             ) as build,
         ):
             run = build_training_run(cfg, algorithm=ALGORITHM)
@@ -113,7 +118,7 @@ class TestEvalLaunch(unittest.TestCase):
         )
 
     def test_offline_eval_factory_reuses_io_contract_and_keeps_partial_batch(self):
-        from dspark.launch import _make_offline_eval_data_factory
+        from speculative_train_platform.launch import _make_offline_eval_data_factory
 
         refs = [object(), object(), object()]
         reader_calls = []
@@ -127,8 +132,14 @@ class TestEvalLaunch(unittest.TestCase):
         algorithm = self._offline_algorithm(reader)
         store = object()
         with (
-            mock.patch("dspark.launch.LocalFeatureStore", return_value=store),
-            mock.patch("dspark.launch._offline_io", return_value=(collate, transform)),
+            mock.patch(
+                "speculative_train_platform.launch.LocalFeatureStore",
+                return_value=store,
+            ),
+            mock.patch(
+                "speculative_train_platform.launch._offline_io",
+                return_value=(collate, transform),
+            ),
         ):
             factory = _make_offline_eval_data_factory(
                 algorithm=algorithm,
@@ -162,7 +173,7 @@ class TestEvalLaunch(unittest.TestCase):
         )
 
     def test_offline_builder_passes_eval_factory_to_the_one_trainer(self):
-        from dspark.launch import build_offline_runtime
+        from speculative_train_platform.launch import build_offline_runtime
 
         reader = lambda *_args, **_kwargs: types.SimpleNamespace(read=lambda: [])
         collate = mock.Mock(name="collate")
@@ -171,15 +182,19 @@ class TestEvalLaunch(unittest.TestCase):
         eval_factory = mock.Mock(name="eval_factory")
         trainer = object()
         with (
-            mock.patch("dspark.launch.DataFlowController"),
-            mock.patch("dspark.launch.LocalFeatureStore"),
-            mock.patch("dspark.launch._offline_io", return_value=(collate, transform)),
+            mock.patch("speculative_train_platform.launch.DataFlowController"),
+            mock.patch("speculative_train_platform.launch.LocalFeatureStore"),
             mock.patch(
-                "dspark.launch._make_offline_eval_data_factory",
+                "speculative_train_platform.launch._offline_io",
+                return_value=(collate, transform),
+            ),
+            mock.patch(
+                "speculative_train_platform.launch._make_offline_eval_data_factory",
                 return_value=eval_factory,
             ),
             mock.patch(
-                "dspark.launch._assemble_trainer", return_value=trainer
+                "speculative_train_platform.launch._assemble_trainer",
+                return_value=trainer,
             ) as assemble,
         ):
             result = build_offline_runtime(

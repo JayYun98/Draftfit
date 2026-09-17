@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from dspark.training.profiling import ProfilingOptions, StepProfiler
+from speculative_train_platform.training.profiling import ProfilingOptions, StepProfiler
 
 
 class _FakeProfiler:
