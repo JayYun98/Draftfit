@@ -11,18 +11,12 @@ from unittest import mock
 
 import torch
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.runtime.contracts import FeatureSpec, SampleRef
-from speculative_train_platform.runtime.control_plane.controller import (
-    DataFlowController,
-)
-from speculative_train_platform.runtime.control_plane.metadata_store import (
-    SQLiteMetadataStore,
-)
-from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
-    StreamingRefChannel,
-)
-from speculative_train_platform.training.checkpoint import STATE_FILE
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.runtime.contracts import FeatureSpec, SampleRef
+from draftfit.runtime.control_plane.controller import DataFlowController
+from draftfit.runtime.control_plane.metadata_store import SQLiteMetadataStore
+from draftfit.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
+from draftfit.training.checkpoint import STATE_FILE
 
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
@@ -99,7 +93,7 @@ class TestSharedPlaneConsumerResume(unittest.TestCase):
         store.close()
 
     def _build(self, *, resume_from=None, idle_timeout_s=None):
-        from speculative_train_platform.launch import build_disagg_online_consumer
+        from draftfit.launch import build_disagg_online_consumer
 
         captured = {}
 
@@ -112,11 +106,11 @@ class TestSharedPlaneConsumerResume(unittest.TestCase):
         with (
             mock.patch("torch.distributed.is_initialized", return_value=False),
             mock.patch(
-                "speculative_train_platform.runtime.data_plane.ref_distributor.RefDistributor",
+                "draftfit.runtime.data_plane.ref_distributor.RefDistributor",
                 _FakeDistributor,
             ),
             mock.patch(
-                "speculative_train_platform.launch._assemble_trainer",
+                "draftfit.launch._assemble_trainer",
                 side_effect=assemble,
             ),
         ):

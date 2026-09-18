@@ -10,8 +10,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from speculative_train_platform.benchmarks import sglang
-from speculative_train_platform.cli import main
+from draftfit.benchmarks import sglang
+from draftfit.cli import main
 
 
 class PersonalWorkflowTest(unittest.TestCase):

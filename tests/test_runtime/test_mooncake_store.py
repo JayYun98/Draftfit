@@ -15,21 +15,15 @@ from unittest import mock
 
 import torch
 
-from speculative_train_platform.runtime.control_plane.controller import (
-    DataFlowController,
-)
-from speculative_train_platform.runtime.control_plane.dp_ack import DPAckController
-from speculative_train_platform.runtime.control_plane.metadata_store import (
-    InMemoryMetadataStore,
-)
-from speculative_train_platform.runtime.data_plane.disaggregated import AuthPolicy
-from speculative_train_platform.runtime.data_plane.feature_store import (
+from draftfit.runtime.control_plane.controller import DataFlowController
+from draftfit.runtime.control_plane.dp_ack import DPAckController
+from draftfit.runtime.control_plane.metadata_store import InMemoryMetadataStore
+from draftfit.runtime.data_plane.disaggregated import AuthPolicy
+from draftfit.runtime.data_plane.feature_store import (
     LocalFeatureStore,
     drain_feature_store_removals,
 )
-from speculative_train_platform.runtime.data_plane.mooncake_store import (
-    MooncakeFeatureStore,
-)
+from draftfit.runtime.data_plane.mooncake_store import MooncakeFeatureStore
 
 
 class _FakeMooncakeStore:
@@ -142,7 +136,7 @@ class TestMooncakeFeatureStore(unittest.TestCase):
         self.assertTrue(fs.health()["hard_pin"])
 
     def test_constructor_falls_back_to_soft_pin(self):
-        import speculative_train_platform.runtime.data_plane.mooncake_store as mooncake_store
+        import draftfit.runtime.data_plane.mooncake_store as mooncake_store
 
         class _SoftPinOnlyConfig:
             def __init__(self):
@@ -164,7 +158,7 @@ class TestMooncakeFeatureStore(unittest.TestCase):
         self.assertIn("falling back to with_soft_pin", "\n".join(logs.output))
 
     def test_constructor_tolerates_config_without_pin_fields(self):
-        import speculative_train_platform.runtime.data_plane.mooncake_store as mooncake_store
+        import draftfit.runtime.data_plane.mooncake_store as mooncake_store
 
         class _ConfigWithoutPinFields:
             def __init__(self):

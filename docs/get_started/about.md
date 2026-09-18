@@ -1,20 +1,19 @@
-# ⚡️ About SpecForge
+# About Draftfit
 
-## 💡 Motivation
+**Your workload. Your draft.**
 
-Speculative decoding is an important and powerful technique for speeding up inference without losing performance. Industries have used it extensively in production to better serve their users with lower latency and higher throughput. We have seen some open-source projects for training speculative decoding models, but most of them are not well-maintained or not directly compatible with SGLang. We prepared this project because we wish that the open-source community can enjoy a speculative decoding framework that is
+Draftfit trains and fine-tunes speculative decoding drafts on your own data.
+DSpark is one supported algorithm, not the name of the platform.
 
-- regularly maintained by the SGLang team: the code is runnable out-of-the-box
-- directly compatible with SGLang: there is no additional efforts for porting to SGLang
-- provide SGLang-server online training and local/disaggregated offline training
-  through one runtime, including consumer DP, offline USP, evaluation,
-  checkpoint selection, and CUDA/ROCm/Ascend portability
+The project builds on the SpecForge engine and preserves its upstream credits
+and licenses. Draftfit is independently maintained; it does not imply SGLang
+team ownership or blanket compatibility with SGLang serving.
 
-## ✅ SGLang-ready
+Start with the [public workflow](../PUBLIC_WORKFLOW.md) and
+[environment guide](../ENVIRONMENT.md). The [support matrix](../PUBLIC_SUPPORT.md)
+distinguishes implemented paths from measured validation. An exported draft is
+not evidence of a serving speedup: validate the actual model, backend and
+workload before making that claim.
 
-As SpecForge is built by the SGLang team, draft models trained with SpecForge
-can be exported for [SGLang](https://github.com/sgl-project/sglang) serving.
-Runtime checkpoints retain training state, so materialize a serving directory
-with the shared `specforge export` command. SGLang and Hugging Face export
-targets use the same checkpoint surface; there are no method-specific
-conversion scripts.
+See [code ownership](../CODE_OWNERSHIP.md) and
+[source attribution](../SOURCE_ATTRIBUTION.md) for the upstream boundaries.

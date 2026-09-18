@@ -1,9 +1,7 @@
 import unittest
 
-from speculative_train_platform.modeling.auto import AutoDraftModel
-from speculative_train_platform.modeling.draft.llama3_eagle import (
-    LlamaForCausalLMEagle3,
-)
+from draftfit.modeling.auto import AutoDraftModel
+from draftfit.modeling.draft.llama3_eagle import LlamaForCausalLMEagle3
 
 
 class TestAutoModelForCausalLM(unittest.TestCase):

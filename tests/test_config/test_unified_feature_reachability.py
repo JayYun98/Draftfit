@@ -7,9 +7,9 @@ from unittest import mock
 
 from pydantic import ValidationError
 
-from speculative_train_platform.application import resolve_run
-from speculative_train_platform.config import Config
-from speculative_train_platform.training.assembly import (
+from draftfit.application import resolve_run
+from draftfit.config import Config
+from draftfit.training.assembly import (
     _configured_logger,
     _dataloader_num_workers,
     _logger,
@@ -325,7 +325,7 @@ class UnifiedFeatureReachabilityTest(unittest.TestCase):
         tracker_logger = object()
 
         with mock.patch(
-            "speculative_train_platform.training.tracking.create_tracker_logger",
+            "draftfit.training.tracking.create_tracker_logger",
             return_value=tracker_logger,
         ) as create:
             result = _configured_logger(cfg)

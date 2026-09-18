@@ -6,8 +6,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from accelerate.utils import set_seed
 
-from speculative_train_platform.distributed import get_tp_group, init_distributed
-from speculative_train_platform.layers import ColumnParallelLinear, RowParallelLinear
+from draftfit.distributed import get_tp_group, init_distributed
+from draftfit.layers import ColumnParallelLinear, RowParallelLinear
 from tests.utils import get_available_port
 
 

@@ -6,20 +6,13 @@ import torch
 from torch.nn.attention.flex_attention import flex_attention
 from transformers import Qwen3Config
 
-from speculative_train_platform.algorithms.common.dflash_family_model import (
+from draftfit.algorithms.common.dflash_family_model import (
     create_dflash_block_mask,
     create_dflash_sdpa_mask,
 )
-from speculative_train_platform.modeling.draft.dflash import (
-    DFlashDraftModel,
-    Qwen3DFlashAttention,
-)
-from speculative_train_platform.modeling.draft.dflash_kernels import (
-    DEFAULT_DFLASH_KERNELS,
-)
-from speculative_train_platform.modeling.draft.flex_attention_backend import (
-    flex_attention_backend,
-)
+from draftfit.modeling.draft.dflash import DFlashDraftModel, Qwen3DFlashAttention
+from draftfit.modeling.draft.dflash_kernels import DEFAULT_DFLASH_KERNELS
+from draftfit.modeling.draft.flex_attention_backend import flex_attention_backend
 
 
 class FlexAttentionBackendTest(unittest.TestCase):
@@ -145,7 +138,7 @@ class FlexAttentionBackendTest(unittest.TestCase):
         sin = torch.zeros_like(cos)
 
         with mock.patch(
-            "speculative_train_platform.modeling.draft.dflash.eager_attention_forward",
+            "draftfit.modeling.draft.dflash.eager_attention_forward",
             return_value=(torch.zeros(1, 1, 1, config.head_dim), None),
         ) as eager:
             attention(

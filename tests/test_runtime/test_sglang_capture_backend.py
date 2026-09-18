@@ -25,7 +25,7 @@ _CAPTURE_DIR = os.path.normpath(
         os.path.dirname(__file__),
         "..",
         "..",
-        "speculative_train_platform",
+        "draftfit",
         "offline_capture",
     )
 )
@@ -53,11 +53,11 @@ class OfflineSglangBoundaryTest(unittest.TestCase):
         repo_root = os.path.dirname(os.path.dirname(_CAPTURE_DIR))
         code = (
             "import sys; "
-            "import speculative_train_platform.offline_capture; "
-            "import speculative_train_platform.offline_capture.sglang_backend; "
+            "import draftfit.offline_capture; "
+            "import draftfit.offline_capture.sglang_backend; "
             "assert 'torch' not in sys.modules; "
             "assert 'sglang' not in sys.modules; "
-            "assert 'speculative_train_platform.offline_capture.sglang_backend.capture' "
+            "assert 'draftfit.offline_capture.sglang_backend.capture' "
             "not in sys.modules"
         )
         subprocess.run(

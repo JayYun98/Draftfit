@@ -37,11 +37,8 @@ def _has_standard_flash_attention() -> bool:
 
 
 def _build_model(workdir: str, attention_backend: str):
-    from speculative_train_platform.algorithms.eagle3.model import OnlineEagle3Model
-    from speculative_train_platform.modeling.auto import (
-        AutoDraftModel,
-        AutoDraftModelConfig,
-    )
+    from draftfit.algorithms.eagle3.model import OnlineEagle3Model
+    from draftfit.modeling.auto import AutoDraftModel, AutoDraftModelConfig
 
     draft_config = AutoDraftModelConfig.from_file(os.path.join(workdir, "draft.json"))
     draft_model = AutoDraftModel.from_config(
@@ -70,23 +67,12 @@ def _worker(rank: int, world_size: int, port: int, workdir: str) -> None:
     try:
         import torch.distributed as dist
 
-        from speculative_train_platform.algorithms.builtin import (
-            builtin_algorithm_registry,
-        )
-        from speculative_train_platform.distributed import (
-            get_draft_sp_group,
-            get_tp_group,
-        )
-        from speculative_train_platform.launch import (
-            _shard_offline_refs,
-            build_offline_runtime,
-        )
-        from speculative_train_platform.modeling.target.target_head import TargetHead
-        from speculative_train_platform.optimizer import BF16Optimizer
-        from speculative_train_platform.runtime.data_plane import (
-            FeatureDataLoader,
-            LocalFeatureStore,
-        )
+        from draftfit.algorithms.builtin import builtin_algorithm_registry
+        from draftfit.distributed import get_draft_sp_group, get_tp_group
+        from draftfit.launch import _shard_offline_refs, build_offline_runtime
+        from draftfit.modeling.target.target_head import TargetHead
+        from draftfit.optimizer import BF16Optimizer
+        from draftfit.runtime.data_plane import FeatureDataLoader, LocalFeatureStore
 
         torch.manual_seed(0)
         torch.cuda.manual_seed_all(0)
@@ -198,7 +184,7 @@ def _worker(rank: int, world_size: int, port: int, workdir: str) -> None:
         with open(os.path.join(workdir, "results", f"rank{rank}.json"), "w") as out:
             json.dump(result, out)
     finally:
-        from speculative_train_platform.distributed import destroy_distributed
+        from draftfit.distributed import destroy_distributed
 
         destroy_distributed()
 

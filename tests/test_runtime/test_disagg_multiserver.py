@@ -26,21 +26,14 @@ import time
 import unittest
 from unittest.mock import patch
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.inference.adapters.server_capture import (
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.inference.adapters.server_capture import (
     ServerCaptureSchema,
     SGLangServerCaptureAdapter,
 )
-from speculative_train_platform.launch import (
-    _epoch_online_prompts,
-    build_disagg_online_producer,
-)
-from speculative_train_platform.runtime.data_plane.mooncake_store import (
-    MooncakeFeatureStore,
-)
-from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
-    StreamingRefChannel,
-)
+from draftfit.launch import _epoch_online_prompts, build_disagg_online_producer
+from draftfit.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+from draftfit.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
 from tests.test_runtime.test_server_capture import (
     AUX_LAYERS,
     HIDDEN,
@@ -126,7 +119,7 @@ class _FailingPublishChannel(StreamingRefChannel):
 class _FsyncFailingPublishChannel(StreamingRefChannel):
     def publish(self, ref):
         with patch(
-            "speculative_train_platform.runtime.data_plane.streaming_ref_channel.os.fsync",
+            "draftfit.runtime.data_plane.streaming_ref_channel.os.fsync",
             side_effect=OSError("injected fsync failure"),
         ):
             super().publish(ref)

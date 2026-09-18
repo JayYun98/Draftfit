@@ -7,11 +7,11 @@ import torch.multiprocessing as mp
 from torch import nn
 from transformers import PretrainedConfig
 
-from speculative_train_platform.core.eagle3_adapters import SdpaLikeAdapter, UspAdapter
-from speculative_train_platform.distributed import destroy_distributed, init_distributed
-from speculative_train_platform.layers.ring import ring_flash_attn_func
-from speculative_train_platform.modeling.draft.llama3_eagle import LlamaDecoderLayer
-from speculative_train_platform.utils import padding
+from draftfit.core.eagle3_adapters import SdpaLikeAdapter, UspAdapter
+from draftfit.distributed import destroy_distributed, init_distributed
+from draftfit.layers.ring import ring_flash_attn_func
+from draftfit.modeling.draft.llama3_eagle import LlamaDecoderLayer
+from draftfit.utils import padding
 from tests.utils import get_available_port, is_port_in_use
 
 

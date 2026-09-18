@@ -9,7 +9,7 @@ from itertools import permutations
 class NamespaceCompatibilityTest(unittest.TestCase):
     def test_import_orders_and_legacy_pickle_globals(self):
         for first, second in permutations(
-            ("specforge", "dspark", "speculative_train_platform"), 2
+            ("specforge", "dspark", "speculative_train_platform", "draftfit"), 2
         ):
             with self.subTest(first=first):
                 subprocess.run(
@@ -22,19 +22,21 @@ for suffix in ('config.schema', 'runtime.contracts', 'algorithms.builtin'):
     a = importlib.import_module('{first}.' + suffix)
     b = importlib.import_module('{second}.' + suffix)
     assert a is b
-    assert a.__spec__.name == 'speculative_train_platform.' + suffix
-from speculative_train_platform.runtime.contracts import SampleRef
+    assert a.__spec__.name == 'draftfit.' + suffix
+from draftfit.runtime.contracts import SampleRef
 assert pickle.loads(b'cspecforge.runtime.contracts\\nSampleRef\\n.') is SampleRef
 assert pickle.loads(pickle.dumps(SampleRef)) is SampleRef
-from speculative_train_platform.runtime.contracts import FeatureSpec
+from draftfit.runtime.contracts import FeatureSpec
 feature = FeatureSpec('hidden_states', (1, 2, 4), 'float32')
 current = pickle.dumps(feature, protocol=0)
-legacy = current.replace(b'speculative_train_platform.runtime.contracts', b'specforge.runtime.contracts')
+legacy = current.replace(b'draftfit.runtime.contracts', b'specforge.runtime.contracts')
 assert pickle.loads(legacy) == feature
 assert type(pickle.loads(legacy)) is FeatureSpec
-legacy_dspark = current.replace(b'speculative_train_platform.runtime.contracts', b'dspark.runtime.contracts')
+legacy_dspark = current.replace(b'draftfit.runtime.contracts', b'dspark.runtime.contracts')
 assert type(pickle.loads(legacy_dspark)) is FeatureSpec
-from speculative_train_platform.config import Config
+legacy_platform = current.replace(b'draftfit.runtime.contracts', b'speculative_train_platform.runtime.contracts')
+assert type(pickle.loads(legacy_platform)) is FeatureSpec
+from draftfit.config import Config
 from specforge.config import Config as OldConfig
 assert Config is OldConfig
 """,
@@ -51,7 +53,7 @@ assert Config is OldConfig
                 [
                     sys.executable,
                     "-m",
-                    "speculative_train_platform." + suffix,
+                    "draftfit." + suffix,
                     "--help",
                 ],
                 text=True,
@@ -61,6 +63,16 @@ assert Config is OldConfig
                 [sys.executable, "-m", "dspark." + suffix, "--help"], text=True
             )
             self.assertEqual(previous, new)
+            platform = subprocess.check_output(
+                [
+                    sys.executable,
+                    "-m",
+                    "speculative_train_platform." + suffix,
+                    "--help",
+                ],
+                text=True,
+            )
+            self.assertEqual(platform, new)
 
 
 if __name__ == "__main__":

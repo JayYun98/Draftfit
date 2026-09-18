@@ -1,0 +1,223 @@
+"""Built-in DFlash2 registration and executable providers."""
+
+from __future__ import annotations
+
+from functools import partial
+
+from draftfit.algorithms.common.defaults import no_missing_checkpoint_keys
+from draftfit.algorithms.common.dflash_family_data import (
+    NORMALIZER_ID,
+    build_collator,
+    build_offline_normalizer,
+    build_offline_reader,
+)
+from draftfit.algorithms.common.providers import (
+    AlgorithmProviders,
+    DraftConfigProvider,
+    ModelProvider,
+    OfflineCaptureLayout,
+    OfflineDataProvider,
+    ServerCaptureLayout,
+    ServerStreamingProvider,
+    StepProvider,
+    TargetDerivedDraftDefaults,
+    make_registration,
+)
+from draftfit.algorithms.contracts import (
+    AlgorithmCapabilities,
+    AlgorithmSpec,
+    DraftRequirement,
+    FeatureContract,
+    FeatureMode,
+    OfflineStorageContract,
+)
+from draftfit.data.loss_mask import has_consecutive_supervised_tokens
+
+ALGORITHM_NAME = "dflash2"
+DRAFT_ARCHITECTURE = "DFlash2DraftModel"
+
+
+def build_step(wrapped_model, *, target_head=None, **_options):
+    del target_head
+    from draftfit.training.strategies.base import DFlash2TrainStrategy
+
+    return DFlash2TrainStrategy(wrapped_model)
+
+
+def step_options(config):
+    from draftfit.algorithms.model_providers import dflash2_strategy_kwargs
+
+    return dflash2_strategy_kwargs(config)
+
+
+def resume_contract(_config, draft_model, training_model):
+    return {
+        "dflash2_draft_num_hidden_layers": int(draft_model.config.num_hidden_layers),
+        "dflash2_target_layer_ids": tuple(
+            int(layer_id) for layer_id in draft_model.target_layer_ids
+        ),
+        "dflash2_target_num_hidden_layers": int(
+            draft_model.config.target_num_hidden_layers
+        ),
+        "dflash2_block_size": int(training_model.block_size),
+        "dflash2_mask_token_id": int(training_model.mask_token_id),
+        "dflash2_attention_backend": str(training_model.attention_backend),
+        "dflash2_num_anchors": int(training_model.num_anchors),
+        "dflash2_anchor_sampling": str(
+            getattr(training_model, "anchor_sampling", "random")
+        ),
+        "dflash2_loss_decay_gamma": training_model.loss_decay_gamma,
+        "dflash2_loss_type": str(training_model.loss_type),
+        "dflash2_dpace_alpha": float(training_model.dpace_alpha),
+        "dflash2_selector_loss_alpha": float(training_model.selector_loss_alpha),
+    }
+
+
+def build_draft(config, draft_config):
+    from draftfit.algorithms.model_providers import build_dflash2_draft
+
+    return build_dflash2_draft(config, draft_config)
+
+
+def build_training_model(config, draft_model, draft_config, target_config, tokenizer):
+    from draftfit.algorithms.model_providers import build_dflash2_model
+
+    return build_dflash2_model(
+        config, draft_model, draft_config, target_config, tokenizer
+    )
+
+
+def resolve_capture_layers(config, draft_config, target_config):
+    from draftfit.algorithms.model_providers import resolve_dflash_capture_layers
+
+    return resolve_dflash_capture_layers(config, draft_config, target_config)
+
+
+def populate_target_defaults(payload, target_config, config):
+    from draftfit.algorithms.model_providers import populate_dflash2_generated_config
+
+    return populate_dflash2_generated_config(payload, target_config, config)
+
+
+def apply_draft_overrides(config, draft_config):
+    from draftfit.algorithms.model_providers import apply_dflash2_overrides
+
+    return apply_dflash2_overrides(config, draft_config)
+
+
+def minimum_loss_tokens(config, draft_config):
+    from draftfit.algorithms.model_providers import dflash_min_loss_tokens
+
+    return dflash_min_loss_tokens(config, draft_config)
+
+
+def needs_input_tools(config, draft_model):
+    from draftfit.algorithms.model_providers import dflash_needs_input_tools
+
+    return dflash_needs_input_tools(config, draft_model)
+
+
+def algorithm_spec() -> AlgorithmSpec:
+    ready = {"input_ids", "loss_mask", "hidden_states"}
+    return AlgorithmSpec(
+        name=ALGORITHM_NAME,
+        draft=DraftRequirement(
+            compatible_architectures={DRAFT_ARCHITECTURE},
+            default_architecture=DRAFT_ARCHITECTURE,
+            supported_overrides={"num_hidden_layers", "block_size"},
+        ),
+        feature_contracts=(
+            FeatureContract(
+                mode=FeatureMode.OFFLINE,
+                modality="text",
+                required_tensors=ready,
+                storage=OfflineStorageContract(
+                    format="specforge_hidden_states_v1",
+                    required_tensors=ready,
+                    normalizer=NORMALIZER_ID,
+                ),
+            ),
+            FeatureContract(
+                mode=FeatureMode.STREAMING,
+                modality="text",
+                required_tensors=ready,
+            ),
+        ),
+        capabilities=AlgorithmCapabilities(
+            attention_backends={"eager", "sdpa", "flex_attention"},
+        ),
+    )
+
+
+def algorithm_providers() -> AlgorithmProviders:
+    collator = build_collator
+    return AlgorithmProviders(
+        algorithm_name=ALGORITHM_NAME,
+        step=StepProvider(
+            build=build_step,
+            options=step_options,
+            resume_contract=resume_contract,
+            allowed_missing_checkpoint_keys=no_missing_checkpoint_keys,
+            uses_external_target_head=False,
+        ),
+        model=ModelProvider(
+            draft_config=DraftConfigProvider(
+                architecture=DRAFT_ARCHITECTURE,
+                expected_auto_map_model="dflash2.DFlash2DraftModel",
+                target_defaults=TargetDerivedDraftDefaults(
+                    model_type="qwen3",
+                    num_hidden_layers=5,
+                    populate=populate_target_defaults,
+                ),
+                apply_overrides=apply_draft_overrides,
+            ),
+            build_draft=build_draft,
+            build_training_model=build_training_model,
+            resolve_capture_layers=resolve_capture_layers,
+            minimum_loss_tokens=minimum_loss_tokens,
+            needs_input_tools=needs_input_tools,
+            default_dataloader_num_workers=8,
+            loss_mask_filter=has_consecutive_supervised_tokens,
+        ),
+        offline=(
+            OfflineDataProvider(
+                modality="text",
+                normalizer_id=NORMALIZER_ID,
+                capture_layout=OfflineCaptureLayout(
+                    capture_method="dflash",
+                    aux_feature="hidden_states",
+                    last_hidden_feature=None,
+                    passthrough=(
+                        ("input_ids", "input_ids"),
+                        ("loss_mask", "loss_mask"),
+                    ),
+                ),
+                build_reader=partial(build_offline_reader, ALGORITHM_NAME),
+                build_normalizer=build_offline_normalizer,
+                build_collator=collator,
+            ),
+        ),
+        server_streaming=(
+            ServerStreamingProvider(
+                modality="text",
+                capture_method="dflash",
+                target_representation=None,
+                layout=ServerCaptureLayout(
+                    aux_feature="hidden_states",
+                    last_hidden_feature=None,
+                    passthrough=(
+                        ("input_ids", "input_ids", ()),
+                        ("loss_mask", "loss_mask", ()),
+                    ),
+                ),
+                build_collator=collator,
+            ),
+        ),
+    )
+
+
+def create_registration():
+    return make_registration(algorithm_spec(), algorithm_providers())
+
+
+__all__ = ["algorithm_providers", "algorithm_spec", "create_registration"]

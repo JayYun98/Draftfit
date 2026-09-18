@@ -5,8 +5,8 @@ import unittest
 
 from pydantic import ValidationError
 
-from speculative_train_platform.application import resolve_run
-from speculative_train_platform.config import Config
+from draftfit.application import resolve_run
+from draftfit.config import Config
 
 ONLINE_DEPLOYMENT = {
     "mode": "disaggregated",

@@ -9,36 +9,18 @@ from pathlib import Path
 import torch
 from transformers import Qwen3Config, Qwen3ForCausalLM
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.algorithms.common.dflash_family_model import (
-    OnlineDFlash2Model,
-)
-from speculative_train_platform.inference.adapters.server_capture import (
-    TeacherServerCaptureAdapter,
-)
-from speculative_train_platform.inference.capture import (
-    CaptureConfig,
-    CaptureMismatchError,
-)
-from speculative_train_platform.inference.capture_sink import CaptureSink
-from speculative_train_platform.inference.teacher_server import (
-    TeacherService,
-    make_server,
-)
-from speculative_train_platform.launch import build_disagg_online_producer
-from speculative_train_platform.modeling.draft.dflash2 import DFlash2DraftModel
-from speculative_train_platform.offline_capture.transformers import (
-    OfflineTransformersCapture,
-)
-from speculative_train_platform.runtime.data_plane.feature_dataloader import (
-    FeatureDataLoader,
-)
-from speculative_train_platform.runtime.data_plane.mooncake_store import (
-    MooncakeFeatureStore,
-)
-from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
-    StreamingRefChannel,
-)
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.algorithms.common.dflash_family_model import OnlineDFlash2Model
+from draftfit.inference.adapters.server_capture import TeacherServerCaptureAdapter
+from draftfit.inference.capture import CaptureConfig, CaptureMismatchError
+from draftfit.inference.capture_sink import CaptureSink
+from draftfit.inference.teacher_server import TeacherService, make_server
+from draftfit.launch import build_disagg_online_producer
+from draftfit.modeling.draft.dflash2 import DFlash2DraftModel
+from draftfit.offline_capture.transformers import OfflineTransformersCapture
+from draftfit.runtime.data_plane.feature_dataloader import FeatureDataLoader
+from draftfit.runtime.data_plane.mooncake_store import MooncakeFeatureStore
+from draftfit.runtime.data_plane.streaming_ref_channel import StreamingRefChannel
 from tests.test_dflash2_integration import tiny_config
 from tests.test_runtime.test_server_capture import (
     _capture_schema,

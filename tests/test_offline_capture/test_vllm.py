@@ -14,10 +14,7 @@ from safetensors.torch import load_file, save_file
 from transformers import LlamaConfig
 from transformers.models.llama.modeling_llama import LlamaRMSNorm
 
-from speculative_train_platform.offline_capture.vllm import (
-    OfflineVLLMCapture,
-    _load_norm,
-)
+from draftfit.offline_capture.vllm import OfflineVLLMCapture, _load_norm
 
 
 class VLLMCaptureTests(unittest.TestCase):

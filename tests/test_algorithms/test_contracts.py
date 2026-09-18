@@ -4,7 +4,7 @@ import unittest
 from dataclasses import FrozenInstanceError, fields, is_dataclass
 from enum import Enum
 
-from speculative_train_platform.algorithms import (
+from draftfit.algorithms import (
     AlgorithmCapabilities,
     AlgorithmSpec,
     DraftRequirement,

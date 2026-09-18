@@ -3,13 +3,8 @@
 
 import unittest
 
-from speculative_train_platform.runtime.control_plane import (
-    DataFlowController,
-    NoOpMetadataStore,
-)
-from speculative_train_platform.runtime.control_plane.metadata_store import (
-    MetadataStore,
-)
+from draftfit.runtime.control_plane import DataFlowController, NoOpMetadataStore
+from draftfit.runtime.control_plane.metadata_store import MetadataStore
 
 
 class TestNoOpMetadataStore(unittest.TestCase):

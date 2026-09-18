@@ -58,11 +58,8 @@ class FSDP2BackendTest(unittest.TestCase):
     def _backend(self, model, sharding_strategy="SHARD_GRAD_OP"):
         from torch.distributed.device_mesh import init_device_mesh
 
-        from speculative_train_platform.optimizer import BF16Optimizer
-        from speculative_train_platform.training.backend import (
-            FSDP2TrainingBackend,
-            ParallelConfig,
-        )
+        from draftfit.optimizer import BF16Optimizer
+        from draftfit.training.backend import FSDP2TrainingBackend, ParallelConfig
 
         mesh = init_device_mesh("cpu", (1,), mesh_dim_names=("dp",))
         parallel = ParallelConfig(

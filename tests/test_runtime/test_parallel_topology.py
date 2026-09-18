@@ -4,8 +4,8 @@
 import unittest
 from unittest import mock
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.launch import (
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.launch import (
     _offline_io,
     _shard_offline_refs,
     build_disagg_offline_runtime,
@@ -29,11 +29,11 @@ class ParallelTopologyTest(unittest.TestCase):
             mock.patch("torch.distributed.get_world_size", side_effect=world_size),
             mock.patch("torch.distributed.get_rank", return_value=1),
             mock.patch(
-                "speculative_train_platform.distributed.get_dp_group",
+                "draftfit.distributed.get_dp_group",
                 return_value=dp_group,
             ),
             mock.patch(
-                "speculative_train_platform.distributed.get_draft_dp_group",
+                "draftfit.distributed.get_draft_dp_group",
                 return_value=draft_dp_group,
             ),
         ):

@@ -5,13 +5,9 @@ import types
 import unittest
 from unittest import mock
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.config import Config
-from speculative_train_platform.training.assembly import (
-    ModelBundle,
-    _prepare_prompts,
-    build_training_run,
-)
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.config import Config
+from draftfit.training.assembly import ModelBundle, _prepare_prompts, build_training_run
 
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
@@ -46,7 +42,7 @@ class TestEvalAssembly(unittest.TestCase):
         )
         tokenizer = object()
         with mock.patch(
-            "speculative_train_platform.data.prompt_builder.prepare_prompt_tasks",
+            "draftfit.data.prompt_builder.prepare_prompt_tasks",
             return_value=[{"task_id": "eval"}],
         ) as prepare:
             result = _prepare_prompts(
@@ -87,11 +83,11 @@ class TestEvalAssembly(unittest.TestCase):
         trainer = object()
         with (
             mock.patch(
-                "speculative_train_platform.training.assembly.build_model_bundle",
+                "draftfit.training.assembly.build_model_bundle",
                 return_value=bundle,
             ),
             mock.patch(
-                "speculative_train_platform.launch.build_offline_runtime",
+                "draftfit.launch.build_offline_runtime",
                 return_value=trainer,
             ) as build,
         ):
@@ -118,7 +114,7 @@ class TestEvalLaunch(unittest.TestCase):
         )
 
     def test_offline_eval_factory_reuses_io_contract_and_keeps_partial_batch(self):
-        from speculative_train_platform.launch import _make_offline_eval_data_factory
+        from draftfit.launch import _make_offline_eval_data_factory
 
         refs = [object(), object(), object()]
         reader_calls = []
@@ -133,11 +129,11 @@ class TestEvalLaunch(unittest.TestCase):
         store = object()
         with (
             mock.patch(
-                "speculative_train_platform.launch.LocalFeatureStore",
+                "draftfit.launch.LocalFeatureStore",
                 return_value=store,
             ),
             mock.patch(
-                "speculative_train_platform.launch._offline_io",
+                "draftfit.launch._offline_io",
                 return_value=(collate, transform),
             ),
         ):
@@ -173,7 +169,7 @@ class TestEvalLaunch(unittest.TestCase):
         )
 
     def test_offline_builder_passes_eval_factory_to_the_one_trainer(self):
-        from speculative_train_platform.launch import build_offline_runtime
+        from draftfit.launch import build_offline_runtime
 
         reader = lambda *_args, **_kwargs: types.SimpleNamespace(read=lambda: [])
         collate = mock.Mock(name="collate")
@@ -182,18 +178,18 @@ class TestEvalLaunch(unittest.TestCase):
         eval_factory = mock.Mock(name="eval_factory")
         trainer = object()
         with (
-            mock.patch("speculative_train_platform.launch.DataFlowController"),
-            mock.patch("speculative_train_platform.launch.LocalFeatureStore"),
+            mock.patch("draftfit.launch.DataFlowController"),
+            mock.patch("draftfit.launch.LocalFeatureStore"),
             mock.patch(
-                "speculative_train_platform.launch._offline_io",
+                "draftfit.launch._offline_io",
                 return_value=(collate, transform),
             ),
             mock.patch(
-                "speculative_train_platform.launch._make_offline_eval_data_factory",
+                "draftfit.launch._make_offline_eval_data_factory",
                 return_value=eval_factory,
             ),
             mock.patch(
-                "speculative_train_platform.launch._assemble_trainer",
+                "draftfit.launch._assemble_trainer",
                 return_value=trainer,
             ) as assemble,
         ):

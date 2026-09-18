@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from speculative_train_platform.training.assembly import _prompt_cache_key
+from draftfit.training.assembly import _prompt_cache_key
 
 
 def _cache_config(path: str):

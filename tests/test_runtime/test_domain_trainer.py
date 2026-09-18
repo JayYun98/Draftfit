@@ -35,7 +35,7 @@ class DomainTrainerWiringTest(unittest.TestCase):
         sp_ulysses_size=1,
         sp_ring_size=1,
     ):
-        import speculative_train_platform.training.trainer as tr
+        import draftfit.training.trainer as tr
 
         cap = {}
         events = [] if events is None else events
@@ -335,9 +335,7 @@ class DomainTrainerWiringTest(unittest.TestCase):
         )
 
         with (
-            self.assertLogs(
-                "speculative_train_platform.training.trainer", level="ERROR"
-            ) as logs,
+            self.assertLogs("draftfit.training.trainer", level="ERROR") as logs,
             self.assertRaises(RuntimeError) as raised,
         ):
             trainer.fit()

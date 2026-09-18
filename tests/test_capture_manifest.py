@@ -3,7 +3,7 @@ import os
 import tempfile
 import unittest
 
-from speculative_train_platform.inference.capture_manifest import (
+from draftfit.inference.capture_manifest import (
     build_capture_manifest,
     load_capture_manifest,
     validate_capture_manifest,

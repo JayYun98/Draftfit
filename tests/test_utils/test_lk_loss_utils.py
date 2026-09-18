@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-from speculative_train_platform.core.lk_loss import (
+from draftfit.core.lk_loss import (
     compute_acceptance_rate,
     compute_lk_loss,
     expected_acceptance_rate,

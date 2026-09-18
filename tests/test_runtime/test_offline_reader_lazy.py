@@ -22,19 +22,13 @@ from unittest import mock
 
 import torch
 
-from speculative_train_platform.inference.capture_manifest import (
+from draftfit.inference.capture_manifest import (
     build_capture_manifest,
     write_capture_manifest,
 )
-from speculative_train_platform.runtime.data_plane.feature_dataloader import (
-    FeatureDataLoader,
-)
-from speculative_train_platform.runtime.data_plane.feature_store import (
-    LocalFeatureStore,
-)
-from speculative_train_platform.runtime.data_plane.offline_reader import (
-    OfflineManifestReader,
-)
+from draftfit.runtime.data_plane.feature_dataloader import FeatureDataLoader
+from draftfit.runtime.data_plane.feature_store import LocalFeatureStore
+from draftfit.runtime.data_plane.offline_reader import OfflineManifestReader
 
 _KEYS = ("input_ids", "loss_mask", "hidden_states")
 _SEQ = 8

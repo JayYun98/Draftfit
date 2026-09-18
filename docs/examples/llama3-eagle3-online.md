@@ -25,7 +25,7 @@ create a second copy of the recipe in documentation.
 ## 3. Train
 
 ```bash
-specforge train --config examples/configs/llama3.1-8b-eagle3-online.yaml
+draftfit train --config examples/configs/llama3.1-8b-eagle3-online.yaml
 ```
 
 The recipe points at an external SGLang capture server and starts the
@@ -45,7 +45,7 @@ the SGLang speculative decoder. Online resume is consumer-only and reuses the
 retained transport state; export the final checkpoint before serving:
 
 ```bash
-specforge export --to sglang \
+draftfit export --to sglang \
   --checkpoint ./outputs/llama3.1-8b-eagle3-online/llama3.1-8b-eagle3-online-latest \
   --draft-config configs/llama3-8B-eagle3.json \
   --output-dir ./exports/llama3.1-8b-eagle3-sglang

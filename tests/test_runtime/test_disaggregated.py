@@ -6,11 +6,8 @@ import unittest
 
 import torch
 
-from speculative_train_platform.runtime.contracts import assert_no_tensors
-from speculative_train_platform.runtime.data_plane.disaggregated import (
-    AuthPolicy,
-    SharedDirFeatureStore,
-)
+from draftfit.runtime.contracts import assert_no_tensors
+from draftfit.runtime.data_plane.disaggregated import AuthPolicy, SharedDirFeatureStore
 
 
 class _FakeClock:

@@ -3,7 +3,7 @@
 import types
 import unittest
 
-from speculative_train_platform.training.model_utils import resolve_mask_token_id
+from draftfit.training.model_utils import resolve_mask_token_id
 
 
 class _Tokenizer:

@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Optional
 
 from transformers import AutoTokenizer
 
-from speculative_train_platform.data.preprocessing import preprocess_conversations
-from speculative_train_platform.data.template import TEMPLATE_REGISTRY
-from speculative_train_platform.utils import load_tokenizer
+from draftfit.data.preprocessing import preprocess_conversations
+from draftfit.data.template import TEMPLATE_REGISTRY
+from draftfit.utils import load_tokenizer
 
 
 class TestTemplatePreprocessing(unittest.TestCase):

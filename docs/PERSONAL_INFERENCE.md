@@ -1,6 +1,7 @@
-# Personal inference optimization
+# Draftfit for personal inference workloads
 
-Personalized AI needs workload-specific evaluation, not just a smaller draft.
+**Your workload. Your draft.** Personalized AI needs workload-specific evaluation,
+not just a smaller draft.
 The product hypothesis is simple: a draft adapted to recurring tasks may predict
 the frozen target more efficiently than a general-purpose draft. It must earn its
 place by improving measured inference performance, including its own cost.

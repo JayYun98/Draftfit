@@ -8,7 +8,7 @@ from unittest.mock import patch
 import torch
 from transformers import LlamaConfig
 
-from speculative_train_platform.modeling.draft.llama3_eagle import (
+from draftfit.modeling.draft.llama3_eagle import (
     LlamaAttention,
     LlamaForCausalLMEagle3,
     LlamaMLP,

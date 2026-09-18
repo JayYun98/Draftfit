@@ -11,25 +11,16 @@ from pathlib import Path
 import torch
 from transformers import Qwen3Config, Qwen3ForCausalLM
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.algorithms.common.dflash_family_model import (
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.algorithms.common.dflash_family_model import (
     OnlineDFlash2Model,
     OnlineDSparkModel,
 )
-from speculative_train_platform.modeling.draft.dflash2 import (
-    DFlash2Config,
-    DFlash2DraftModel,
-)
-from speculative_train_platform.modeling.draft.dspark import DSparkDraftModel
-from speculative_train_platform.offline_capture.transformers import (
-    OfflineTransformersCapture,
-)
-from speculative_train_platform.runtime.data_plane.feature_dataloader import (
-    FeatureDataLoader,
-)
-from speculative_train_platform.runtime.data_plane.feature_store import (
-    LocalFeatureStore,
-)
+from draftfit.modeling.draft.dflash2 import DFlash2Config, DFlash2DraftModel
+from draftfit.modeling.draft.dspark import DSparkDraftModel
+from draftfit.offline_capture.transformers import OfflineTransformersCapture
+from draftfit.runtime.data_plane.feature_dataloader import FeatureDataLoader
+from draftfit.runtime.data_plane.feature_store import LocalFeatureStore
 
 
 class TeacherTrainingTest(unittest.TestCase):

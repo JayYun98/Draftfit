@@ -6,14 +6,14 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest import mock
 
-from speculative_train_platform.tracker import WandbTracker, _public_config
-from speculative_train_platform.training.tracking import (
+from draftfit.tracker import WandbTracker, _public_config
+from draftfit.training.tracking import (
     TrackerLogger,
     create_tracker_logger,
     scalar_metrics,
     training_metric_names,
 )
-from speculative_train_platform.training.trainer import Trainer
+from draftfit.training.trainer import Trainer
 
 
 class _TensorDouble:
@@ -147,7 +147,7 @@ class TrackingLoggerTest(unittest.TestCase):
         tracker = _Tracker()
         tracker_class = mock.Mock(return_value=tracker)
         with mock.patch(
-            "speculative_train_platform.tracker.get_tracker_class",
+            "draftfit.tracker.get_tracker_class",
             return_value=tracker_class,
         ) as make:
             logger = create_tracker_logger(
@@ -172,18 +172,16 @@ class TrackingLoggerTest(unittest.TestCase):
 
         with (
             TemporaryDirectory() as output_dir,
-            mock.patch("speculative_train_platform.tracker.wandb", wandb),
+            mock.patch("draftfit.tracker.wandb", wandb),
             mock.patch(
-                "speculative_train_platform.tracker.dist.is_available",
+                "draftfit.tracker.dist.is_available",
                 return_value=True,
             ),
             mock.patch(
-                "speculative_train_platform.tracker.dist.is_initialized",
+                "draftfit.tracker.dist.is_initialized",
                 return_value=True,
             ),
-            mock.patch(
-                "speculative_train_platform.tracker.dist.get_rank", return_value=0
-            ),
+            mock.patch("draftfit.tracker.dist.get_rank", return_value=0),
         ):
             tracker = WandbTracker(args, output_dir)
             # A later multiprocessing lifecycle may clear W&B's module-global

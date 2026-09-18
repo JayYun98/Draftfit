@@ -14,26 +14,29 @@ from pathlib import Path
 
 
 def main():
-    import speculative_train_platform
+    import draftfit
+    from draftfit.config import Config
+    from dspark.config import Config as DSparkConfig
     from specforge.config import Config as LegacyConfig
-    from speculative_train_platform.config import Config
+    from speculative_train_platform.config import Config as PlatformConfig
 
-    assert Config is LegacyConfig
+    assert Config is LegacyConfig is DSparkConfig is PlatformConfig
 
     if not sys.flags.isolated:
         raise RuntimeError("run with python -I to exclude the source checkout")
-    installed = Path(speculative_train_platform.__file__).resolve()
-    distribution = importlib.metadata.distribution("speculative-train-platform")
+    installed = Path(draftfit.__file__).resolve()
+    distribution = importlib.metadata.distribution("draftfit")
     commands = {
         entry.name: entry.value
         for entry in distribution.entry_points
         if entry.group == "console_scripts"
     }
     assert (
-        commands["speculative-train-platform"]
+        commands["draftfit"]
+        == commands["speculative-train-platform"]
         == commands["dspark"]
         == commands["specforge"]
-        == "speculative_train_platform.cli:main"
+        == "draftfit.cli:main"
     )
     if "site-packages" not in installed.parts:
         raise RuntimeError(f"expected installed wheel, not checkout: {installed}")
@@ -53,7 +56,7 @@ def main():
                     sys.executable,
                     "-I",
                     "-m",
-                    "speculative_train_platform.cli",
+                    "draftfit.cli",
                     *map(str, args),
                 ],
                 cwd=root,

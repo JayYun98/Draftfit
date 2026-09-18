@@ -5,13 +5,9 @@ import unittest
 
 import torch
 
-from speculative_train_platform.runtime.contracts import FeatureSpec, SampleRef
-from speculative_train_platform.runtime.control_plane.controller import (
-    DataFlowController,
-)
-from speculative_train_platform.runtime.control_plane.metadata_store import (
-    NoOpMetadataStore,
-)
+from draftfit.runtime.contracts import FeatureSpec, SampleRef
+from draftfit.runtime.control_plane.controller import DataFlowController
+from draftfit.runtime.control_plane.metadata_store import NoOpMetadataStore
 
 
 def _ref(i: int, store_uri="mem://x") -> SampleRef:

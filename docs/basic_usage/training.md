@@ -1,10 +1,10 @@
 # Training
 
-SpecForge has one public training entry point for every strategy and runtime
+Draftfit has one public training entry point for every strategy and runtime
 topology:
 
 ```bash
-specforge train --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml
+draftfit train --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml
 ```
 
 The YAML file is the run contract. It selects the draft strategy, target model,
@@ -13,7 +13,7 @@ trainers are not part of the public interface.
 
 This is an intentional hard cutover. The old `scripts/train_*.py` commands and
 temporary move-only Python import paths were removed rather than deprecated.
-Downstream launchers should migrate to a typed run config and `specforge train`;
+Downstream launchers should migrate to a typed run config and `draftfit train`;
 there is no compatibility dispatch to the previous trainers.
 
 ### Defaults when migrating removed trainers
@@ -55,14 +55,14 @@ accumulation greater than one did not have the same boundary semantics.
 Use the command directly for every checked-in topology:
 
 ```bash
-specforge train --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml
+draftfit train --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml
 ```
 
 `deployment.trainer.nproc_per_node` records the audited local process count.
 When it is greater than one, the CLI starts torch distributed itself:
 
 ```bash
-specforge train -c examples/configs/qwen3-30b-a3b-eagle3-online.yaml
+draftfit train -c examples/configs/qwen3-30b-a3b-eagle3-online.yaml
 ```
 
 Online target inference never runs in the trainer. A patched SGLang server owns
@@ -78,7 +78,7 @@ You can override an existing value without copying the YAML. Overrides use
 validated `section.field=value` syntax:
 
 ```bash
-specforge train \
+draftfit train \
   --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml \
   training.learning_rate=5e-5 \
   training.max_steps=100 \
@@ -141,7 +141,7 @@ deployment:
 - a local draft-model directory containing `config.json`;
 - a Hugging Face draft-model repository ID.
 
-It may be omitted for EAGLE3, P-EAGLE, and DFlash. In that case SpecForge
+It may be omitted for EAGLE3, P-EAGLE, and DFlash. In that case Draftfit
 derives a registered draft config from the target config. The defaults preserve
 the former trainers: one EAGLE3 layer, four P-EAGLE layers, and one DFlash layer
 with block size 16. Typed overrides are available when creating a different
@@ -193,7 +193,7 @@ There are two deliberately separate checkpoint operations:
 | Initialize a new run from weights | `model.draft_checkpoint_path` | draft weights only |
 
 A weights-only warm start accepts a Hugging Face model directory/repository or
-a SpecForge checkpoint directory, `training_state.pt`, or run root. If the warm
+a Draftfit checkpoint directory, `training_state.pt`, or run root. If the warm
 source contains `config.json`, it also supplies the draft architecture unless
 `model.draft_model_config` is explicit. Warm start never restores optimizer
 state, counters, data position, or RNG, and it is mutually exclusive with
@@ -392,12 +392,14 @@ names consistently.
 
 ## CUDA, ROCm, and Ascend NPU
 
-CUDA and ROCm runs use the same YAML and entry point. For ROCm, install the
-checked-in environment before installing SpecForge:
+CUDA and ROCm runs use the same YAML and entry point. Accelerator support still
+depends on the exact [runtime profile](../RUNTIME_PROFILES.md) and
+[recorded validation](../PUBLIC_SUPPORT.md). For an already provisioned ROCm
+runtime, preserve its matched dependencies when installing Draftfit:
 
 ```bash
-python -m pip install -r requirements-rocm.txt
-python -m pip install -e .
+# Replace this path with the interpreter supplied by the runtime image.
+uv pip install --python /opt/runtime/bin/python --no-deps --no-build-isolation -e .
 ```
 
 Use a model/backend combination supported by that PyTorch ROCm environment;
@@ -414,7 +416,7 @@ export HCCL_CONNECT_TIMEOUT=7200
 export HCCL_EXEC_TIMEOUT=7200
 export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True
 
-specforge train -c examples/configs/qwen3.5-4b-dflash-online-npu.yaml
+draftfit train -c examples/configs/qwen3.5-4b-dflash-online-npu.yaml
 ```
 
 The unified launcher supplies rank, world-size, and rendezvous variables. The
@@ -445,13 +447,13 @@ checkpoint contract. For a local offline run, override
 `training.resume_from`:
 
 ```bash
-specforge train \
+draftfit train \
   --config examples/configs/qwen3-8b-eagle3-offline.yaml \
   training.resume_from=./outputs/qwen3-8b-eagle3-offline/qwen3-8b-eagle3-offline-latest
 ```
 
 For a disaggregated offline resume, reuse the same manifest, feature store, and
-run id, then invoke `specforge train -c run.yaml --role consumer` with the
+run id, then invoke `draftfit train -c run.yaml --role consumer` with the
 checkpoint override; the producer never accepts a resume checkpoint.
 
 Online disaggregated resume is intentionally consumer-only. Reuse the retained
@@ -474,7 +476,7 @@ Transformers.
 For EAGLE3 SGLang serving:
 
 ```bash
-specforge export --to sglang \
+draftfit export --to sglang \
   --checkpoint ./outputs/qwen3-8b-eagle3-disaggregated/qwen3-8b-eagle3-disaggregated-latest \
   --draft-config configs/qwen3-8b-eagle3.json \
   --output-dir ./exports/qwen3-8b-eagle3-sglang
@@ -499,7 +501,7 @@ in a real speculative-decoding server and measuring acceptance remains a GPU
 serving validation step.
 
 ```bash
-specforge export --to hf \
+draftfit export --to hf \
   --checkpoint ./outputs/qwen3-8b-eagle3-disaggregated/qwen3-8b-eagle3-disaggregated-latest \
   --draft-config configs/qwen3-8b-eagle3.json \
   --embedding-source Qwen/Qwen3-8B \

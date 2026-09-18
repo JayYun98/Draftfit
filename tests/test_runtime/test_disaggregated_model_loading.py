@@ -5,13 +5,13 @@ import unittest
 from types import SimpleNamespace
 from unittest import mock
 
-from speculative_train_platform.application import resolve_run
-from speculative_train_platform.config import Config
-from speculative_train_platform.training.capture_contract import (
+from draftfit.application import resolve_run
+from draftfit.config import Config
+from draftfit.training.capture_contract import (
     ServerCaptureContract,
     resolve_server_capture_contract,
 )
-from speculative_train_platform.training.disaggregated import _producer_capture_metadata
+from draftfit.training.disaggregated import _producer_capture_metadata
 
 
 def _config(*, strategy="dflash", **model_overrides):
@@ -64,7 +64,7 @@ class DisaggregatedModelLoadingTest(unittest.TestCase):
                     return_value=target_config,
                 ),
                 mock.patch(
-                    "speculative_train_platform.training.model_loading.draft_config_dict",
+                    "draftfit.training.model_loading.draft_config_dict",
                     return_value=draft_payload,
                 ) as resolve,
             ):
@@ -92,7 +92,7 @@ class DisaggregatedModelLoadingTest(unittest.TestCase):
             draft_vocab_size=32,
         )
         with mock.patch(
-            "speculative_train_platform.training.capture_contract.resolve_server_capture_contract",
+            "draftfit.training.capture_contract.resolve_server_capture_contract",
             return_value=contract,
         ) as resolve:
             metadata = _producer_capture_metadata(
@@ -123,7 +123,7 @@ class DisaggregatedModelLoadingTest(unittest.TestCase):
                 return_value=SimpleNamespace(hidden_size=64, vocab_size=128),
             ),
             mock.patch(
-                "speculative_train_platform.training.model_loading.draft_config_dict",
+                "draftfit.training.model_loading.draft_config_dict",
                 return_value=draft_payload,
             ),
         ):
@@ -154,7 +154,7 @@ class DisaggregatedModelLoadingTest(unittest.TestCase):
                 return_value=SimpleNamespace(hidden_size=64, vocab_size=128),
             ),
             mock.patch(
-                "speculative_train_platform.training.model_loading.draft_config_dict",
+                "draftfit.training.model_loading.draft_config_dict",
                 return_value=draft_payload,
             ),
         ):

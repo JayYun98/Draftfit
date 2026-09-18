@@ -19,7 +19,7 @@ CUDA = torch.cuda.is_available()
 
 
 def _optimizer_factory(module):
-    from speculative_train_platform.optimizer import BF16Optimizer
+    from draftfit.optimizer import BF16Optimizer
 
     return BF16Optimizer(
         module,
@@ -34,15 +34,10 @@ def _optimizer_factory(module):
 class TestEquivTrainerSplit(unittest.TestCase):
     def test_trainer_fit_matches_current_core_step(self):
         fx.build_single_rank_distributed(port="29562")
-        from speculative_train_platform.algorithms.builtin import (
-            builtin_algorithm_registry,
-        )
-        from speculative_train_platform.launch import build_offline_runtime
-        from speculative_train_platform.training.backend import (
-            FSDPTrainingBackend,
-            ParallelConfig,
-        )
-        from speculative_train_platform.training.controller import TrainerCore
+        from draftfit.algorithms.builtin import builtin_algorithm_registry
+        from draftfit.launch import build_offline_runtime
+        from draftfit.training.backend import FSDPTrainingBackend, ParallelConfig
+        from draftfit.training.controller import TrainerCore
 
         algorithm = builtin_algorithm_registry().resolve("eagle3")
 

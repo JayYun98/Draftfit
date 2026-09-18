@@ -59,31 +59,31 @@ from datasets import Dataset
 from tqdm import tqdm
 from transformers import AutoConfig
 
-from speculative_train_platform.algorithms.common.providers import OfflineCaptureLayout
-from speculative_train_platform.application import resolve_offline_capture
-from speculative_train_platform.config import Config
-from speculative_train_platform.data.preprocessing import (
+from draftfit.algorithms.common.providers import OfflineCaptureLayout
+from draftfit.application import resolve_offline_capture
+from draftfit.config import Config
+from draftfit.data.preprocessing import (
     build_eagle3_dataset,
     generate_vocab_mapping_file,
 )
-from speculative_train_platform.data.utils import prepare_dp_dataloaders
-from speculative_train_platform.distributed import (
+from draftfit.data.utils import prepare_dp_dataloaders
+from draftfit.distributed import (
     destroy_distributed,
     get_dp_group,
     get_tp_group,
     init_distributed,
     is_tp_rank_0,
 )
-from speculative_train_platform.inference.capture_manifest import (
+from draftfit.inference.capture_manifest import (
     build_capture_manifest,
     load_capture_manifest,
     write_capture_manifest,
 )
-from speculative_train_platform.offline_capture import (  # noqa: F401 - legacy import
+from draftfit.offline_capture import (  # noqa: F401 - legacy import
     OfflineSGLangCapture,
     load_offline_capture,
 )
-from speculative_train_platform.utils import (
+from draftfit.utils import (
     get_local_device,
     load_tokenizer,
     print_args_with_dots,

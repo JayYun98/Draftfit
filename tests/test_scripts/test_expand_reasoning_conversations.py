@@ -36,9 +36,7 @@ def _load_preprocessing_stack():
 
     for module_name in ("template", "parse", "loss_mask", "preprocessing"):
         full_name = f"{data_package_name}.{module_name}"
-        module_path = (
-            repo_root / "speculative_train_platform" / "data" / f"{module_name}.py"
-        )
+        module_path = repo_root / "draftfit" / "data" / f"{module_name}.py"
         spec = importlib.util.spec_from_file_location(full_name, module_path)
         module = importlib.util.module_from_spec(spec)
         sys.modules[full_name] = module

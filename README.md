@@ -1,8 +1,15 @@
-# Speculative Train Platform
+# Draftfit
 
-Train a speculative decoding draft for **your target model, your data, and your workload**.
+**Your workload. Your draft.**
 
-Adapt an existing draft or train one from scratch, then measure it against the frozen target on held-out prompts. Built for individuals customizing inference as well as teams running distributed training. Better acceptance can improve speed; the actual gain depends on the workload, draft cost, hardware, and serving backend.
+Train and fine-tune speculative decoding drafts for your target model and your
+own data. Draftfit brings conversation preparation, draft training, checkpoint
+recovery, export and workload evaluation into one workflow.
+
+Built for people running personal agents, teams serving repeated task patterns,
+and researchers comparing draft methods. Your target stays frozen; you customize
+the smaller draft that proposes tokens for it to verify. Better acceptance can
+help, but speedup must be measured against target-only inference on your workload.
 
 ## How it works
 
@@ -23,7 +30,7 @@ cd dspark-train-platform
 
 # In an activated, provisioned training environment, preserve backend versions:
 uv pip install --python "${VIRTUAL_ENV:?Activate the runtime environment}/bin/python" --no-deps --no-build-isolation -e .
-speculative-train-platform algorithms
+draftfit algorithms
 ```
 
 `--no-deps` assumes the required dependencies are already installed. Environment
@@ -37,7 +44,7 @@ Convert your OpenAI `messages` or ShareGPT conversations into training JSONL,
 with a deterministic held-out split:
 
 ```sh
-speculative-train-platform data prepare --input ./my-conversations.jsonl \
+draftfit data prepare --input ./my-conversations.jsonl \
   --output ./data/train.jsonl --split-eval --eval-output ./data/holdout.jsonl
 ```
 
@@ -48,20 +55,20 @@ in the same split; unsupported semantic fields are rejected rather than dropped.
 Inspect a downloaded target, or use a Hugging Face model ID with an exact revision:
 
 ```sh
-speculative-train-platform target inspect /path/to/target --local-only
-speculative-train-platform target inspect ORG/MODEL --revision EXACT_COMMIT
+draftfit target inspect /path/to/target --local-only
+draftfit target inspect ORG/MODEL --revision EXACT_COMMIT
 ```
 
 Prepare a DSpark run from conversation JSONL. Each training row contains a `conversations` array with `role` and `content` fields, including an assistant response. The chat template must produce the correct assistant loss mask.
 
 ```sh
-speculative-train-platform target prepare /path/to/target --local-only \
+draftfit target prepare /path/to/target --local-only \
   --strategy dspark --train-data /path/to/train.jsonl \
   --output-dir ./my-draft \
   --set model.draft_num_hidden_layers=5
 
-speculative-train-platform train -c ./my-draft/train.json --plan
-speculative-train-platform train -c ./my-draft/train.json
+draftfit train -c ./my-draft/train.json --plan
+draftfit train -c ./my-draft/train.json
 ```
 
 The generated online configuration assigns the live target to **GPU 0** and draft training to **GPU 1**. SGLang is the default teacher; select `--teacher-backend transformers` or `--teacher-backend vllm` for the experimental platform-owned teacher services. All three use the same Mooncake transport and draft trainer, not a TorchSpec/AngelSpec subprocess. Review the plan and backend environment before launch. Preparation refuses to overwrite an existing project.
@@ -71,11 +78,11 @@ The generated online configuration assigns the live target to **GPU 0** and draf
 Provide its checkpoint during preparation so its existing architecture is used instead of generic defaults:
 
 ```sh
-speculative-train-platform target prepare /path/to/target --local-only \
+draftfit target prepare /path/to/target --local-only \
   --strategy dspark --train-data /path/to/train.jsonl \
   --draft-checkpoint /path/to/draft-export \
   --output-dir ./my-finetune
-speculative-train-platform train -c ./my-finetune/train.json
+draftfit train -c ./my-finetune/train.json
 ```
 
 This is a weights-only warm start with a new optimizer and schedule. To continue an interrupted run instead, set `training.resume_from=/path/to/training-checkpoint`. Do not combine warm start and resume. Optimizer resume requires the same trainer world size.
@@ -99,17 +106,17 @@ The existing bounded SGLang/Ling validation remains separate evidence.
 ### Export
 
 ```sh
-speculative-train-platform export --to hf \
+draftfit export --to hf \
   --checkpoint /path/to/completed-checkpoint \
   --draft-config ./my-draft/draft.json \
   --output-dir ./exports/my-draft
 ```
 
-Check `speculative-train-platform export --help` for method-specific embedding or vocabulary inputs. Export success is separate from serving compatibility: reload the exact artifact and compare it against target-only inference before deployment.
+Check `draftfit export --help` for method-specific embedding or vocabulary inputs. Export success is separate from serving compatibility: reload the exact artifact and compare it against target-only inference before deployment.
 
 ## Draft methods and target support
 
-Run `speculative-train-platform algorithms` for available methods and feature contracts. DSpark,
+Run `draftfit algorithms` for available methods and feature contracts. DSpark,
 DFlash, DFlash2, EAGLE3, PEagle and Domino have integrated training paths; PEagle
 is streaming-only and Domino needs an explicit compatible draft configuration.
 
@@ -135,7 +142,7 @@ Compatibility is a combination of **target revision + draft method + capture bac
 Benchmark your held-out text conversations against an already-running server:
 
 ```sh
-speculative-train-platform benchmark --model /path/to/target \
+draftfit benchmark --model /path/to/target \
   --data-path ./data/holdout.jsonl --num-prompts 100 \
   --max-new-tokens 128 --concurrency 1 \
   --base-url http://127.0.0.1:30000 --output-json ./baseline.json
@@ -165,16 +172,17 @@ and future trace-driven updates, see [Personal inference optimization](docs/PERS
 Reviewed conversation exports work today; automatic OTel/OpenCodex ingestion and
 continual deployment are not yet implemented.
 
-The distribution and primary command are `speculative-train-platform`; the Python
-package is `speculative_train_platform`. The implementation lives in that package:
+The distribution and primary command are `draftfit`; the Python
+package is `draftfit`. The implementation lives in that package:
 application composition, draft
 algorithms, training, feature transport and teacher services are maintained here.
-The legacy `dspark` and `specforge` imports and commands are compatibility entry points to the
-same implementation, not a separately installed training framework.
+The legacy `speculative_train_platform`, `dspark` and `specforge` imports resolve
+to the same implementation. The former `speculative-train-platform`, `dspark`
+and `specforge` commands remain aliases, not separately installed training frameworks.
 
 DSpark names one supported draft algorithm, not the platform. Existing algorithm
 settings and checkpoint identifiers remain unchanged. Use a fresh environment
-when migrating from `dspark-train-platform` or upstream SpecForge; the old and
+when migrating from `speculative-train-platform`, `dspark-train-platform` or upstream SpecForge; the old and
 new distributions must not be installed together because compatibility files overlap.
 The repository URL retains its existing name.
 

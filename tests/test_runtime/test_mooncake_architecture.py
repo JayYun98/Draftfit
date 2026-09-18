@@ -8,7 +8,7 @@ from pathlib import Path
 
 STORE_PATH = (
     Path(__file__).resolve().parents[2]
-    / "speculative_train_platform/runtime/data_plane/mooncake_store.py"
+    / "draftfit/runtime/data_plane/mooncake_store.py"
 )
 
 

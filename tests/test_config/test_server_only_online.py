@@ -6,8 +6,8 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from speculative_train_platform.application import resolve_run
-from speculative_train_platform.config import Config
+from draftfit.application import resolve_run
+from draftfit.config import Config
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE_CONFIG_DIR = REPO_ROOT / "examples" / "configs"

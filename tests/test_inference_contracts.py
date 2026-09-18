@@ -5,26 +5,23 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from speculative_train_platform.inference.acceptance import validate_acceptance_summary
-from speculative_train_platform.inference.parity import (
+from draftfit.inference.acceptance import validate_acceptance_summary
+from draftfit.inference.parity import (
     compare_feature_manifests,
     compare_state_replay,
     compare_state_snapshots,
     compare_token_ids,
     feature_manifest,
 )
-from speculative_train_platform.inference.state import (
-    TargetStateAdapter,
-    TargetStateSnapshot,
-)
-from speculative_train_platform.inference.target_adapter import (
+from draftfit.inference.state import TargetStateAdapter, TargetStateSnapshot
+from draftfit.inference.target_adapter import (
     ChatTemplateRenderer,
     LingRenderer,
     LingTargetAdapter,
     TargetAdapter,
 )
-from speculative_train_platform.sweep import build_sweep
-from speculative_train_platform.torchspec_bridge import TorchSpecLaunch
+from draftfit.sweep import build_sweep
+from draftfit.torchspec_bridge import TorchSpecLaunch
 
 
 class _Tokenizer:
@@ -330,7 +327,7 @@ class InferenceContractTest(unittest.TestCase):
                 [
                     sys.executable,
                     "-m",
-                    "speculative_train_platform.cli",
+                    "draftfit.cli",
                     "validate",
                     "acceptance",
                     "--summary",
@@ -383,7 +380,7 @@ class InferenceContractTest(unittest.TestCase):
                 [
                     sys.executable,
                     "-m",
-                    "speculative_train_platform.cli",
+                    "draftfit.cli",
                     "validate",
                     "tokens",
                     "--expected",

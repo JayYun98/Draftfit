@@ -12,21 +12,15 @@ from unittest import mock
 import torch
 import torch.nn as nn
 
-from speculative_train_platform.runtime.contracts import SampleRef, TrainBatch
-from speculative_train_platform.runtime.control_plane import (
-    DataFlowController,
-    InMemoryMetadataStore,
-)
-from speculative_train_platform.training.backend import (
+from draftfit.runtime.contracts import SampleRef, TrainBatch
+from draftfit.runtime.control_plane import DataFlowController, InMemoryMetadataStore
+from draftfit.training.backend import (
     FSDPTrainingBackend,
     ParallelConfig,
     TrainingBackend,
 )
-from speculative_train_platform.training.controller import (
-    TrainerController,
-    TrainerCore,
-)
-from speculative_train_platform.training.strategies.base import DFlashTrainStrategy
+from draftfit.training.controller import TrainerController, TrainerCore
+from draftfit.training.strategies.base import DFlashTrainStrategy
 
 
 def _ref(i):
@@ -89,7 +83,7 @@ class TestParallelConfigHandles(unittest.TestCase):
         # Keep this test independent of process groups initialized by earlier
         # GPU launcher tests in the same unittest process.
         with mock.patch(
-            "speculative_train_platform.training.backend.dist.is_initialized",
+            "draftfit.training.backend.dist.is_initialized",
             return_value=False,
         ):
             pc = ParallelConfig.from_distributed(tp_size=2, sp_ulysses_size=2)

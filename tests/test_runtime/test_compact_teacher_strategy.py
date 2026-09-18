@@ -6,16 +6,16 @@ import unittest
 
 import torch
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.core.compact_teacher import (
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.core.compact_teacher import (
     compute_target_from_hidden,
     compute_target_p_padded_from_hidden,
     tiled_logsumexp_argmax,
 )
-from speculative_train_platform.core.eagle3_adapters import SdpaLikeAdapter
-from speculative_train_platform.runtime.contracts import TrainBatch
-from speculative_train_platform.training.strategies.base import Eagle3TrainStrategy
-from speculative_train_platform.utils import padding
+from draftfit.core.eagle3_adapters import SdpaLikeAdapter
+from draftfit.runtime.contracts import TrainBatch
+from draftfit.training.strategies.base import Eagle3TrainStrategy
+from draftfit.utils import padding
 
 EAGLE3 = builtin_algorithm_registry().resolve("eagle3")
 

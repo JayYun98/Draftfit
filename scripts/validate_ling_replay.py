@@ -170,7 +170,7 @@ def capture(
     import socket
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from speculative_train_platform.launch_plan import _terminate_processes
+    from draftfit.launch_plan import _terminate_processes
 
     if max_capture_bytes <= 0:
         raise ValueError("max-capture-bytes must be positive")

@@ -11,9 +11,9 @@ from unittest import mock
 
 import torch
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.config import Config
-from speculative_train_platform.training.model_loading import (
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.config import Config
+from draftfit.training.model_loading import (
     load_draft_config_source,
     resolve_draft_config,
     warm_start_draft_model,
@@ -113,7 +113,7 @@ class DraftConfigResolutionTest(unittest.TestCase):
             {"text_config": _target_config().to_dict()}
         )
         with mock.patch(
-            "speculative_train_platform.modeling.target.target_utils.load_target_config",
+            "draftfit.modeling.target.target_utils.load_target_config",
             side_effect=AssertionError("metadata preparation must not fetch target"),
         ):
             config = resolve_draft_config(
@@ -132,9 +132,9 @@ class DraftConfigResolutionTest(unittest.TestCase):
             script = """
 import sys
 import torch
-import speculative_train_platform.data.preprocessing
-import speculative_train_platform.modeling.auto
-from speculative_train_platform.training.model_loading import load_draft_config_source
+import draftfit.data.preprocessing
+import draftfit.modeling.auto
+from draftfit.training.model_loading import load_draft_config_source
 
 config = load_draft_config_source(sys.argv[1])
 assert config.architectures == ["DominoDraftModel"]
@@ -404,11 +404,11 @@ class WarmStartTest(unittest.TestCase):
         config = mock.Mock(architectures=["DFlashDraftModel"])
         with (
             mock.patch(
-                "speculative_train_platform.training.model_loading.load_draft_config_source",
+                "draftfit.training.model_loading.load_draft_config_source",
                 return_value=config,
             ),
             mock.patch(
-                "speculative_train_platform.modeling.auto.AutoDraftModel.from_pretrained",
+                "draftfit.modeling.auto.AutoDraftModel.from_pretrained",
                 return_value=(source, {"missing_keys": []}),
             ) as load,
         ):
@@ -436,11 +436,11 @@ class WarmStartTest(unittest.TestCase):
             with (
                 self.subTest(field=field),
                 mock.patch(
-                    "speculative_train_platform.training.model_loading.load_draft_config_source",
+                    "draftfit.training.model_loading.load_draft_config_source",
                     return_value=config,
                 ),
                 mock.patch(
-                    "speculative_train_platform.modeling.auto.AutoDraftModel.from_pretrained",
+                    "draftfit.modeling.auto.AutoDraftModel.from_pretrained",
                     return_value=(_TinyDraft(), {field: ["extra_head.weight"]}),
                 ),
             ):
@@ -453,7 +453,7 @@ class WarmStartTest(unittest.TestCase):
                     )
 
     def test_local_hf_roundtrip_and_wrong_algorithm(self):
-        from speculative_train_platform.modeling.auto import AutoDraftModel
+        from draftfit.modeling.auto import AutoDraftModel
 
         with tempfile.TemporaryDirectory() as directory:
             config_path = os.path.join(directory, "config.json")
@@ -478,7 +478,7 @@ class WarmStartTest(unittest.TestCase):
                 )
 
     def test_missing_embedding_requires_target_embedding_load(self):
-        from speculative_train_platform.algorithms.model_providers import _warm_start
+        from draftfit.algorithms.model_providers import _warm_start
 
         model = _TinyDraft()
         with tempfile.TemporaryDirectory() as directory:
@@ -494,10 +494,7 @@ class WarmStartTest(unittest.TestCase):
                 _warm_start(cfg, model, object(), allow_missing_embedding=True)
 
     def test_nested_draft_head_checkpoint_keys_are_migrated(self):
-        from speculative_train_platform.modeling.auto import (
-            AutoDraftModel,
-            AutoDraftModelConfig,
-        )
+        from draftfit.modeling.auto import AutoDraftModel, AutoDraftModelConfig
 
         cases = (
             (

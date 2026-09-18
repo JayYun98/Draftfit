@@ -5,9 +5,9 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from speculative_train_platform.cli import main as cli_main
-from speculative_train_platform.inference.target_adapter import TargetAdapter
-from speculative_train_platform.target_inspector import inspect_target
+from draftfit.cli import main as cli_main
+from draftfit.inference.target_adapter import TargetAdapter
+from draftfit.target_inspector import inspect_target
 
 
 class TargetInspectorTest(unittest.TestCase):

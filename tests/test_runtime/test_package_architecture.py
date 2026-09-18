@@ -17,24 +17,24 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # explicit makes an accidental reintroduction fail without importing torch or
 # optional inference backends.
 REMOVED_MODULE_FILES = (
-    "speculative_train_platform/modeling/target/base.py",
-    "speculative_train_platform/modeling/target/factory.py",
-    "speculative_train_platform/modeling/target/dflash_target_model.py",
-    "speculative_train_platform/modeling/target/eagle3_target_model.py",
-    "speculative_train_platform/modeling/target/sglang_backend/__init__.py",
-    "speculative_train_platform/runtime/inference/capture.py",
-    "speculative_train_platform/runtime/inference/dflash_adapter.py",
-    "speculative_train_platform/runtime/inference/sglang_adapter.py",
-    "speculative_train_platform/runtime/training/__init__.py",
-    "speculative_train_platform/args.py",
-    "speculative_train_platform/inference/adapters/dflash.py",
-    "speculative_train_platform/inference/adapters/eagle3.py",
-    "speculative_train_platform/inference/adapters/policy.py",
-    "speculative_train_platform/runtime/data_plane/local_rollout_stream.py",
-    "speculative_train_platform/inference/target_engine/capture_policy.py",
-    "speculative_train_platform/inference/target_engine/dflash_target_model.py",
-    "speculative_train_platform/inference/target_engine/eagle3_target_model.py",
-    "speculative_train_platform/modeling/utils.py",
+    "draftfit/modeling/target/base.py",
+    "draftfit/modeling/target/factory.py",
+    "draftfit/modeling/target/dflash_target_model.py",
+    "draftfit/modeling/target/eagle3_target_model.py",
+    "draftfit/modeling/target/sglang_backend/__init__.py",
+    "draftfit/runtime/inference/capture.py",
+    "draftfit/runtime/inference/dflash_adapter.py",
+    "draftfit/runtime/inference/sglang_adapter.py",
+    "draftfit/runtime/training/__init__.py",
+    "draftfit/args.py",
+    "draftfit/inference/adapters/dflash.py",
+    "draftfit/inference/adapters/eagle3.py",
+    "draftfit/inference/adapters/policy.py",
+    "draftfit/runtime/data_plane/local_rollout_stream.py",
+    "draftfit/inference/target_engine/capture_policy.py",
+    "draftfit/inference/target_engine/dflash_target_model.py",
+    "draftfit/inference/target_engine/eagle3_target_model.py",
+    "draftfit/modeling/utils.py",
 )
 
 REMOVED_TRAINING_ENTRY_FILES = (
@@ -144,34 +144,34 @@ OPERATIONAL_EXAMPLE_REPLACEMENTS = {
 }
 
 REMOVED_PACKAGE_DIRECTORIES = (
-    "speculative_train_platform/modeling/target/sglang_backend",
-    "speculative_train_platform/modeling/target/custom_backend",
-    "speculative_train_platform/inference/target_engine",
+    "draftfit/modeling/target/sglang_backend",
+    "draftfit/modeling/target/custom_backend",
+    "draftfit/inference/target_engine",
     "tests/test_modeling/test_target/test_custom_backend",
     "tests/test_modeling/test_target/test_sglang_backend",
-    "speculative_train_platform/runtime/inference",
-    "speculative_train_platform/runtime/training",
+    "draftfit/runtime/inference",
+    "draftfit/runtime/training",
 )
 
 REMOVED_MODULE_PREFIXES = (
-    "speculative_train_platform.modeling.target.base",
-    "speculative_train_platform.modeling.target.factory",
-    "speculative_train_platform.modeling.target.dflash_target_model",
-    "speculative_train_platform.modeling.target.eagle3_target_model",
-    "speculative_train_platform.modeling.target.sglang_backend",
-    "speculative_train_platform.modeling.target.custom_backend",
-    "speculative_train_platform.runtime.inference",
-    "speculative_train_platform.runtime.training",
-    "speculative_train_platform.args",
-    "speculative_train_platform.inference.adapters.dflash",
-    "speculative_train_platform.inference.adapters.eagle3",
-    "speculative_train_platform.inference.adapters.policy",
-    "speculative_train_platform.inference.target_engine",
-    "speculative_train_platform.runtime.data_plane.local_rollout_stream",
-    "speculative_train_platform.inference.target_engine.capture_policy",
-    "speculative_train_platform.inference.target_engine.dflash_target_model",
-    "speculative_train_platform.inference.target_engine.eagle3_target_model",
-    "speculative_train_platform.modeling.utils",
+    "draftfit.modeling.target.base",
+    "draftfit.modeling.target.factory",
+    "draftfit.modeling.target.dflash_target_model",
+    "draftfit.modeling.target.eagle3_target_model",
+    "draftfit.modeling.target.sglang_backend",
+    "draftfit.modeling.target.custom_backend",
+    "draftfit.runtime.inference",
+    "draftfit.runtime.training",
+    "draftfit.args",
+    "draftfit.inference.adapters.dflash",
+    "draftfit.inference.adapters.eagle3",
+    "draftfit.inference.adapters.policy",
+    "draftfit.inference.target_engine",
+    "draftfit.runtime.data_plane.local_rollout_stream",
+    "draftfit.inference.target_engine.capture_policy",
+    "draftfit.inference.target_engine.dflash_target_model",
+    "draftfit.inference.target_engine.eagle3_target_model",
+    "draftfit.modeling.utils",
     "scripts.train_eagle3",
     "scripts.train_eagle3_dataflow",
     "scripts.train_dflash",
@@ -185,14 +185,14 @@ REMOVED_MODULE_PREFIXES = (
 )
 
 SOURCE_ROOTS = (
-    REPO_ROOT / "speculative_train_platform",
+    REPO_ROOT / "draftfit",
     REPO_ROOT / "scripts",
     REPO_ROOT / "examples",
     REPO_ROOT / "tests",
 )
 
 PRODUCTION_ROOTS = (
-    REPO_ROOT / "speculative_train_platform",
+    REPO_ROOT / "draftfit",
     REPO_ROOT / "scripts",
     REPO_ROOT / "examples",
 )
@@ -270,12 +270,12 @@ CANONICAL_DRAFT_CONFIGS = {
 CANONICAL_DATASET_PRESETS = ("ultrachat", "sharegpt")
 
 DOC_ONLY_PACKAGE_INITIALIZERS = (
-    "speculative_train_platform/__init__.py",
-    "speculative_train_platform/core/__init__.py",
-    "speculative_train_platform/data/__init__.py",
-    "speculative_train_platform/inference/__init__.py",
-    "speculative_train_platform/modeling/__init__.py",
-    "speculative_train_platform/modeling/target/__init__.py",
+    "draftfit/__init__.py",
+    "draftfit/core/__init__.py",
+    "draftfit/data/__init__.py",
+    "draftfit/inference/__init__.py",
+    "draftfit/modeling/__init__.py",
+    "draftfit/modeling/target/__init__.py",
 )
 
 
@@ -324,9 +324,10 @@ class TestPackageArchitecture(unittest.TestCase):
             project = tomllib.load(project_file)
         self.assertEqual(
             {
-                "speculative-train-platform": "speculative_train_platform.cli:main",
-                "dspark": "speculative_train_platform.cli:main",
-                "specforge": "speculative_train_platform.cli:main",
+                "draftfit": "draftfit.cli:main",
+                "speculative-train-platform": "draftfit.cli:main",
+                "dspark": "draftfit.cli:main",
+                "specforge": "draftfit.cli:main",
             },
             project["project"]["scripts"],
         )
@@ -419,7 +420,7 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertEqual(
             [],
             violations,
-            "imports must use speculative_train_platform.inference or speculative_train_platform.training:\n"
+            "imports must use draftfit.inference or draftfit.training:\n"
             + "\n".join(violations),
         )
 
@@ -449,13 +450,11 @@ class TestPackageArchitecture(unittest.TestCase):
     def test_launch_exports_only_canonical_topology_builders(self):
         self.assertEqual(
             CANONICAL_LAUNCH_EXPORTS,
-            _literal_all(REPO_ROOT / "speculative_train_platform" / "launch.py"),
+            _literal_all(REPO_ROOT / "draftfit" / "launch.py"),
         )
 
     def test_public_training_lifecycle_has_one_surface(self):
-        trainer_tree = _module_tree(
-            REPO_ROOT / "speculative_train_platform" / "training" / "trainer.py"
-        )
+        trainer_tree = _module_tree(REPO_ROOT / "draftfit" / "training" / "trainer.py")
         trainer_class = next(
             node
             for node in trainer_tree.body
@@ -485,7 +484,7 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertTrue({"controller", "loader"}.isdisjoint(init_attrs))
 
         assembly_tree = _module_tree(
-            REPO_ROOT / "speculative_train_platform" / "training" / "assembly.py"
+            REPO_ROOT / "draftfit" / "training" / "assembly.py"
         )
         run_class = next(
             node
@@ -514,9 +513,7 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertEqual([], fit_calls[0].args)
         self.assertEqual([], fit_calls[0].keywords)
 
-        launch_tree = _module_tree(
-            REPO_ROOT / "speculative_train_platform" / "launch.py"
-        )
+        launch_tree = _module_tree(REPO_ROOT / "draftfit" / "launch.py")
         launch_functions = {
             node.name: node
             for node in launch_tree.body
@@ -552,12 +549,12 @@ class TestPackageArchitecture(unittest.TestCase):
                 )
         self.assertNotIn(
             "run_interleaved",
-            (REPO_ROOT / "speculative_train_platform" / "launch.py").read_text(),
+            (REPO_ROOT / "draftfit" / "launch.py").read_text(),
         )
 
         for relative_path in (
-            "speculative_train_platform/training/assembly.py",
-            "speculative_train_platform/training/disaggregated.py",
+            "draftfit/training/assembly.py",
+            "draftfit/training/disaggregated.py",
         ):
             for node in ast.walk(_module_tree(REPO_ROOT / relative_path)):
                 if (
@@ -585,9 +582,7 @@ class TestPackageArchitecture(unittest.TestCase):
     def test_server_only_builders_have_one_stream_path(self):
         functions = {
             node.name: node
-            for node in _module_tree(
-                REPO_ROOT / "speculative_train_platform" / "launch.py"
-            ).body
+            for node in _module_tree(REPO_ROOT / "draftfit" / "launch.py").body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
         consumer_parameters = {
@@ -701,9 +696,7 @@ class TestPackageArchitecture(unittest.TestCase):
     def test_launch_builders_use_generic_draft_model_parameter(self):
         functions = {
             node.name: node
-            for node in _module_tree(
-                REPO_ROOT / "speculative_train_platform" / "launch.py"
-            ).body
+            for node in _module_tree(REPO_ROOT / "draftfit" / "launch.py").body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
         for name in CANONICAL_LAUNCH_EXPORTS:
@@ -787,9 +780,8 @@ class TestPackageArchitecture(unittest.TestCase):
         for root in (REPO_ROOT / "scripts", REPO_ROOT / "examples"):
             for path in sorted(root.rglob("*.py")):
                 for line_number, module in _imported_modules(path):
-                    if (
-                        module == "speculative_train_platform.launch"
-                        or module.startswith("speculative_train_platform.training")
+                    if module == "draftfit.launch" or module.startswith(
+                        "draftfit.training"
                     ):
                         direct_imports.append(
                             f"{path.relative_to(REPO_ROOT)}:{line_number}: {module}"

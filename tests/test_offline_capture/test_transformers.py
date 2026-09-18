@@ -12,9 +12,7 @@ from transformers import (
     Qwen3Model,
 )
 
-from speculative_train_platform.offline_capture.transformers import (
-    OfflineTransformersCapture,
-)
+from draftfit.offline_capture.transformers import OfflineTransformersCapture
 
 
 class TransformersCaptureTest(unittest.TestCase):

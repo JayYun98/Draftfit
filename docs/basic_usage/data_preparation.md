@@ -136,7 +136,7 @@ python -m sglang.launch_server \
 ```
 
 After `curl --fail http://127.0.0.1:30000/health` succeeds, run the recipe from
-the SpecForge repository root:
+the Draftfit repository root:
 
 ```bash
 MODEL_PROFILE=qwen3-8b \
@@ -243,7 +243,7 @@ This format is useful when you have pre-formatted prompts that were used during 
 
 To use preformatted datasets, set `data.is_preformatted: true` in the run
 config. `data.chat_template` is still required and must match the template used
-to create the text. SpecForge uses it to identify assistant spans and build the
+to create the text. Draftfit uses it to identify assistant spans and build the
 loss mask.
 
 ```bash
@@ -252,7 +252,7 @@ loss mask.
 #   train_data_path: ./your_preformatted_dataset.jsonl
 #   is_preformatted: true
 #   chat_template: llama3
-specforge train --config ./my-eagle3-disaggregated.yaml
+draftfit train --config ./my-eagle3-disaggregated.yaml
 ```
 
 ## 💾 Prepare offline target features
@@ -328,13 +328,13 @@ torchrun --nproc_per_node=8 \
 ```
 
 The preparation world size only parallelizes capture. The subsequent offline
-run still uses the one `specforge train` entry and self-launches the
+run still uses the one `draftfit train` entry and self-launches the
 data-parallel or EAGLE3 USP topology recorded under `deployment.trainer`.
 Launch the matching recipe after its `data.hidden_states_path` points at the
 generated directory:
 
 ```bash
-specforge train --config examples/configs/qwen3-8b-dflash-offline.yaml
+draftfit train --config examples/configs/qwen3-8b-dflash-offline.yaml
 ```
 
 See the [Training](training.md) guide for the complete run schema and supported

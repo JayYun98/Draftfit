@@ -8,22 +8,12 @@ import tempfile
 import unittest
 from unittest import mock
 
-from speculative_train_platform.runtime.contracts import FeatureSpec, SampleRef
-from speculative_train_platform.runtime.control_plane.controller import (
-    DataFlowController,
-)
-from speculative_train_platform.runtime.control_plane.dp_ack import (
-    DPAckController,
-    gather_id_union,
-)
-from speculative_train_platform.runtime.control_plane.metadata_store import (
-    SQLiteMetadataStore,
-)
-from speculative_train_platform.runtime.data_plane.ref_distributor import (
-    InboxChannel,
-    RefDistributor,
-)
-from speculative_train_platform.runtime.data_plane.streaming_ref_channel import (
+from draftfit.runtime.contracts import FeatureSpec, SampleRef
+from draftfit.runtime.control_plane.controller import DataFlowController
+from draftfit.runtime.control_plane.dp_ack import DPAckController, gather_id_union
+from draftfit.runtime.control_plane.metadata_store import SQLiteMetadataStore
+from draftfit.runtime.data_plane.ref_distributor import InboxChannel, RefDistributor
+from draftfit.runtime.data_plane.streaming_ref_channel import (
     StreamingRefChannel,
     StreamingRefQueue,
 )
@@ -222,7 +212,7 @@ class TestRefDistributor(unittest.TestCase):
             inbox.publish_batch = record_batch
 
         with mock.patch(
-            "speculative_train_platform.runtime.data_plane.streaming_ref_channel.os.fsync"
+            "draftfit.runtime.data_plane.streaming_ref_channel.os.fsync"
         ) as fsync:
             self.assertTrue(dist.pump())
 

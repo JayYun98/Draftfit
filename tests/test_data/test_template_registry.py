@@ -2,7 +2,7 @@
 
 import unittest
 
-from speculative_train_platform.data.template import TEMPLATE_REGISTRY
+from draftfit.data.template import TEMPLATE_REGISTRY
 
 
 class TemplateRegistryTest(unittest.TestCase):

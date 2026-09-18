@@ -3,7 +3,7 @@
 
 import unittest
 
-from speculative_train_platform.runtime.control_plane.flow_control import (
+from draftfit.runtime.control_plane.flow_control import (
     FlowControlLimits,
     ProducerFlowControl,
 )

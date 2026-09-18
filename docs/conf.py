@@ -8,9 +8,9 @@ version_file = ROOT_PATH.joinpath("version.txt")
 with open(version_file, "r") as f:
     __version__ = f.read().strip()
 
-project = "SpecForge"
+project = "Draftfit"
 copyright = f"2025-{datetime.now().year}, SpecForge"
-author = "SpecForge Team"
+author = "JayYun98; SpecForge contributors (upstream engine)"
 
 version = __version__
 release = __version__
@@ -48,14 +48,13 @@ exclude_patterns = ["_build", "README.md", "Thumbs.db", ".DS_Store"]
 pygments_style = "sphinx"
 
 html_theme = "sphinx_book_theme"
-html_logo = ROOT_PATH.joinpath("assets/logo.png").as_posix()
-html_favicon = ROOT_PATH.joinpath("assets/logo.ico").as_posix()
 html_title = project
 html_copy_source = True
 html_last_updated_fmt = ""
 
 html_theme_options = {
-    "repository_url": "https://github.com/sgl-project/SpecForge",
+    "repository_url": "https://github.com/JayYun98/dspark-train-platform",
+    "path_to_docs": "docs",
     "repository_branch": "main",
     "show_navbar_depth": 3,
     "max_navbar_depth": 4,
@@ -71,8 +70,8 @@ html_theme_options = {
 
 html_context = {
     "display_github": True,
-    "github_user": "sgl-project",
-    "github_repo": "SpecForge",
+    "github_user": "JayYun98",
+    "github_repo": "dspark-train-platform",
     "github_version": "main",
     "conf_py_path": "/docs/",
 }
@@ -80,30 +79,30 @@ html_context = {
 html_static_path = ["_static"]
 
 
-htmlhelp_basename = "specforgedoc"
+htmlhelp_basename = "draftfitdoc"
 
 latex_elements = {}
 
 latex_documents = [
     (
         master_doc,
-        "specforge.tex",
-        "SpecForge Documentation",
-        "SpecForge Team",
+        "draftfit.tex",
+        "Draftfit Documentation",
+        author,
         "manual",
     ),
 ]
 
-man_pages = [(master_doc, "specforge", "SpecForge Documentation", [author], 1)]
+man_pages = [(master_doc, "draftfit", "Draftfit Documentation", [author], 1)]
 
 texinfo_documents = [
     (
         master_doc,
-        "specforge",
-        "SpecForge Documentation",
+        "draftfit",
+        "Draftfit Documentation",
         author,
-        "specforge",
-        "One line description of project.",
+        "Draftfit",
+        "Your workload. Your draft.",
         "Miscellaneous",
     ),
 ]

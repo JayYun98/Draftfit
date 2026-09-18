@@ -12,12 +12,8 @@ import unittest
 
 import torch
 
-from speculative_train_platform.runtime.data_plane.feature_store import (
-    LocalFeatureStore,
-)
-from speculative_train_platform.runtime.data_plane.offline_reader import (
-    OfflineManifestReader,
-)
+from draftfit.runtime.data_plane.feature_store import LocalFeatureStore
+from draftfit.runtime.data_plane.offline_reader import OfflineManifestReader
 
 
 class TestLocalFeatureStore(unittest.TestCase):

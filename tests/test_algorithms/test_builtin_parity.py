@@ -7,7 +7,7 @@ from unittest import mock
 
 import torch
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
+from draftfit.algorithms.builtin import builtin_algorithm_registry
 
 
 class BuiltinProviderParityTest(unittest.TestCase):
@@ -320,7 +320,7 @@ class BuiltinProviderParityTest(unittest.TestCase):
                     ).read()
 
     def test_small_normalizers_match_retained_implementations(self):
-        from speculative_train_platform.data.preprocessing import (
+        from draftfit.data.preprocessing import (
             process_offline_dflash_sample,
             process_offline_eagle3_sample,
         )

@@ -5,7 +5,7 @@ import unittest
 
 import torch
 
-from speculative_train_platform.inference.capture import (
+from draftfit.inference.capture import (
     CaptureConfig,
     CaptureMismatchError,
     verify_capture,

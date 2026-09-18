@@ -5,17 +5,17 @@ import torch._dynamo as dynamo
 from transformers import LlamaConfig
 from transformers.cache_utils import DynamicCache
 
-from speculative_train_platform.modeling.draft.flex_attention import (
+from draftfit.modeling.draft.flex_attention import (
     compile_friendly_create_block_mask,
     compile_friendly_flex_attention,
     generate_eagle3_mask,
 )
-from speculative_train_platform.modeling.draft.llama3_eagle import (
+from draftfit.modeling.draft.llama3_eagle import (
     LlamaAttention,
     LlamaFlexAttention,
     prepare_decoder_attention_mask,
 )
-from speculative_train_platform.utils import padding
+from draftfit.utils import padding
 from tests.test_utils.utils import norm_tensor
 
 dynamo.config.recompile_limit = 64

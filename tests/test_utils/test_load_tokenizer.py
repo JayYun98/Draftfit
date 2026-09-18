@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-import speculative_train_platform.utils as utils
+import draftfit.utils as utils
 
 
 class LoadTokenizerFallbackTest(unittest.TestCase):

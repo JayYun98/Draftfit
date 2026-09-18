@@ -3,8 +3,8 @@ import unittest
 import torch
 from transformers import AutoTokenizer
 
-from speculative_train_platform.data.preprocessing import preprocess_conversations
-from speculative_train_platform.data.template import TEMPLATE_REGISTRY
+from draftfit.data.preprocessing import preprocess_conversations
+from draftfit.data.template import TEMPLATE_REGISTRY
 
 
 # Utility function for visual debugging

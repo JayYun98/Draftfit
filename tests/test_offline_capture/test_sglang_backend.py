@@ -7,8 +7,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from accelerate.utils import set_seed
 
-from speculative_train_platform.distributed import init_distributed
-from speculative_train_platform.offline_capture import OfflineSGLangCapture
+from draftfit.distributed import init_distributed
+from draftfit.offline_capture import OfflineSGLangCapture
 from tests.utils import get_available_port
 
 

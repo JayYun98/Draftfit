@@ -1,8 +1,6 @@
 """Compatibility namespace for existing SpecForge imports and pickles."""
 
-from speculative_train_platform._legacy import install
-from speculative_train_platform._legacy import (  # noqa: F401
-    resolve_attribute as __getattr__,
-)
+from draftfit._legacy import install
+from draftfit._legacy import resolve_attribute as __getattr__  # noqa: F401
 
 install(__name__)

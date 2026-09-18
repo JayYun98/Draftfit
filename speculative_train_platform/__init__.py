@@ -1,5 +1,6 @@
-"""Speculative Train Platform: owned draft training and teacher capture runtime.
+"""Compatibility namespace for existing Speculative Train Platform imports."""
 
-Training is configured through :mod:`speculative_train_platform.cli`; implementation types live
-in their owning subpackages and are not re-exported through a compatibility API.
-"""
+from draftfit._legacy import install
+from draftfit._legacy import resolve_attribute as __getattr__  # noqa: F401
+
+install(__name__)

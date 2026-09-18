@@ -6,10 +6,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
-from speculative_train_platform.algorithms.contracts import FeatureMode
-from speculative_train_platform.application import resolve_run
-from speculative_train_platform.application.planning import _validate_training_topology
-from speculative_train_platform.config import Config, TrainingConfig
+from draftfit.algorithms.contracts import FeatureMode
+from draftfit.application import resolve_run
+from draftfit.application.planning import _validate_training_topology
+from draftfit.config import Config, TrainingConfig
 
 
 def _payload(
@@ -137,7 +137,7 @@ class ApplicationCompositionTest(unittest.TestCase):
             resolve_run(Config.model_validate(payload))
 
     def test_local_model_identity_tracks_large_same_size_artifact_changes(self):
-        from speculative_train_platform.training.provenance import model_source_identity
+        from draftfit.training.provenance import model_source_identity
 
         with TemporaryDirectory(prefix="model-identity-") as directory:
             shard = Path(directory) / "model-00001-of-00001.safetensors"
@@ -162,9 +162,7 @@ class ApplicationCompositionTest(unittest.TestCase):
         self.assertNotEqual(original, changed)
 
     def test_model_resume_provenance_records_resolved_capture_layers(self):
-        from speculative_train_platform.training.assembly import (
-            _model_resume_provenance,
-        )
+        from draftfit.training.assembly import _model_resume_provenance
 
         config = Config.model_validate(_payload())
         provenance = _model_resume_provenance(

@@ -1,5 +1,10 @@
 # 🚀 AMD ROCm Tutorial
 
+> Inherited SpecForge reference: the original names, container examples and
+> commands below are retained as historical guidance, not Draftfit validation
+> evidence. Start with the current [environment guide](../../ENVIRONMENT.md)
+> and [support boundaries](../../PUBLIC_SUPPORT.md) before adapting this recipe.
+
 This is an end-to-end tutorial for running SpecForge on AMD Instinct GPUs
 (ROCm). It walks through the complete flow: **installation → data preparation →
 offline training → online training → disaggregated training**.

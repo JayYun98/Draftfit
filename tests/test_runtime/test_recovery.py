@@ -6,17 +6,10 @@ import os
 import tempfile
 import unittest
 
-from speculative_train_platform.runtime.contracts import FeatureSpec, SampleRef
-from speculative_train_platform.runtime.control_plane.controller import (
-    DataFlowController,
-)
-from speculative_train_platform.runtime.control_plane.metadata_store import (
-    SQLiteMetadataStore,
-)
-from speculative_train_platform.runtime.data_plane.ref_serialization import (
-    ref_from_dict,
-    ref_to_dict,
-)
+from draftfit.runtime.contracts import FeatureSpec, SampleRef
+from draftfit.runtime.control_plane.controller import DataFlowController
+from draftfit.runtime.control_plane.metadata_store import SQLiteMetadataStore
+from draftfit.runtime.data_plane.ref_serialization import ref_from_dict, ref_to_dict
 
 
 def _ref(sample_id: str) -> SampleRef:

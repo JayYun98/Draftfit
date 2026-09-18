@@ -11,7 +11,7 @@ from unittest import mock
 
 import torch.distributed as dist
 
-from speculative_train_platform.training import provenance
+from draftfit.training import provenance
 
 
 def _config(target_model_path: str) -> SimpleNamespace:

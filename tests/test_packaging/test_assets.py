@@ -10,7 +10,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from speculative_train_platform.assets import DOCUMENTS, export_assets, list_assets
+from draftfit.assets import DOCUMENTS, export_assets, list_assets
 
 
 class AssetTests(unittest.TestCase):
@@ -60,11 +60,11 @@ class AssetTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             version = (root / "version.txt").read_text().strip()
-            wheel = wheels / f"speculative_train_platform-{version}-py3-none-any.whl"
+            wheel = wheels / f"draftfit-{version}-py3-none-any.whl"
             with zipfile.ZipFile(wheel) as archive:
                 for name in DOCUMENTS:
                     self.assertEqual(
-                        archive.read("speculative_train_platform/assets/_data/" + name),
+                        archive.read("draftfit/assets/_data/" + name),
                         (root / name).read_bytes(),
                     )
 
@@ -94,6 +94,7 @@ class AssetTests(unittest.TestCase):
             ):
                 shutil.copyfile(root / name, source / name)
             for name in (
+                "draftfit",
                 "speculative_train_platform",
                 "dspark",
                 "specforge",
@@ -134,7 +135,12 @@ class AssetTests(unittest.TestCase):
                     name: archive.read(name)
                     for name in archive.namelist()
                     if name.startswith(
-                        ("speculative_train_platform/", "dspark/", "specforge/")
+                        (
+                            "draftfit/",
+                            "speculative_train_platform/",
+                            "dspark/",
+                            "specforge/",
+                        )
                     )
                     or name.endswith("/LICENSE")
                 }
@@ -187,7 +193,12 @@ class AssetTests(unittest.TestCase):
                     name: archive.read(name)
                     for name in archive.namelist()
                     if name.startswith(
-                        ("speculative_train_platform/", "dspark/", "specforge/")
+                        (
+                            "draftfit/",
+                            "speculative_train_platform/",
+                            "dspark/",
+                            "specforge/",
+                        )
                     )
                     or name.endswith("/LICENSE")
                 }
@@ -207,7 +218,7 @@ class AssetTests(unittest.TestCase):
                         )
             # -I -S excludes the checkout, user/site packages, and PYTHONPATH.
             # zipimport also proves resources work without filesystem-only paths.
-            code = "import sys,runpy;sys.path.insert(0,sys.argv.pop(1));runpy.run_module('speculative_train_platform.assets',run_name='__main__')"
+            code = "import sys,runpy;sys.path.insert(0,sys.argv.pop(1));runpy.run_module('draftfit.assets',run_name='__main__')"
             command = [sys.executable, "-I", "-S", "-c", code, str(wheel)]
             listed = subprocess.run(
                 command + ["list"],

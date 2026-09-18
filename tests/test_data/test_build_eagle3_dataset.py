@@ -6,8 +6,8 @@ import torch
 from datasets import Dataset
 from transformers import AutoTokenizer
 
-from speculative_train_platform.data.preprocessing import build_eagle3_dataset
-from speculative_train_platform.utils import safe_conversations_generator
+from draftfit.data.preprocessing import build_eagle3_dataset
+from draftfit.utils import safe_conversations_generator
 
 # ANSI color codes
 RED = "\033[91m"

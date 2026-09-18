@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "speculative-train-platform"
+name = "draftfit"
 dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,12 +32,13 @@ dependencies = [
 ]
 
 [project.scripts]
-speculative-train-platform = "speculative_train_platform.cli:main"
-dspark = "speculative_train_platform.cli:main"
-specforge = "speculative_train_platform.cli:main"
+draftfit = "draftfit.cli:main"
+speculative-train-platform = "draftfit.cli:main"
+dspark = "draftfit.cli:main"
+specforge = "draftfit.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["speculative_train_platform*", "dspark*", "specforge*"]
+include = ["draftfit*", "speculative_train_platform*", "dspark*", "specforge*"]
 exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
 
 [project.optional-dependencies]

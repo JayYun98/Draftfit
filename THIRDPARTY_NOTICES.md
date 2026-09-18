@@ -1,6 +1,6 @@
 # Third-party implementation notes
 
-Speculative Train Platform is derived from SpecForge and retains applicable upstream
+Draftfit is derived from SpecForge and retains applicable upstream
 licenses and copyright headers. Its locally maintained application, training and
 runtime modules do not replace or erase the authorship of adapted source.
 
@@ -17,7 +17,7 @@ runtime modules do not replace or erase the authorship of adapted source.
 - TorchSpec `torchspec/config/train_config.py`, `torchspec/ray/placement_group.py`,
   and `torchspec/training/checkpoint.py` were reviewed at `bd64d93`. Only the
   declarative launch/checkpoint contract was adapted in
-  `speculative_train_platform/torchspec_bridge.py`; Ray actors and DCP state wrappers are not
+  `draftfit/torchspec_bridge.py`; Ray actors and DCP state wrappers are not
   copied. The reference project's full MIT notice is bundled in
   `licenses/torchspec-LICENSE`.
 - z-lab/dflash DFlash2 grouped-convolution, candidate-selector, configuration,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from dataclasses import dataclass
 
-from speculative_train_platform.algorithms import (
+from draftfit.algorithms import (
     AlgorithmCapabilities,
     AlgorithmRegistration,
     AlgorithmRegistry,

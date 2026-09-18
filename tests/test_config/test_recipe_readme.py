@@ -3,7 +3,7 @@
 import unittest
 from pathlib import Path
 
-from speculative_train_platform.config import (
+from draftfit.config import (
     Config,
     DataConfig,
     DeploymentConfig,

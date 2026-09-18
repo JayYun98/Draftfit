@@ -27,12 +27,9 @@ class TestCliConfigBuild(unittest.TestCase):
 
         import yaml
 
-        from speculative_train_platform.application import (
-            build_application_run,
-            resolve_run,
-        )
-        from speculative_train_platform.config import load_config
-        from speculative_train_platform.training import Trainer
+        from draftfit.application import build_application_run, resolve_run
+        from draftfit.config import load_config
+        from draftfit.training import Trainer
 
         workdir = tempfile.mkdtemp(prefix="cli_cfg_")
         cfg_path = fx.write_draft_config(os.path.join(workdir, "draft.json"))
@@ -88,9 +85,9 @@ class TestCliConfigBuild(unittest.TestCase):
 
 class TestCliDispatch(unittest.TestCase):
     def test_train_command_dispatches_one_resolved_run(self):
-        from speculative_train_platform.application import ResolvedRun
-        from speculative_train_platform.cli import main
-        from speculative_train_platform.config import Config
+        from draftfit.application import ResolvedRun
+        from draftfit.cli import main
+        from draftfit.config import Config
 
         cfg = Config.model_validate(
             {
@@ -100,12 +97,8 @@ class TestCliDispatch(unittest.TestCase):
             }
         )
         with (
-            mock.patch(
-                "speculative_train_platform.cli.load_config", return_value=cfg
-            ) as load,
-            mock.patch(
-                "speculative_train_platform.cli._train", return_value=3
-            ) as train,
+            mock.patch("draftfit.cli.load_config", return_value=cfg) as load,
+            mock.patch("draftfit.cli._train", return_value=3) as train,
         ):
             self.assertEqual(main(["train", "--config", "run.yaml"]), 0)
         load.assert_called_once_with("run.yaml", [])

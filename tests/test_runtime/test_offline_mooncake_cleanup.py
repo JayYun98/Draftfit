@@ -10,11 +10,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.runtime.data_plane.disagg_ingest import (
-    ingest_offline_features,
-)
-from speculative_train_platform.training.disaggregated import _build_offline
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.runtime.data_plane.disagg_ingest import ingest_offline_features
+from draftfit.training.disaggregated import _build_offline
 
 ALGORITHM = builtin_algorithm_registry().resolve("eagle3")
 
@@ -69,18 +67,18 @@ class OfflineMooncakeCleanupTest(unittest.TestCase):
         with (
             patch.dict(os.environ, environment),
             patch(
-                "speculative_train_platform.training.disaggregated._offline_store",
+                "draftfit.training.disaggregated._offline_store",
                 return_value=store,
             ),
             patch(
-                "speculative_train_platform.runtime.data_plane.disagg_ingest.ingest_offline_features",
+                "draftfit.runtime.data_plane.disagg_ingest.ingest_offline_features",
                 side_effect=ingest,
             ),
             patch(
-                "speculative_train_platform.runtime.data_plane.disagg_ingest.write_ref_manifest"
+                "draftfit.runtime.data_plane.disagg_ingest.write_ref_manifest"
             ) as write_manifest,
             patch(
-                "speculative_train_platform.training.disaggregated._hold_mooncake_producer",
+                "draftfit.training.disaggregated._hold_mooncake_producer",
                 side_effect=hold_side_effect,
             ),
         ):
@@ -276,11 +274,11 @@ class OfflineIngestTrackingTest(unittest.TestCase):
         raw = {"input_ids": SimpleNamespace(numel=lambda: 4)}
         with (
             patch(
-                "speculative_train_platform.runtime.data_plane.disagg_ingest.list_feature_files",
+                "draftfit.runtime.data_plane.disagg_ingest.list_feature_files",
                 return_value=["feature-0", "feature-1"],
             ),
             patch(
-                "speculative_train_platform.runtime.data_plane.disagg_ingest.load_feature_file",
+                "draftfit.runtime.data_plane.disagg_ingest.load_feature_file",
                 return_value=raw,
             ),
             self.assertRaisesRegex(RuntimeError, "second put failed"),

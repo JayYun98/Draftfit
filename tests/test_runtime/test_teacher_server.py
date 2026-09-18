@@ -10,15 +10,10 @@ from unittest.mock import Mock
 
 import torch
 
-from speculative_train_platform.inference.capture_sink import CaptureSink
-from speculative_train_platform.inference.teacher_server import (
-    TeacherService,
-    make_server,
-)
-from speculative_train_platform.offline_capture.sglang import OfflineCaptureBatch
-from speculative_train_platform.runtime.data_plane.mooncake_store import (
-    MooncakeFeatureStore,
-)
+from draftfit.inference.capture_sink import CaptureSink
+from draftfit.inference.teacher_server import TeacherService, make_server
+from draftfit.offline_capture.sglang import OfflineCaptureBatch
+from draftfit.runtime.data_plane.mooncake_store import MooncakeFeatureStore
 from tests.test_runtime.test_mooncake_store import _FakeMooncakeStore
 
 
@@ -176,9 +171,7 @@ class NativeTeacherBoundaryTests(unittest.TestCase):
             torch.ones(1, 2),
             torch.ones(1, 2),
         )
-        with self.assertLogs(
-            "speculative_train_platform.inference.teacher_server", level="ERROR"
-        ):
+        with self.assertLogs("draftfit.inference.teacher_server", level="ERROR"):
             rows = self.service.generate(self.body)
         self.assertIn("error", rows[0]["meta_info"]["spec_capture"])
         self.assertFalse(self.raw._d)

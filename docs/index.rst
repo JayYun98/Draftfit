@@ -1,57 +1,66 @@
-SpecForge Documentation
-=======================
+Draftfit Documentation
+======================
 
-SpecForge is an ecosystem project developed by the SGLang team. It is a framework for training speculative decoding models so that you can smoothly port them over to the SGLang serving framework to speed up your inference.
+**Your workload. Your draft.**
 
+Train and fine-tune speculative decoding drafts on your own data. Draftfit
+builds on the SpecForge engine; it is maintained independently, not by the
+SGLang team. Export compatibility and inference speedups require validation
+for the particular model, backend and workload.
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Get Started
-
-   get_started/installation.md
-   get_started/about.md
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Concepts
-
-   concepts/speculative_decoding.md
-   concepts/EAGLE3.md
-
+Start with the maintained workflow and support boundaries below. Older
+backend-specific tutorials in this documentation tree are reference material,
+not a blanket compatibility or production-readiness claim.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Basic Usage
+   :caption: Start here
 
-   basic_usage/data_preparation.md
-   basic_usage/training.md
-   basic_usage/disaggregated_training.md
-   basic_usage/AMD/amd_rocm.md
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Advanced Features
-
-   advanced_features/customization.md
+   get_started/about
+   get_started/installation
+   ENVIRONMENT
+   PUBLIC_WORKFLOW
+   PUBLIC_SUPPORT
 
 .. toctree::
    :maxdepth: 1
-   :caption: Benchmarks
+   :caption: Validation and runtime boundaries
 
-   benchmarks/benchmark.md
-   benchmarks/eagle3-disaggregated-parity.md
-   benchmarks/domino-disaggregated-performance.md
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Community Resources
-
-   community_resources/specbundle.md
-   community_resources/dashboard.md
+   RUNTIME_PROFILES
+   MODEL_VALIDATION
+   RELEASE_GATES
+   PERFORMANCE_GATE
+   PUBLIC_RELEASE
 
 .. toctree::
    :maxdepth: 1
-   :caption: Examples
+   :caption: Ownership and attribution
 
-   examples/llama3-eagle3-online.md
-   examples/llama3-eagle3-offline.md
+   CODE_OWNERSHIP
+   SOURCE_ATTRIBUTION
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Usage and extension reference
+
+   basic_usage/data_preparation
+   basic_usage/training
+   basic_usage/disaggregated_training
+   advanced_features/customization
+   examples/llama3-eagle3-online
+   examples/llama3-eagle3-offline
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Inherited concepts, tutorials and historical results
+
+   concepts/speculative_decoding
+   concepts/EAGLE3
+   basic_usage/AMD/amd_rocm
+   benchmarks/benchmark
+   benchmarks/eagle3-disaggregated-parity
+   benchmarks/domino-disaggregated-performance
+   community_resources/specbundle
+   community_resources/dashboard
+
+Source and issues: `Draftfit repository <https://github.com/JayYun98/dspark-train-platform>`_.

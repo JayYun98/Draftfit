@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from transformers import LlamaConfig
 
-from speculative_train_platform.modeling.draft.llama3_eagle import (
+from draftfit.modeling.draft.llama3_eagle import (
     LlamaAttention,
     LlamaFlashAttention,
     _std_flash_attn_varlen_backward,
@@ -13,7 +13,7 @@ from speculative_train_platform.modeling.draft.llama3_eagle import (
     _std_flash_unpad_input,
     prepare_decoder_attention_mask,
 )
-from speculative_train_platform.utils import padding
+from draftfit.utils import padding
 from tests.test_utils.utils import norm_tensor
 
 TTT_LENGTH = 7

@@ -1,7 +1,7 @@
 # Customize a speculative draft, without reimplementing the target
 
-Use `speculative-train-platform` for the product CLI; `dspark` and `specforge` remain compatibility aliases in
-older examples below. Convert local OpenAI/ShareGPT data with `speculative-train-platform data prepare
+Use `draftfit` for the product CLI; `dspark` and `specforge` remain compatibility aliases in
+older examples below. Convert local OpenAI/ShareGPT data with `draftfit data prepare
 --input data.jsonl --output train.jsonl --split-eval --eval-output holdout.jsonl`.
 Splits are approximate five percent, grouping identical prompt contexts to avoid
 leakage. Unsupported semantic fields fail explicitly instead of being dropped.
@@ -13,7 +13,7 @@ attention, and homogeneous full or sliding layers. Adjust
 weights-only fine-tuning reload; SGLang export converts to its serving schema and
 requires unit input embedding scale. Actual backend/GPU certification is separate.
 
-Measure held-out text conversations with `speculative-train-platform benchmark --model /path/to/target
+Measure held-out text conversations with `draftfit benchmark --model /path/to/target
 --data-path holdout.jsonl --output-json result.json`. This contacts the specified
 server; use a trusted endpoint. Tool schemas/calls are rejected by this text-only
 benchmark. Compare identical prompts and settings in target-only and draft-enabled
@@ -32,7 +32,7 @@ short functional tests; repeating it is not an onboarding requirement.
 
 Build a wheel from this checkout with `python -m pip wheel --no-deps . -w dist`.
 In an **already provisioned, compatible training environment**, install that wheel
-with `python -m pip install --no-deps /absolute/path/to/speculative_train_platform-<version>-py3-none-any.whl`.
+with `python -m pip install --no-deps /absolute/path/to/draftfit-<version>-py3-none-any.whl`.
 `--no-deps` does not provision missing dependencies or make an arbitrary machine
 compatible. The package metadata's general SGLang/Torch pins are not the verified
 Ling runtime: do not let a routine dependency install replace the Ling image's
@@ -44,8 +44,8 @@ Recipe access itself uses only Python's standard library and works without a
 GPU, Torch, SGLang, a source checkout, or a network connection:
 
 ```sh
-python -m speculative_train_platform.assets list
-python -m speculative_train_platform.assets export ./my-draft-project
+python -m draftfit.assets list
+python -m draftfit.assets export ./my-draft-project
 cd ./my-draft-project
 ```
 
@@ -60,10 +60,10 @@ are lists of dotted overrides, not standalone training configs.
 With the CLI dependencies available, inspect a downloaded model directory first:
 
 ```sh
-speculative-train-platform target inspect /absolute/path/to/target --local-only
+draftfit target inspect /absolute/path/to/target --local-only
 ```
 
-For a Hugging Face repository, use `speculative-train-platform target inspect ORG/MODEL
+For a Hugging Face repository, use `draftfit target inspect ORG/MODEL
 --revision EXACT_COMMIT`. Inspection reads metadata rather than model weights;
 architecture classification and suggested taps are not real feature/state
 parity checks. Pin the actual weights/tokenizer used for capture to that same
@@ -73,12 +73,12 @@ tap positions, and all required validation gates before spending GPU time.
 Generate an editable project from target metadata without executing its model code:
 
 ```sh
-speculative-train-platform algorithms
-speculative-train-platform target prepare /absolute/path/to/target --local-only \
+draftfit algorithms
+draftfit target prepare /absolute/path/to/target --local-only \
   --strategy dspark --hidden-states /absolute/path/to/features \
   --output-dir ./my-custom-draft \
   --set model.draft_num_hidden_layers=5
-speculative-train-platform train -c ./my-custom-draft/train.json --plan
+draftfit train -c ./my-custom-draft/train.json --plan
 ```
 
 This writes `train.json`, `draft.json`, `inspection.json`, and a manifest into a
@@ -122,14 +122,14 @@ The offline example requires **previously captured features**; planning it does
 not create them. Online recipes require a compatible capture server and transport.
 
 ```sh
-speculative-train-platform train -c examples/configs/qwen3-8b-dspark-offline.yaml --plan
+draftfit train -c examples/configs/qwen3-8b-dspark-offline.yaml --plan
 ```
 
 Plan validation does not load real weights or prove a kernel/backend is usable.
 Start a new output directory with a short real run before increasing the budget:
 
 ```sh
-speculative-train-platform train -c examples/configs/qwen3-8b-dspark-offline.yaml \
+draftfit train -c examples/configs/qwen3-8b-dspark-offline.yaml \
   training.max_steps=5 training.save_interval=5 \
   output_dir=./outputs/first-smoke
 ```
@@ -157,7 +157,7 @@ changes, and use a distinct output directory for each experiment.
 Use the completed checkpoint directory and the exact draft JSON used to train:
 
 ```sh
-speculative-train-platform export --to hf \
+draftfit export --to hf \
   --checkpoint /absolute/path/to/completed-checkpoint \
   --draft-config /absolute/path/to/draft-config.json \
   --output-dir ./exports/my-draft
@@ -165,7 +165,7 @@ speculative-train-platform export --to hf \
 
 Depending on the algorithm, export may additionally require the target's frozen
 embedding (`--embedding-source`, `--embedding-key`) or a vocabulary mapping.
-Consult `speculative-train-platform export --help`; a successful file conversion is not an
+Consult `draftfit export --help`; a successful file conversion is not an
 inference compatibility claim. Reload this exact export in its supported
 serving backend and compare target tokens/state on held-out prompts. Report
 functional correctness separately from speculative acceptance and speedup.

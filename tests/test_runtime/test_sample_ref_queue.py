@@ -3,10 +3,8 @@
 
 import unittest
 
-from speculative_train_platform.runtime.contracts import SampleRef
-from speculative_train_platform.runtime.data_plane.sample_ref_queue import (
-    SampleRefQueue,
-)
+from draftfit.runtime.contracts import SampleRef
+from draftfit.runtime.data_plane.sample_ref_queue import SampleRefQueue
 
 
 def _ref(i: int) -> SampleRef:

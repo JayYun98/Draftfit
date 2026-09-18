@@ -7,13 +7,8 @@ from pathlib import Path
 
 import torch
 
-from speculative_train_platform.algorithms.common.dflash_family_model import (
-    OnlineDFlash2Model,
-)
-from speculative_train_platform.modeling.draft.dflash2 import (
-    DFlash2Config,
-    DFlash2DraftModel,
-)
+from draftfit.algorithms.common.dflash_family_model import OnlineDFlash2Model
+from draftfit.modeling.draft.dflash2 import DFlash2Config, DFlash2DraftModel
 
 
 def tiny_config(**overrides):
@@ -109,8 +104,8 @@ class DFlash2IntegrationTest(unittest.TestCase):
     def test_runtime_checkpoint_exports_hf_and_sglang_schema(self):
         from safetensors.torch import load_file
 
-        from speculative_train_platform.export.to_hf import export_to_hf
-        from speculative_train_platform.export.to_sglang import export_to_sglang
+        from draftfit.export.to_hf import export_to_hf
+        from draftfit.export.to_sglang import export_to_sglang
 
         draft = DFlash2DraftModel(tiny_config()).to(torch.bfloat16)
         with tempfile.TemporaryDirectory() as temporary:

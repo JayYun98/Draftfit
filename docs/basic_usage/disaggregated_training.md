@@ -3,7 +3,7 @@
 Disaggregation is a launch topology of the canonical training command:
 
 ```bash
-specforge train -c run.yaml
+draftfit train -c run.yaml
 ```
 
 The producer captures or ingests features and the consumer runs the canonical
@@ -81,10 +81,10 @@ persisted role selection and normally stays `auto` for a shared config.
 ## Single-node producer and consumer
 
 With `deployment.trainer.nnodes: 1`, omitting `--role` starts a supervisor for
-both SpecForge roles:
+both Draftfit roles:
 
 ```bash
-specforge train -c examples/configs/qwen3-8b-dflash-disaggregated.yaml
+draftfit train -c examples/configs/qwen3-8b-dflash-disaggregated.yaml
 ```
 
 The checked-in online recipes use the local demo endpoints shown above, so the
@@ -102,7 +102,7 @@ canceling it.
 Inspect the resolved plan without starting processes:
 
 ```bash
-specforge train -c examples/configs/qwen3-8b-dflash-disaggregated.yaml --plan
+draftfit train -c examples/configs/qwen3-8b-dflash-disaggregated.yaml --plan
 ```
 
 Plan output redacts secret-shaped overrides and credentials embedded in URLs.
@@ -144,7 +144,7 @@ four producer workers against one server while keeping the checked-in YAML as
 the source of every other setting:
 
 ```bash
-specforge train -c examples/configs/qwen3-8b-domino-disaggregated.yaml \
+draftfit train -c examples/configs/qwen3-8b-domino-disaggregated.yaml \
   'deployment.disaggregated.server_urls=["http://127.0.0.1:30000","http://127.0.0.1:30000","http://127.0.0.1:30000","http://127.0.0.1:30000"]'
 ```
 
@@ -163,10 +163,10 @@ The historical self-contained DFlash and Domino topologies each record one
 TP=1 capture server on GPU 0 and a DP=7 trainer on GPUs 1–7:
 
 ```bash
-specforge train -c \
+draftfit train -c \
   examples/configs/qwen3-8b-dflash-1server-dp7-disaggregated.yaml
 
-specforge train -c \
+draftfit train -c \
   examples/configs/qwen3-8b-domino-1server-dp7-disaggregated.yaml
 ```
 
@@ -176,7 +176,7 @@ discoverable multi-server behavior of the deleted legacy shell while retaining
 the unified training entry:
 
 ```bash
-specforge train -c \
+draftfit train -c \
   examples/configs/qwen3-8b-domino-multiserver-disaggregated.yaml
 ```
 
@@ -185,10 +185,10 @@ trainer on GPUs 1–2. Its larger sibling records two TP=2 capture servers on
 GPUs 0–3 and a DP=2 trainer on GPUs 4–5:
 
 ```bash
-specforge train -c \
+draftfit train -c \
   examples/configs/qwen3.6-27b-dflash-1server-dp2-disaggregated.yaml
 
-specforge train -c \
+draftfit train -c \
   examples/configs/qwen3.6-27b-dflash-multiserver-disaggregated.yaml
 ```
 
@@ -209,10 +209,10 @@ The same YAML launches either role explicitly:
 
 ```bash
 # Inference/ingestion pool
-specforge train -c run.yaml --role producer
+draftfit train -c run.yaml --role producer
 
 # Trainer pool
-specforge train -c run.yaml --role consumer
+draftfit train -c run.yaml --role consumer
 ```
 
 For offline features split across two physical nodes, the generic wrapper maps
@@ -252,13 +252,13 @@ Then provide only the node-local identity on each trainer host:
 
 ```bash
 # trainer-0
-specforge train -c run.yaml --role consumer --node-rank 0
+draftfit train -c run.yaml --role consumer --node-rank 0
 
 # trainer-1
-specforge train -c run.yaml --role consumer --node-rank 1
+draftfit train -c run.yaml --role consumer --node-rank 1
 ```
 
-Automatic `--role both` rejects `nnodes > 1`: SpecForge does not SSH to remote
+Automatic `--role both` rejects `nnodes > 1`: Draftfit does not SSH to remote
 hosts or impersonate a cluster scheduler. An existing torchrun environment is
 detected and used as the worker environment rather than nesting another
 torchrun. A producer is rejected inside a multi-rank torchrun to prevent
@@ -276,7 +276,7 @@ restores full development-stack orchestration:
 
 ```bash
 export DISAGG_STORE_ID=qwen3-8b-two-node-attempt-001
-export DISAGG_RUN_ROOT=/shared/specforge/$DISAGG_STORE_ID
+export DISAGG_RUN_ROOT=/shared/draftfit/$DISAGG_STORE_ID
 rcli exec --per-node <job> \
   'bash examples/disagg/run_qwen3_8b_dflash_disagg_2node.sh'
 ```
@@ -297,7 +297,7 @@ path. This split-state form currently supports one trainer node only.
 ## External and managed-local services
 
 Without `deployment.disaggregated.managed_local`, the unified supervisor owns
-only SpecForge producer and consumer processes. Mooncake and patched SGLang are
+only Draftfit producer and consumer processes. Mooncake and patched SGLang are
 external, usually long-lived services managed by Kubernetes, Slurm, systemd, or
 the development environment. In this default mode, the training CLI does not
 start, stop, or assign GPUs to them.
@@ -307,10 +307,10 @@ wire contract on the producer and consumer images:
 
 ```bash
 # CUDA earlier than 13
-pip install mooncake-transfer-engine
+uv pip install --python /opt/runtime/bin/python mooncake-transfer-engine
 
 # CUDA 13 or later
-pip install mooncake-transfer-engine-cuda13
+uv pip install --python /opt/runtime/bin/python mooncake-transfer-engine-cuda13
 ```
 
 Online configs require Mooncake. Stable endpoints may be supplied by the typed
@@ -429,7 +429,7 @@ must not exist. The launcher checks that rule on global rank 0. Resume requires
 the retained database and a matching checkpoint:
 
 ```bash
-specforge train -c run.yaml --role consumer \
+draftfit train -c run.yaml --role consumer \
   training.resume_from=outputs/run/run-latest
 ```
 

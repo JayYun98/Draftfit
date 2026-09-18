@@ -2,17 +2,17 @@
 
 Customization starts from a typed YAML config. Pick the closest checked-in
 file under
-[`examples/configs`](https://github.com/sgl-project/SpecForge/tree/main/examples/configs),
+[`examples/configs`](https://github.com/JayYun98/dspark-train-platform/tree/main/examples/configs),
 change model and data paths, and keep the same training entry point:
 
 ```bash
-specforge train --config ./my-run.yaml
+draftfit train --config ./my-run.yaml
 ```
 
 For one-off changes, use dotted overrides rather than adding another launcher:
 
 ```bash
-specforge train \
+draftfit train \
   --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml \
   model.target_model_path=/models/my-target \
   data.train_data_path=/datasets/my-training-data.jsonl \
@@ -21,13 +21,13 @@ specforge train \
 
 The config is strict: unknown fields, invalid strategy/topology combinations,
 and unsupported attention backends are errors. See
-[`specforge/config/schema.py`](../../specforge/config/schema.py) and the
+[`draftfit/config/schema.py`](../../draftfit/config/schema.py) and the
 [training guide](../basic_usage/training.md) for the accepted fields.
 
 ## Chat templates
 
 Register a text chat template in `TEMPLATE_REGISTRY` in
-`specforge/data/template.py`, then reference its name with
+`draftfit/data/template.py`, then reference its name with
 `data.chat_template`:
 
 ```python
@@ -76,7 +76,7 @@ model:
 Every online run uses `model.target_backend: sglang`. Add target-model support
 to the SGLang capture server instead of adding an HF/custom target loader to
 the trainer. Target TP/EP and model-specific inference stay on that server;
-the SpecForge consumer receives only the algorithm's versioned feature schema.
+the Draftfit consumer receives only the algorithm's versioned feature schema.
 Offline feature training performs no target inference.
 
 EAGLE3 offline sequence parallelism is selected with
@@ -94,8 +94,8 @@ class name and must match the single entry in the draft JSON's
 ```python
 from transformers import PretrainedConfig
 
-from specforge.modeling.draft.base import Eagle3DraftModel
-from specforge.modeling.draft.registry import register_draft
+from draftfit.modeling.draft.base import Eagle3DraftModel
+from draftfit.modeling.draft.registry import register_draft
 
 
 class MyDraftConfig(PretrainedConfig):
@@ -111,7 +111,7 @@ class MyEagle3Draft(Eagle3DraftModel):
         ...
 ```
 
-Import the module from `specforge/modeling/draft/__init__.py` so registration
+Import the module from `draftfit/modeling/draft/__init__.py` so registration
 runs before config resolution. A minimal draft config then contains:
 
 ```json
@@ -129,7 +129,7 @@ not add a method-specific training launcher.
 
 An architecture alone does not define a new loss. A genuinely new training
 algorithm also needs a pure `AlgorithmSpec`, executable `AlgorithmProviders`,
-and one immutable `AlgorithmRegistration` under `specforge/algorithms`. Its
+and one immutable `AlgorithmRegistration` under `draftfit/algorithms`. Its
 step provider may construct a `DraftTrainStrategy`, while its model and data
 providers own algorithm-specific assembly. Add builtin registrations to the
 explicit catalog used by the application composition root; do not add a

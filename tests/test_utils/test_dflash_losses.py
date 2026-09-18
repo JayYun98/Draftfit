@@ -21,9 +21,7 @@ import torch.nn.functional as F
 
 REPO = Path(__file__).resolve().parents[2]
 
-_stub_dflash_draft = types.ModuleType(
-    "speculative_train_platform.modeling.draft.dflash"
-)
+_stub_dflash_draft = types.ModuleType("draftfit.modeling.draft.dflash")
 
 
 class _DFlashDraftStub(nn.Module):
@@ -33,38 +31,32 @@ class _DFlashDraftStub(nn.Module):
 _stub_dflash_draft.DFlashDraftModel = _DFlashDraftStub
 
 _spec = importlib.util.spec_from_file_location(
-    "speculative_train_platform.algorithms.common.dflash_family_model",
-    REPO
-    / "speculative_train_platform"
-    / "algorithms"
-    / "common"
-    / "dflash_family_model.py",
+    "draftfit.algorithms.common.dflash_family_model",
+    REPO / "draftfit" / "algorithms" / "common" / "dflash_family_model.py",
 )
 _dflash_module = importlib.util.module_from_spec(_spec)
 
-_pkg_dspark = types.ModuleType("speculative_train_platform")
-_pkg_dspark.__path__ = [str(REPO / "speculative_train_platform")]
-_pkg_algorithms = types.ModuleType("speculative_train_platform.algorithms")
-_pkg_algorithms.__path__ = [str(REPO / "speculative_train_platform" / "algorithms")]
-_pkg_common = types.ModuleType("speculative_train_platform.algorithms.common")
-_pkg_common.__path__ = [
-    str(REPO / "speculative_train_platform" / "algorithms" / "common")
-]
-_pkg_modeling = types.ModuleType("speculative_train_platform.modeling")
-_pkg_modeling.__path__ = [str(REPO / "speculative_train_platform" / "modeling")]
-_pkg_draft = types.ModuleType("speculative_train_platform.modeling.draft")
-_pkg_draft.__path__ = [str(REPO / "speculative_train_platform" / "modeling" / "draft")]
+_pkg_dspark = types.ModuleType("draftfit")
+_pkg_dspark.__path__ = [str(REPO / "draftfit")]
+_pkg_algorithms = types.ModuleType("draftfit.algorithms")
+_pkg_algorithms.__path__ = [str(REPO / "draftfit" / "algorithms")]
+_pkg_common = types.ModuleType("draftfit.algorithms.common")
+_pkg_common.__path__ = [str(REPO / "draftfit" / "algorithms" / "common")]
+_pkg_modeling = types.ModuleType("draftfit.modeling")
+_pkg_modeling.__path__ = [str(REPO / "draftfit" / "modeling")]
+_pkg_draft = types.ModuleType("draftfit.modeling.draft")
+_pkg_draft.__path__ = [str(REPO / "draftfit" / "modeling" / "draft")]
 
 with patch.dict(
     sys.modules,
     {
-        "speculative_train_platform": _pkg_dspark,
-        "speculative_train_platform.algorithms": _pkg_algorithms,
-        "speculative_train_platform.algorithms.common": _pkg_common,
-        "speculative_train_platform.algorithms.common.dflash_family_model": _dflash_module,
-        "speculative_train_platform.modeling": _pkg_modeling,
-        "speculative_train_platform.modeling.draft": _pkg_draft,
-        "speculative_train_platform.modeling.draft.dflash": _stub_dflash_draft,
+        "draftfit": _pkg_dspark,
+        "draftfit.algorithms": _pkg_algorithms,
+        "draftfit.algorithms.common": _pkg_common,
+        "draftfit.algorithms.common.dflash_family_model": _dflash_module,
+        "draftfit.modeling": _pkg_modeling,
+        "draftfit.modeling.draft": _pkg_draft,
+        "draftfit.modeling.draft.dflash": _stub_dflash_draft,
     },
 ):
     _spec.loader.exec_module(_dflash_module)
@@ -581,7 +573,7 @@ class TestDFlashLosses(unittest.TestCase):
 
     def test_dflash_draft_stub_does_not_leak_to_sys_modules(self):
         self.assertIsNot(
-            sys.modules.get("speculative_train_platform.modeling.draft.dflash"),
+            sys.modules.get("draftfit.modeling.draft.dflash"),
             _stub_dflash_draft,
         )
 

@@ -4,7 +4,7 @@ import unittest
 
 import torch
 
-from speculative_train_platform.data.utils import DataCollatorWithPadding
+from draftfit.data.utils import DataCollatorWithPadding
 
 
 def _feature(length, position_ids):

@@ -28,9 +28,7 @@ class TestRoPEConfigCompatibility(unittest.TestCase):
         return path
 
     def test_modern_rope_parameters_are_mirrored_for_legacy_readers(self):
-        from speculative_train_platform.export.checkpoint_io import (
-            apply_legacy_rope_scaling,
-        )
+        from draftfit.export.checkpoint_io import apply_legacy_rope_scaling
 
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_config(
@@ -54,9 +52,7 @@ class TestRoPEConfigCompatibility(unittest.TestCase):
         self.assertEqual(config["rope_theta"], 8_000_000)
 
     def test_legacy_rope_scaling_is_mirrored_for_modern_readers(self):
-        from speculative_train_platform.export.checkpoint_io import (
-            apply_legacy_rope_scaling,
-        )
+        from draftfit.export.checkpoint_io import apply_legacy_rope_scaling
 
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_config(
@@ -76,9 +72,7 @@ class TestRoPEConfigCompatibility(unittest.TestCase):
         )
 
     def test_default_rope_config_is_not_rewritten(self):
-        from speculative_train_platform.export.checkpoint_io import (
-            apply_legacy_rope_scaling,
-        )
+        from draftfit.export.checkpoint_io import apply_legacy_rope_scaling
 
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_config(
@@ -94,9 +88,7 @@ class TestRoPEConfigCompatibility(unittest.TestCase):
         self.assertEqual(after, before)
 
     def test_default_rope_theta_is_mirrored_for_legacy_readers(self):
-        from speculative_train_platform.export.checkpoint_io import (
-            apply_legacy_rope_scaling,
-        )
+        from draftfit.export.checkpoint_io import apply_legacy_rope_scaling
 
         with tempfile.TemporaryDirectory() as directory:
             path = self._write_config(
@@ -118,10 +110,7 @@ class TestRoPEConfigCompatibility(unittest.TestCase):
 
 class TestLegacyVocabMappingCompatibility(unittest.TestCase):
     def setUp(self):
-        from speculative_train_platform.modeling.auto import (
-            AutoDraftModel,
-            AutoDraftModelConfig,
-        )
+        from draftfit.modeling.auto import AutoDraftModel, AutoDraftModelConfig
         from tests.test_runtime import _fixtures as fx
 
         self.tempdir = tempfile.TemporaryDirectory(prefix="legacy_export_")
@@ -141,7 +130,7 @@ class TestLegacyVocabMappingCompatibility(unittest.TestCase):
         }
 
     def test_mapping_restores_legacy_checkpoint_buffers(self):
-        from speculative_train_platform.export.checkpoint_io import materialize_draft
+        from draftfit.export.checkpoint_io import materialize_draft
 
         model = materialize_draft(
             {"draft_state_dict": self.legacy_state},
@@ -154,7 +143,7 @@ class TestLegacyVocabMappingCompatibility(unittest.TestCase):
         self.assertTrue(torch.equal(model.d2t.cpu(), expected["d2t"]))
 
     def test_missing_mapping_buffers_remain_strict_without_mapping(self):
-        from speculative_train_platform.export.checkpoint_io import materialize_draft
+        from draftfit.export.checkpoint_io import materialize_draft
 
         with self.assertRaisesRegex(ValueError, "d2t.*t2d"):
             materialize_draft(
@@ -163,7 +152,7 @@ class TestLegacyVocabMappingCompatibility(unittest.TestCase):
             )
 
     def test_mapping_does_not_tolerate_other_missing_weights(self):
-        from speculative_train_platform.export.checkpoint_io import materialize_draft
+        from draftfit.export.checkpoint_io import materialize_draft
 
         incomplete = dict(self.legacy_state)
         incomplete.pop("fc.weight")
@@ -185,24 +174,13 @@ class TestExporters(unittest.TestCase):
 
         fx.build_single_rank_distributed(port="29591")
 
-        from speculative_train_platform.algorithms.eagle3.model import OnlineEagle3Model
-        from speculative_train_platform.modeling.auto import (
-            AutoDraftModel,
-            AutoDraftModelConfig,
-        )
-        from speculative_train_platform.modeling.target.target_head import TargetHead
-        from speculative_train_platform.optimizer import BF16Optimizer
-        from speculative_train_platform.training.backend import (
-            FSDPTrainingBackend,
-            ParallelConfig,
-        )
-        from speculative_train_platform.training.controller import (
-            TrainerController,
-            TrainerCore,
-        )
-        from speculative_train_platform.training.strategies.base import (
-            Eagle3TrainStrategy,
-        )
+        from draftfit.algorithms.eagle3.model import OnlineEagle3Model
+        from draftfit.modeling.auto import AutoDraftModel, AutoDraftModelConfig
+        from draftfit.modeling.target.target_head import TargetHead
+        from draftfit.optimizer import BF16Optimizer
+        from draftfit.training.backend import FSDPTrainingBackend, ParallelConfig
+        from draftfit.training.controller import TrainerController, TrainerCore
+        from draftfit.training.strategies.base import Eagle3TrainStrategy
 
         TTT, BS, N = 3, 2, 4
         cls.workdir = tempfile.mkdtemp(prefix="export_gate_")
@@ -260,8 +238,8 @@ class TestExporters(unittest.TestCase):
 
         from safetensors.torch import save_file
 
-        from speculative_train_platform.export import export_to_hf
-        from speculative_train_platform.modeling.auto import AutoDraftModel
+        from draftfit.export import export_to_hf
+        from draftfit.modeling.auto import AutoDraftModel
 
         emb_src = os.path.join(self.workdir, "emb_src")
         os.makedirs(emb_src, exist_ok=True)
@@ -303,7 +281,7 @@ class TestExporters(unittest.TestCase):
     def test_to_sglang_produces_exact_serving_keys(self):
         from safetensors.torch import load_file
 
-        from speculative_train_platform.export import export_to_sglang
+        from draftfit.export import export_to_sglang
 
         out = export_to_sglang(
             self.ckpt.checkpoint_uri[len("file://") :],  # checkpoint dir form
@@ -330,7 +308,7 @@ class TestExporters(unittest.TestCase):
     def test_weight_map_renames_are_applied(self):
         from safetensors.torch import load_file
 
-        from speculative_train_platform.export import export_to_sglang
+        from draftfit.export import export_to_sglang
 
         out = export_to_sglang(
             self.out_dir,
@@ -343,7 +321,7 @@ class TestExporters(unittest.TestCase):
         self.assertNotIn("norm.weight", served)
 
     def test_missing_required_serving_key_fails_loudly(self):
-        from speculative_train_platform.export.to_sglang import _serving_state
+        from draftfit.export.to_sglang import _serving_state
 
         with self.assertRaises(ValueError):
             _serving_state({"fc.weight": torch.zeros(1)}, {})

@@ -1,7 +1,7 @@
 import unittest
 
-from speculative_train_platform.data.parse import GeneralParser, ThinkingParser
-from speculative_train_platform.data.template import ChatTemplate
+from draftfit.data.parse import GeneralParser, ThinkingParser
+from draftfit.data.template import ChatTemplate
 
 
 class DummyTokenizer:

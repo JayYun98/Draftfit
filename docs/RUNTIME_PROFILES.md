@@ -61,7 +61,7 @@ import yaml
 with open('configs/runtime_profiles/linux-sm90-cu129.yaml') as f:
     overrides = yaml.safe_load(f)
 subprocess.run([
-    sys.executable, '-m', 'speculative_train_platform.cli', 'train',
+    sys.executable, '-m', 'draftfit.cli', 'train',
     '-c', 'examples/configs/ling-3.0-tiny-dspark-online.yaml',
     '--plan', *overrides,
 ], check=True)
@@ -70,7 +70,7 @@ PY
 
 The example prints the plan only. On a GPU host, after preflight, remove `--plan`
 to execute. This selects the campaign-tested Triton route. For direct Python callers, pass the same list as the second argument
-to `speculative_train_platform.config.load_config(model_yaml, overrides)`. Append explicit per-run
+to `draftfit.config.load_config(model_yaml, overrides)`. Append explicit per-run
 overrides last when necessary; later values win. Select one hardware profile per
 run. A capture server's explicit `attention_backend` overrides the model default,
 so remove conflicting server settings in the base YAML before composing.

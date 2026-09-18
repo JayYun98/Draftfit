@@ -10,9 +10,9 @@ from typing import get_args
 import torch
 import torch.nn as nn
 
-from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-from speculative_train_platform.runtime.contracts import DraftStrategyName, TrainBatch
-from speculative_train_platform.training.strategies.base import PEagleTrainStrategy
+from draftfit.algorithms.builtin import builtin_algorithm_registry
+from draftfit.runtime.contracts import DraftStrategyName, TrainBatch
+from draftfit.training.strategies.base import PEagleTrainStrategy
 
 REGISTRY = builtin_algorithm_registry()
 EAGLE3 = REGISTRY.resolve("eagle3")

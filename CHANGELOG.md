@@ -6,6 +6,16 @@ one-to-one commit mappings.
 
 ## Unreleased — private DSpark Train Platform baseline
 
+### Draftfit brand
+
+- Product, canonical Python package and primary command now use `Draftfit` /
+  `draftfit`: **Your workload. Your draft.** Earlier package and command names
+  remain compatibility aliases; use a fresh environment for distribution migration.
+- README, documentation landing pages and unpublished articles now focus on
+  workload-specific draft training and evaluation. Automated trace ingestion,
+  continual deployment and guaranteed speedups are not presented as shipped features.
+- Earlier milestones below retain their historical names and evidence.
+
 ### Product name migration
 
 - The current product is **Speculative Train Platform**, distributed as

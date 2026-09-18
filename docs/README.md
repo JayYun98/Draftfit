@@ -1,34 +1,33 @@
-# SpecForge Documentation
+# Draftfit documentation
 
-We recommend new contributors to start from writing documentation, which helps you quickly understand the SpecForge codebase.
-Most documentation files are located under the `docs/` folder.
+**Your workload. Your draft.**
 
-## Docs workflow
+The maintained entry points are [environment setup](ENVIRONMENT.md),
+[public workflow](PUBLIC_WORKFLOW.md) and [support boundaries](PUBLIC_SUPPORT.md).
+Preserve upstream credits when editing inherited material; see
+[source attribution](SOURCE_ATTRIBUTION.md).
 
-### Install dependencies
+## Build and preview
 
-```bash
-pip install -r docs/requirements.txt
+Use a separate documentation environment so building the site does not replace
+the CPU training lock or a custom GPU runtime. The current documentation
+requirements are Sphinx, MyST, the book theme, copybutton and autobuild;
+`requirements.txt` is not a hashed reproducibility lock.
+
+```sh
+uv venv --python 3.12 .venv-docs
+uv pip install --python .venv-docs/bin/python -r docs/requirements.txt
+uv run --no-project --python .venv-docs/bin/python python -m sphinx \
+  -b html docs docs/_build/html
+uv run --no-project --python .venv-docs/bin/python sphinx-autobuild \
+  docs docs/_build/html --host 127.0.0.1 --port 8003
 ```
 
-### Build and preview
+Documentation sources are Markdown and reStructuredText. Add maintained pages
+to `index.rst` and use relative links between documentation pages. Links to
+checkout-only scripts or configurations are not installed-package resources.
 
-Documentation sources are Markdown and reStructuredText. If you add a page,
-include it in `index.rst` or the relevant nested toctree.
-
-Build the site and preview it with live reload:
-
-```bash
-make -C docs html
-make -C docs serve
-make -C docs serve PORT=8080
-```
-
-Run repository formatting checks before submitting changes:
-
-```bash
-pre-commit run --all-files
-```
-
-Use relative links for repository documentation and follow the existing pages
-for command and configuration examples.
+Inspect build warnings before publishing. Inherited reference pages may have
+separate link or formatting debt; a successful HTML build alone does not
+validate their runtime claims. Follow the repository's contributor environment
+for formatting checks.

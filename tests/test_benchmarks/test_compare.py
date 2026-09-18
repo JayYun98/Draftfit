@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from speculative_train_platform.benchmarks.compare import compare, main
+from draftfit.benchmarks.compare import compare, main
 
 
 def report(rate=100):

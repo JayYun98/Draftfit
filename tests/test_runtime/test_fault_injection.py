@@ -16,26 +16,12 @@ import unittest
 
 import torch
 
-from speculative_train_platform.runtime.contracts import (
-    FeatureSpec,
-    SampleRef,
-    assert_no_tensors,
-)
-from speculative_train_platform.runtime.control_plane.controller import (
-    DataFlowController,
-)
-from speculative_train_platform.runtime.data_plane.feature_dataloader import (
-    FeatureDataLoader,
-)
-from speculative_train_platform.runtime.data_plane.feature_store import (
-    LocalFeatureStore,
-)
-from speculative_train_platform.runtime.data_plane.offline_reader import (
-    OfflineManifestReader,
-)
-from speculative_train_platform.runtime.data_plane.sample_ref_queue import (
-    SampleRefQueue,
-)
+from draftfit.runtime.contracts import FeatureSpec, SampleRef, assert_no_tensors
+from draftfit.runtime.control_plane.controller import DataFlowController
+from draftfit.runtime.data_plane.feature_dataloader import FeatureDataLoader
+from draftfit.runtime.data_plane.feature_store import LocalFeatureStore
+from draftfit.runtime.data_plane.offline_reader import OfflineManifestReader
+from draftfit.runtime.data_plane.sample_ref_queue import SampleRefQueue
 
 
 def _committed_ref(store: LocalFeatureStore, sid: str) -> SampleRef:

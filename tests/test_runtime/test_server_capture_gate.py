@@ -48,10 +48,8 @@ H, TOL = 64, 2e-2  # fixture hidden size; documented bf16 tolerance
 
 
 def _capture_schema(algorithm: str):
-    from speculative_train_platform.algorithms.builtin import builtin_algorithm_registry
-    from speculative_train_platform.inference.adapters.server_capture import (
-        ServerCaptureSchema,
-    )
+    from draftfit.algorithms.builtin import builtin_algorithm_registry
+    from draftfit.inference.adapters.server_capture import ServerCaptureSchema
 
     registration = builtin_algorithm_registry().resolve(algorithm)
     layout = registration.providers.server_streaming_for("text").layout
@@ -234,9 +232,7 @@ class TestServerCaptureGate(unittest.TestCase):
 
     # -- helpers ---------------------------------------------------------------
     def _store(self, store_id):
-        from speculative_train_platform.runtime.data_plane.mooncake_store import (
-            MooncakeFeatureStore,
-        )
+        from draftfit.runtime.data_plane.mooncake_store import MooncakeFeatureStore
 
         return MooncakeFeatureStore(
             store_id=store_id,
@@ -252,7 +248,7 @@ class TestServerCaptureGate(unittest.TestCase):
         )
 
     def _tasks(self, rows):
-        from speculative_train_platform.runtime.contracts import PromptTask
+        from draftfit.runtime.contracts import PromptTask
 
         return [
             PromptTask(
@@ -298,11 +294,11 @@ class TestServerCaptureGate(unittest.TestCase):
 
     # -- tests -------------------------------------------------------------------
     def test_eagle3_zero_copy_end_to_end(self):
-        from speculative_train_platform.inference.adapters.server_capture import (
+        from draftfit.inference.adapters.server_capture import (
             SGLangServerCaptureAdapter,
         )
-        from speculative_train_platform.inference.capture import CaptureConfig
-        from speculative_train_platform.runtime.contracts import SampleRef
+        from draftfit.inference.capture import CaptureConfig
+        from draftfit.runtime.contracts import SampleRef
 
         rows = [[5, 6, 7, 8, 9, 10], [5, 6, 7, 8, 9, 10]]
         store = self._store("gate-eagle3")
@@ -334,7 +330,7 @@ class TestServerCaptureGate(unittest.TestCase):
             self.assertIsInstance(ref, SampleRef, f"expected a ref, got failure: {ref}")
 
         aux_ref, logits_ref = self._hf_reference(rows)
-        from speculative_train_platform.modeling.target.target_head import TargetHead
+        from draftfit.modeling.target.target_head import TargetHead
 
         head = TargetHead.from_pretrained(self.target_dir)
 
@@ -367,21 +363,13 @@ class TestServerCaptureGate(unittest.TestCase):
         self._train_step(fetched, head)
 
     def _train_step(self, fetched, head):
-        from speculative_train_platform.algorithms.eagle3.model import OnlineEagle3Model
-        from speculative_train_platform.modeling.auto import (
-            AutoDraftModel,
-            AutoDraftModelConfig,
-        )
-        from speculative_train_platform.optimizer import BF16Optimizer
-        from speculative_train_platform.runtime.contracts import TrainBatch
-        from speculative_train_platform.training.backend import (
-            FSDPTrainingBackend,
-            ParallelConfig,
-        )
-        from speculative_train_platform.training.controller import TrainerCore
-        from speculative_train_platform.training.strategies.base import (
-            Eagle3TrainStrategy,
-        )
+        from draftfit.algorithms.eagle3.model import OnlineEagle3Model
+        from draftfit.modeling.auto import AutoDraftModel, AutoDraftModelConfig
+        from draftfit.optimizer import BF16Optimizer
+        from draftfit.runtime.contracts import TrainBatch
+        from draftfit.training.backend import FSDPTrainingBackend, ParallelConfig
+        from draftfit.training.controller import TrainerCore
+        from draftfit.training.strategies.base import Eagle3TrainStrategy
         from tests.test_runtime import _fixtures as fx
 
         fx.build_single_rank_distributed(port="29576")
@@ -423,11 +411,11 @@ class TestServerCaptureGate(unittest.TestCase):
             self.assertTrue(torch.isfinite(torch.tensor(result.loss)))
 
     def test_dflash_capture_same_server(self):
-        from speculative_train_platform.inference.adapters.server_capture import (
+        from draftfit.inference.adapters.server_capture import (
             SGLangServerCaptureAdapter,
         )
-        from speculative_train_platform.inference.capture import CaptureConfig
-        from speculative_train_platform.runtime.contracts import SampleRef
+        from draftfit.inference.capture import CaptureConfig
+        from draftfit.runtime.contracts import SampleRef
 
         rows = [[3, 1, 4, 1, 5]]
         store = self._store("gate-dflash")

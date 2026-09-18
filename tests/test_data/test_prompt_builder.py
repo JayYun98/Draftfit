@@ -6,8 +6,8 @@ import types
 import unittest
 from unittest.mock import patch
 
-from speculative_train_platform.data.loss_mask import has_consecutive_supervised_tokens
-from speculative_train_platform.data.prompt_builder import prepare_prompt_tasks
+from draftfit.data.loss_mask import has_consecutive_supervised_tokens
+from draftfit.data.prompt_builder import prepare_prompt_tasks
 
 
 class _FakeDataset:
@@ -149,9 +149,7 @@ class TestPreparePromptTasks(unittest.TestCase):
 
         fake_datasets = types.ModuleType("datasets")
         fake_datasets.load_dataset = fake_load_dataset
-        fake_preprocessing = types.ModuleType(
-            "speculative_train_platform.data.preprocessing"
-        )
+        fake_preprocessing = types.ModuleType("draftfit.data.preprocessing")
         fake_preprocessing.build_eagle3_dataset = fake_build_eagle3_dataset
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -161,7 +159,7 @@ class TestPreparePromptTasks(unittest.TestCase):
                 sys.modules,
                 {
                     "datasets": fake_datasets,
-                    "speculative_train_platform.data.preprocessing": fake_preprocessing,
+                    "draftfit.data.preprocessing": fake_preprocessing,
                 },
             ):
                 prompts = prepare_prompt_tasks(
