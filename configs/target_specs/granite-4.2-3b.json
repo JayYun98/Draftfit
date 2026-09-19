@@ -1,0 +1,25 @@
+{
+  "schema_version": "target_inspect_v1",
+  "source": "ibm-granite/granite-4.2-3b",
+  "revision": "b7e947307dd2efb3ad3b853b0e8a7e75f8ad4ac2",
+  "facts": {
+    "model_type": "granite",
+    "architectures": ["GraniteForCausalLM"],
+    "architecture_lane": "dense",
+    "state_kind": "kv",
+    "num_hidden_layers": 40,
+    "layer_types": [],
+    "chat_template_present": true,
+    "vocab_size": 100352,
+    "context_length": 131072
+  },
+  "recommendations": {
+    "draft_depth_candidates": [3, 5, 7],
+    "target_tap_candidates": [0, 10, 20, 30, 39],
+    "train_block_candidates": [7, 16],
+    "decode_block_candidates": [4, 7, 12, 16],
+    "anchor_sampling_candidates": ["uniform", "random"],
+    "required_gates": ["chat_template_fixture", "target_only_greedy_token_parity", "hidden_feature_parity"]
+  },
+  "unknown": ["exact capture boundary requires a backend probe", "SGLang support must be checked at the pinned server revision"]
+}

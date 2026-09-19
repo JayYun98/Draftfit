@@ -1,0 +1,69 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      distribution_name:
+        description: Confirm the approved distribution name from pyproject.toml
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-gate:
+    if: github.ref == 'refs/heads/main' && vars.SPECFORGE_ENABLE_PUBLISH == 'true'
+    uses: ./.github/workflows/public-cpu.yaml
+  build-n-publish:
+    needs: cpu-gate
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.SPECFORGE_ENABLE_PUBLISH == 'true'
+    name: Build and publish Python distributions to PyPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: pypi
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - uses: astral-sh/setup-uv@v6
+      with:
+        version: '0.9.18'
+
+    - name: Refuse accidental upstream identity publication
+      env:
+        CONFIRMED_NAME: ${{ inputs.distribution_name }}
+        APPROVED_NAME: ${{ vars.SPECFORGE_PYPI_PROJECT }}
+      run: |
+        uv run --no-project --python 3.11 python - <<'PY'
+        import os, pathlib, tomllib
+        metadata = tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']
+        name = metadata['name']
+        if name != os.environ['CONFIRMED_NAME'] or name != os.environ['APPROVED_NAME']:
+            raise SystemExit('Confirm approved distribution metadata first')
+        if os.environ['GITHUB_REPOSITORY'].lower() != 'sgl-project/specforge':
+            if name.lower() in {'specforge', 'specforgeee'}:
+                raise SystemExit('Fork still uses upstream distribution identity')
+        PY
+
+    - name: Build and validate distributions
+      run: |
+        uv venv --python 3.11
+        uv pip install --python .venv/bin/python setuptools==80.10.2 wheel==0.45.1
+        uv build --python .venv/bin/python --no-build-isolation --offline
+        uv tool run --python .venv/bin/python --from twine==6.2.0 twine check dist/*
+
+    # publish to PyPI if executed on the main branch
+    - name: Publish package to PyPI
+      id: publish
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_TOKEN }}
+        verbose: true
