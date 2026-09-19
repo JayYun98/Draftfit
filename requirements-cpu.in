@@ -1,0 +1,10 @@
+# Public onboarding/CPU regression environment, NOT a GPU training environment.
+torch==2.11.0
+transformers==5.8.1
+datasets==5.0.0
+pydantic==2.13.4
+psutil==7.2.2
+pyyaml==6.0.2
+requests==2.34.2
+setuptools==80.10.2
+wheel==0.45.1

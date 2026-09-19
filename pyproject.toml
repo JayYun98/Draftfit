@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "draftfit"
+dynamic = ["version"]
+readme = "README.md"
+requires-python = ">=3.10"
+description = "Train and fine-tune speculative decoding drafts on your own data"
+authors = [{name = "JayYun98"}, {name = "SpecForge contributors (upstream engine)"}]
+maintainers = [{name = "JayYun98"}]
+urls = {Homepage = "https://github.com/JayYun98/dspark-train-platform", Upstream = "https://github.com/sgl-project/SpecForge"}
+dependencies = [
+    "torch==2.11.0",
+    "transformers==5.8.1",
+    "datasets",
+    "tqdm",
+    "accelerate",
+    "huggingface-hub",
+    "numpy",
+    "openai-harmony",
+    "pydantic",
+    "psutil",
+    "pyyaml",
+    "safetensors",
+    "requests",
+    "tensorboard",
+    "typing-extensions",
+    "wandb",
+    "yunchang",
+]
+
+[project.scripts]
+draftfit = "draftfit.cli:main"
+speculative-train-platform = "draftfit.cli:main"
+dspark = "draftfit.cli:main"
+specforge = "draftfit.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["draftfit*", "speculative_train_platform*", "dspark*", "specforge*"]
+exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
+
+[project.optional-dependencies]
+data = ["openai"]
+# Stock backend only. Custom capture images must preserve their own build.
+sglang = ["sglang==0.5.14; sys_platform == 'linux'"]
+dev = [
+    "pre-commit",
+]
+fa = ["flash-attn", "ninja", "packaging"]
+liger = ["liger-kernel"]
+
+[tool.setuptools.dynamic]
+version = {file = "version.txt"}
+
+[tool.uv]
+required-version = ">=0.9.18"

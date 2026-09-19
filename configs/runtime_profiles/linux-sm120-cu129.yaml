@@ -1,0 +1,14 @@
+# Bounded 2xRTX5090 tests passed: bf16, native fold, small dense capture,
+# prior Ling DSpark export reload and 24-token target-only parity.
+# Native Ling ReplaySSM committed-state parity FAILED for that export.
+# Linux CUDA only; desktop Blackwell SM120 (RTX5090, 32 GB).
+# Expected image: lmsysorg/sglang:dev-cu12-Ling-3.0-tiny
+# Expected SGLang: 8ba213fc67550aea80dfbd5ef66f4574ec25e653
+# Expected torch: 2.13.0+cu129; CUDA runtime: 12.9.
+# Deterministic mode bypasses Ling's known K=1536 fused-A-GEMM failure.
+- model.sglang_attention_backend=triton
+- model.sglang_linear_attn_backend=triton
+- model.sglang_linear_attn_verify_backend=triton
+- model.sglang_enable_deterministic_inference=true
+- model.sglang_disable_cuda_graph=true
+- model.sglang_enable_linear_replayssm_spec=false

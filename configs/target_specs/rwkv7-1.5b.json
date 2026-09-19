@@ -1,0 +1,24 @@
+{
+  "schema_version": "target_inspect_v1",
+  "source": "RWKV/RWKV7-1.5B-20260805",
+  "revision": "bfb3a69a63e6681f729651c357f13ce0c774ea9c",
+  "facts": {
+    "model_type": "rwkv7",
+    "architectures": ["Rwkv7ForCausalLM"],
+    "architecture_lane": "linear_recurrent",
+    "state_kind": "recurrent",
+    "num_hidden_layers": 24,
+    "layer_types": [],
+    "chat_template_present": true,
+    "vocab_size": 65536
+  },
+  "recommendations": {
+    "draft_depth_candidates": [3, 5, 7],
+    "target_tap_candidates": [0, 6, 12, 18, 23],
+    "train_block_candidates": [7, 16],
+    "decode_block_candidates": [4, 7, 12, 16],
+    "anchor_sampling_candidates": ["uniform", "random"],
+    "required_gates": ["chat_template_fixture", "target_only_greedy_token_parity", "hidden_feature_parity", "state_snapshot_rollback_replay"]
+  },
+  "unknown": ["recurrent state capture and serving are backend probes, not metadata guarantees"]
+}

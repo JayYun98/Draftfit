@@ -1,0 +1,59 @@
+# Ling 3.0 tiny: offline target capture followed by DSpark training.
+# Capture the target with scripts/prepare_hidden_states.py before `specforge train`.
+model:
+  target_model_path: inclusionAI/Ling-3.0-tiny
+  draft_model_config: configs/ling-3.0-tiny-dspark.json
+  target_backend: sglang
+  trust_remote_code: true
+  # Ling's BailingMoe checkpoint names these tensors differently from Qwen.
+  embedding_key: model.word_embeddings.weight
+  lm_head_key: lm_head.weight
+  torch_dtype: bfloat16
+  mask_token_id: 156901
+  sglang_attention_backend: fa3
+  sglang_mem_fraction_static: 0.72
+  sglang_context_length: 4096
+  sglang_max_running_requests: 1
+  sglang_max_total_tokens: 4096
+  sglang_disable_radix_cache: true
+  # Ling mixes full attention with KDA recurrent state. During speculative
+  # verify, commit only the accepted prefix back into that state.
+  sglang_enable_linear_replayssm_spec: true
+  sglang_linear_replayssm_cache_len: 16
+
+data:
+  hidden_states_path: ./cache/hidden_states/ling-3.0-tiny-1k
+  # Capture the holdout with the same target revision and evaluate it during
+  # training; leaving this unset silently trains on 900 rows without a
+  # holdout signal.
+  eval_hidden_states_path: ./cache/hidden_states/ling-3.0-tiny-1k-holdout
+  max_length: 4096
+  # This is the exact renderer used to produce runs/ling-1k-local-input.
+  chat_template: ling-flash-2.0
+  cache_dir: ./cache
+
+training:
+  strategy: dspark
+  num_epochs: 1
+  max_steps: 1000
+  batch_size: 1
+  learning_rate: 0.0003
+  warmup_ratio: 0.03
+  max_grad_norm: 1.0
+  attention_backend: flex_attention
+  num_anchors: 256
+  loss_decay_gamma: 4.0
+  save_interval: 100
+  eval_interval: 100
+  log_interval: 10
+  dist_timeout: 30
+  seed: 42
+
+run_id: ling-3.0-tiny-dspark-1k
+output_dir: ./outputs/ling-3.0-tiny-dspark-1k
+
+deployment:
+  mode: local_colocated
+  trainer:
+    nnodes: 1
+    nproc_per_node: 1

@@ -1,0 +1,25 @@
+{
+  "schema_version": "target_inspect_v1",
+  "source": "ibm-granite/granite-swash-3b-a600m",
+  "revision": "568a94fcfeff42a8cab9ee2ffea89fde12071282",
+  "facts": {
+    "model_type": "granitemoe_swa",
+    "architectures": ["GraniteMoeSWAForCausalLM"],
+    "architecture_lane": "moe_hybrid",
+    "state_kind": "moe_plus_kv",
+    "num_hidden_layers": 28,
+    "layer_types": ["full_attention", "sliding_attention"],
+    "chat_template_present": false,
+    "vocab_size": 100352,
+    "context_length": 8192
+  },
+  "recommendations": {
+    "draft_depth_candidates": [3, 5, 7],
+    "target_tap_candidates": [0, 3, 7, 11, 15, 19, 23, 27],
+    "train_block_candidates": [7, 16],
+    "decode_block_candidates": [4, 7, 12, 16],
+    "anchor_sampling_candidates": ["uniform", "random"],
+    "required_gates": ["chat_template_fixture", "target_only_greedy_token_parity", "hidden_feature_parity", "state_snapshot_rollback_replay", "explicit_renderer_required"]
+  },
+  "unknown": ["exact capture boundary requires a backend probe", "SGLang support must be checked at the pinned server revision"]
+}
