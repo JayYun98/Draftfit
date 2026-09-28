@@ -25,7 +25,7 @@ This profile is for onboarding/testing, not inference or GPU training. It leaves
 the existing Ling environment unchanged. Python 3.12 and uv 0.9.18:
 
 ```sh
-uv venv --seed .venv-cpu
+uv venv --python 3.12 --seed .venv-cpu
 uv pip sync requirements-cpu.lock --python .venv-cpu/bin/python \
   --torch-backend cpu --require-hashes
 uv run --no-project --python .venv-cpu/bin/python python -m tests.public_cpu

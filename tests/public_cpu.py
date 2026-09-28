@@ -23,6 +23,7 @@ def load_tests(loader, tests, pattern):
         "tests.test_runtime.test_package_architecture",
         "tests.test_runtime.test_cli_config_build",
         "tests.test_runtime.test_launch_plan",
+        "tests.test_runtime.test_flow_control",
         "tests.test_runtime.test_checkpoint_resume",
         "tests.test_runtime.test_export",
         "tests.test_runtime.test_disaggregated_model_loading",

@@ -29,16 +29,16 @@ Remediation: that notice and the verbatim TorchSpec/AngelSpec license files now
 ship in the release assets; their references no longer require sibling checkouts.
 
 The same wheel included
-`examples/configs/kimi-k3-dspark-disaggregated.yaml`, whose current contents
-contain deployment-local paths, hostnames, and run/checkpoint identifiers.
+`examples/configs/kimi-k3-dspark-disaggregated.yaml`, which at that time
+contained deployment-local paths, hostnames, and run/checkpoint identifiers.
 Remediation: the example now uses explicit placeholder paths and `.invalid`
 hostnames, generic run IDs, and disabled tracking. Its architecture/options
 remain examples, not a new real-model support claim.
-The tracked `VAST_HANDOFF.md` is an operational handoff document and is not a
-release notice. Before publication, quarantine or sanitize that recipe and
-remove the handoff from the public source set if it is not intentionally part
-of the release. These files are also present in available repository history;
-deleting them from the current tree would not remove historical exposure.
+At that audit, `VAST_HANDOFF.md` was a tracked operational handoff, not a release
+notice. It is absent from the consolidated 0.1.0 main tree. Earlier history is
+retained in local backups and the refactor branch; remote backup refs were later
+removed. Review all refs that will become public, not only the current
+tree. The source checkout's `docs/REPOSITORY_HISTORY.md` records the backup refs.
 
 A bounded scan of the current non-test source found no obvious private-key or
 credential values; secret-shaped matches were environment-variable names,
