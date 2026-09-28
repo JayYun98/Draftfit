@@ -106,7 +106,8 @@ class ProducerFlowControl:
             if not self._paused and over_high:
                 self._paused = True
                 self._stats["pause_transitions"] += 1
-            elif self._paused and under_low:
+            # Equal low/high defaults must not reopen a still-full buffer.
+            elif self._paused and under_low and not over_high:
                 self._paused = False
                 self._stats["resume_transitions"] += 1
             if self._paused:

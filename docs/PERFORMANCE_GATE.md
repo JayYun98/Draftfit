@@ -7,13 +7,13 @@ equivalence, independent repetitions, or immutable model revisions.
 
 ## Compare recorded measurements
 
-Use benchmark JSON from the existing `--messages-jsonl` and `--output-json`
+Use benchmark JSON from `draftfit benchmark --data-path` and `--output-json`
 options. Run the target-only baseline and the candidate separately with identical
 held-out input, target/tokenizer, generation settings, concurrency and warmup.
 Keep each real measurement in a separate file.
 
 ```sh
-python -m specforge.benchmarks.compare \
+python -m draftfit.benchmarks.compare \
   --baseline baseline-1.json baseline-2.json baseline-3.json \
   --candidate candidate-1.json candidate-2.json candidate-3.json
 ```

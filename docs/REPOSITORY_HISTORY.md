@@ -7,12 +7,16 @@ changes were discarded. Version and release-documentation edits follow that tree
 
 ## Recoverable pre-release history
 
-Before rewriting main, the following branches were saved locally and remotely:
+Before rewriting main, the following branches were saved locally and remotely.
+Their remote backup refs were removed during publication preparation; local
+backup refs and worktrees remain available for recovery:
 
 - `backup/pre-0.1.0-main`: `de43b883f129ba8b9de3be08bdabd43e3311e74e`.
 - `backup/pre-0.1.0-integration`: `84e2853e5241a632f33caff0039589d8741c0152`.
 
-Earlier commits remain accessible through those branches. Squashing main is not
+Earlier commits remain accessible through the local backups and the retained
+`refactor/owned-teacher-runtime` branch. Its implementation is already included
+in main; it does not need to be merged again. Squashing main is not
 a purge of repository history or sensitive data. Historical validation records
 continue to identify the revision actually tested, not the new root commit.
 

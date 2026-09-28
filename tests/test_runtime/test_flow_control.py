@@ -10,6 +10,29 @@ from draftfit.runtime.control_plane.flow_control import (
 
 
 class FlowControlTest(unittest.TestCase):
+    def test_full_boundary_stays_paused_until_capacity_is_freed(self):
+        for limits, full, drained in (
+            (
+                FlowControlLimits(high_watermark_refs=2),
+                {"in_flight_refs": 2},
+                {"in_flight_refs": 1},
+            ),
+            (
+                FlowControlLimits(high_watermark_bytes=100),
+                {"in_flight_refs": 0, "resident_bytes": 100},
+                {"in_flight_refs": 0, "resident_bytes": 99},
+            ),
+        ):
+            with self.subTest(limits=limits):
+                policy = ProducerFlowControl(limits)
+                self.assertEqual(
+                    [policy.should_pause(**full) for _ in range(6)], [True] * 6
+                )
+                self.assertFalse(policy.should_pause(**drained))
+                stats = policy.snapshot(**drained)
+                self.assertEqual(stats["pause_transitions"], 1)
+                self.assertEqual(stats["resume_transitions"], 1)
+
     def test_reference_and_byte_hysteresis_share_one_pause_latch(self):
         policy = ProducerFlowControl(
             FlowControlLimits(
