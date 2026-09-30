@@ -5,6 +5,9 @@ explicitly approved operation; a Git version tag does not imply a PyPI release.
 
 ## Unreleased
 
+- Keep maintained data/capture/validation tools in `scripts/`, with a purpose
+  index; archive the private Ling 1K campaign and unused shell gate helper.
+
 ### Breaking cleanup
 
 - Remove `specforge`, `dspark` and `speculative_train_platform` import bridges

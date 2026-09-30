@@ -68,23 +68,13 @@ architecture is checked in under `configs/`, while target weights remain a
 Hugging Face download. It pins Ling's `model.word_embeddings.weight` key and
 the FA3/Hopper capture settings validated by the single-GPU run.
 
-For a one-GPU 900/98 reproduction, use the checked-in pipeline wrapper. It
-captures train and holdout features separately, runs holdout evaluation every
-100 steps, and exports the resulting draft:
-
-```bash
-DRY_RUN=1 scripts/run_ling_1k.sh       # print the exact commands first
-scripts/run_ling_1k.sh                 # target-greedy aggregate already present
-```
-
-Set `REGENERATE=1 REGEN_SERVER=127.0.0.1:30000` to regenerate the aggregate
-from a running target server at temperature 0 with thinking disabled. The
-wrapper keeps all model/feature/checkpoint artifacts under `RUN_ROOT`; it does
-not download large artifacts back to the workstation.
+Use the [public workflow](../../docs/PUBLIC_WORKFLOW.md) for preparation,
+offline feature capture, training and export. Historical maintainer campaigns
+are not portable entry points and are no longer shipped as pipeline wrappers.
 
 ## Writing a recipe
 
-The Pydantic models in `specforge/config/schema.py` are the authoritative
+The Pydantic models in `draftfit/config/schema.py` are the authoritative
 schema. This section explains what belongs in each YAML section and records the
 defaults that matter when writing a recipe. Unknown or misspelled fields are
 errors; YAML files and dotted CLI overrides go through the same validation.

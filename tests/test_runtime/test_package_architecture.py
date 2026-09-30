@@ -793,7 +793,6 @@ class TestPackageArchitecture(unittest.TestCase):
             Path("examples/disagg/run_offline_2node.sh"),
             Path("examples/disagg/run_qwen3_8b_dflash_disagg_2node.sh"),
             Path("examples/disagg/run_inkling_dspark_disagg_2node.sh"),
-            Path("scripts/run_ling_1k.sh"),
         }
         bypasses = []
         train_command = re.compile(r"\btrain\s+(?:--config|-c)\b")

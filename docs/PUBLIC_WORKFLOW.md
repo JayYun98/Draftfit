@@ -29,9 +29,9 @@ short functional tests; repeating it is not an onboarding requirement.
 
 ## Install and obtain editable recipes
 
-Build a wheel from this checkout with `python -m pip wheel --no-deps . -w dist`.
+Build a wheel using the [uv environment guide](ENVIRONMENT.md).
 In an **already provisioned, compatible training environment**, install that wheel
-with `python -m pip install --no-deps /absolute/path/to/draftfit-<version>-py3-none-any.whl`.
+with `uv pip install --python "$VIRTUAL_ENV/bin/python" --no-deps /absolute/path/to/draftfit-<version>-py3-none-any.whl`.
 `--no-deps` does not provision missing dependencies or make an arbitrary machine
 compatible. The package metadata's general SGLang/Torch pins are not the verified
 Ling runtime: do not let a routine dependency install replace the Ling image's
@@ -168,6 +168,28 @@ Consult `draftfit export --help`; a successful file conversion is not an
 inference compatibility claim. Reload this exact export in its supported
 serving backend and compare target tokens/state on held-out prompts. Report
 functional correctness separately from speculative acceptance and speedup.
+
+## Benchmark your workload
+
+Against an already-running compatible server:
+
+```sh
+draftfit benchmark --model /path/to/target \
+  --data-path ./data/holdout.jsonl --num-prompts 100 \
+  --max-new-tokens 128 --concurrency 1 \
+  --base-url http://127.0.0.1:30000 --output-json ./baseline.json
+```
+
+Repeat with the exported draft enabled, writing a different report. Keep prompts,
+generation settings, concurrency and hardware fixed. The command preserves
+conversation context and removes the final assistant reference; it sends prompts
+to the supplied server, so use a trusted endpoint. It neither launches a server
+nor certifies token/state correctness. Tool schemas and tool-call messages are
+rejected by this text-only benchmark.
+
+The output path must be new and its parent must exist. Handled failures remove
+an incomplete report; abrupt termination may leave a partial file that is not a
+completed measurement. Compare results using the [performance guide](PERFORMANCE_GATE.md).
 
 ## Honest release boundaries
 

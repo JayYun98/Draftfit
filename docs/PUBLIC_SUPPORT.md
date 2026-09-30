@@ -2,11 +2,11 @@
 
 Config generation is not model certification. The target executes in the
 existing inference backend; the platform does not port its architecture.
-Use `dspark algorithms` for the live registry and feature tensor contracts.
+Use `draftfit algorithms` for the live registry and feature tensor contracts.
 
 ## Owned native teacher services
 
-`dspark target prepare ... --teacher-backend transformers` or
+`draftfit target prepare ... --teacher-backend transformers` or
 `--teacher-backend vllm` selects the platform's own teacher service. It publishes
 features through the same Mooncake transport and producer/consumer trainer as
 the SGLang path; it does not launch a TorchSpec/AngelSpec training wrapper.
@@ -37,6 +37,12 @@ See [model validation](MODEL_VALIDATION.md) for the bounded real-teacher DFlash2
 training/resume/export evidence; it is not a live-serving or speedup result.
 
 ### DFlash2 serving runtime
+
+DFlash2 uses grouped convolution and candidate-selector training; tune
+`training.dflash2_selector_loss_alpha` and its draft configuration. It requires
+the full target vocabulary and homogeneous full or sliding attention. USP
+attention and vocabulary pruning are unsupported. HF export is for fine-tuning
+reload; SGLang export requires `input_embedding_scale=1.0`.
 
 Do not reuse the old Ling capture image as DFlash2 serving evidence: the locally
 pinned Ling/SGLang sources do not contain `DFlash2DraftModel`. SGLang source
