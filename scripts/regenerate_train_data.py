@@ -298,7 +298,7 @@ def call_sglang(
     if OpenAI is None:
         raise ModuleNotFoundError(
             "dataset regeneration requires the OpenAI client; install "
-            "SpecForge's data extra with `pip install 'specforge[data]'`"
+            "Draftfit's data dependency with `uv pip install openai`"
         ) from _OPENAI_IMPORT_ERROR
     client = OpenAI(base_url=f"http://{server_address}/v1", api_key="None")
 

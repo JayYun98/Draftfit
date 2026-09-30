@@ -33,12 +33,9 @@ dependencies = [
 
 [project.scripts]
 draftfit = "draftfit.cli:main"
-speculative-train-platform = "draftfit.cli:main"
-dspark = "draftfit.cli:main"
-specforge = "draftfit.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["draftfit*", "speculative_train_platform*", "dspark*", "specforge*"]
+include = ["draftfit*"]
 exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
 
 [project.optional-dependencies]

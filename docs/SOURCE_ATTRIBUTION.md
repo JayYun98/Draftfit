@@ -38,7 +38,7 @@ At that audit, `VAST_HANDOFF.md` was a tracked operational handoff, not a releas
 notice. It is absent from the consolidated 0.1.0 main tree. Earlier history is
 retained in local backups and the refactor branch; remote backup refs were later
 removed. Review all refs that will become public, not only the current
-tree. The source checkout's `docs/REPOSITORY_HISTORY.md` records the backup refs.
+tree. Removing a file from the current tree does not remove historical copies.
 
 A bounded scan of the current non-test source found no obvious private-key or
 credential values; secret-shaped matches were environment-variable names,

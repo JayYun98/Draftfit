@@ -2,14 +2,9 @@
 
 ## Isolated CPU environment
 
-The distribution and primary command are `draftfit`.
-Legacy `speculative_train_platform`, `dspark` and `specforge` imports and their
-command aliases remain available. Do not install
-the upstream SpecForge distribution alongside it in the same environment: both
-would own the legacy Python namespace. The implementation itself is now in
-`draftfit`; use a dedicated environment when migrating from
-upstream SpecForge or the previous `speculative-train-platform` or
-`dspark-train-platform` distributions.
+The distribution, Python package and command are `draftfit`. Legacy import and
+command aliases have been removed. Use a fresh environment when migrating;
+see [namespace migration](ENVIRONMENT.md#namespace-migration).
 
 Training resume and export use the restricted tensor/primitive checkpoint loader,
 including per-rank optimizer and RNG payloads. Arbitrary pickle objects are
@@ -96,9 +91,7 @@ serving validation remain separate gates.
   matching project metadata, and a matching manual distribution-name confirmation.
   Forks retaining upstream distribution names are rejected. Do not enable it until identity and release
   checks below are approved. No publication was performed.
-- Package discovery includes `draftfit*` and the small `speculative_train_platform`,
-  `dspark` and `specforge` compatibility
-  package; recipes are copied from the
+- Package discovery includes only `draftfit*`; recipes are copied from the
   existing allowlisted source directories. Wheel tests check license inclusion,
   overwrite refusal and obvious local-path/private-key leaks. This bounded
   check is not a full secret/history audit.
@@ -106,8 +99,7 @@ serving validation remain separate gates.
 ## Release review checklist
 
 1. The public source identity is **Draftfit**, with the `draftfit` distribution
-   and command. The legacy `specforge` namespace and command remain
-   for checkpoint/import compatibility, and upstream authorship remains credited.
+   and command. Legacy namespaces are removed; upstream authorship remains credited.
    Publication is still opt-in; changing metadata does not publish a package.
 2. Complete per-file attribution review before claiming license clearance.
    See [source inventory](SOURCE_ATTRIBUTION.md). Preserve existing notices.

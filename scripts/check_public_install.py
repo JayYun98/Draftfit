@@ -16,11 +16,6 @@ from pathlib import Path
 def main():
     import draftfit
     from draftfit.config import Config
-    from dspark.config import Config as DSparkConfig
-    from specforge.config import Config as LegacyConfig
-    from speculative_train_platform.config import Config as PlatformConfig
-
-    assert Config is LegacyConfig is DSparkConfig is PlatformConfig
 
     if not sys.flags.isolated:
         raise RuntimeError("run with python -I to exclude the source checkout")
@@ -31,13 +26,7 @@ def main():
         for entry in distribution.entry_points
         if entry.group == "console_scripts"
     }
-    assert (
-        commands["draftfit"]
-        == commands["speculative-train-platform"]
-        == commands["dspark"]
-        == commands["specforge"]
-        == "draftfit.cli:main"
-    )
+    assert commands == {"draftfit": "draftfit.cli:main"}
     if "site-packages" not in installed.parts:
         raise RuntimeError(f"expected installed wheel, not checkout: {installed}")
     environment = {
@@ -47,7 +36,7 @@ def main():
         "HF_DATASETS_OFFLINE": "1",
         "WANDB_MODE": "disabled",
     }
-    with tempfile.TemporaryDirectory(prefix="specforge-onboarding-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="draftfit-onboarding-") as temporary:
         root = Path(temporary)
 
         def cli(*args, error=None):

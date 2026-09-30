@@ -325,9 +325,6 @@ class TestPackageArchitecture(unittest.TestCase):
         self.assertEqual(
             {
                 "draftfit": "draftfit.cli:main",
-                "speculative-train-platform": "draftfit.cli:main",
-                "dspark": "draftfit.cli:main",
-                "specforge": "draftfit.cli:main",
             },
             project["project"]["scripts"],
         )

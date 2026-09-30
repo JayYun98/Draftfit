@@ -1,11 +1,20 @@
 # Environment management with uv
 
 Use uv (0.9.18 or newer); contributor Python is 3.12. The owned distribution
-contains the implementation in `draftfit` with `speculative_train_platform`,
-`dspark` and `specforge` compatibility imports. Use a fresh environment when migrating from
-`speculative-train-platform`, `dspark-train-platform` or upstream SpecForge. Do not
-co-install them: they would own the same legacy package files and uninstalling
-either could damage the other. See [code ownership](CODE_OWNERSHIP.md).
+contains only the `draftfit` implementation package. See [code ownership](CODE_OWNERSHIP.md).
+
+## Namespace migration
+
+Use `draftfit` instead of `specforge`, `dspark` or `speculative_train_platform`
+in Python imports and module commands. The `speculative-train-platform`, `dspark`
+and `specforge` console aliases are also removed. Create a fresh environment when
+migrating so stale compatibility packages from previous installations cannot mask
+missing imports. Do not mix upstream SpecForge with Draftfit in that environment.
+
+Tensor checkpoint keys, configuration fields and algorithm names (including
+`dspark`) are unchanged. Old Python-object pickles referencing removed modules
+are no longer supported. Use trusted old environments to export tensor-only or
+safetensors artifacts; do not bypass restricted checkpoint loading.
 
 ## CPU preparation and contributor checks
 
@@ -165,7 +174,7 @@ Reference: [vLLM native extraction](https://github.com/vllm-project/vllm/blob/v0
 
 - Use uv for environment creation, dependency synchronization, builds and installs.
 - Keep historical experiment commands unchanged as evidence, not onboarding advice.
-- Preserve upstream attribution in absorbed source; namespace compatibility is not
-  a dependency on a separately installed upstream package.
+- Preserve upstream attribution in absorbed source; the engine is shipped here,
+  not installed from a separate upstream package.
 - Refactoring metadata/preflight code does not invalidate unrelated recorded GPU
   results. Repeat only the affected runtime gates when execution behavior changes.

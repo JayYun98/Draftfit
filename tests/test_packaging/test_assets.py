@@ -62,6 +62,8 @@ class AssetTests(unittest.TestCase):
             version = (root / "version.txt").read_text().strip()
             wheel = wheels / f"draftfit-{version}-py3-none-any.whl"
             with zipfile.ZipFile(wheel) as archive:
+                archive.getinfo("draftfit/cli.py")
+                archive.getinfo("draftfit/training/trainer.py")
                 for name in DOCUMENTS:
                     self.assertEqual(
                         archive.read("draftfit/assets/_data/" + name),
@@ -95,9 +97,6 @@ class AssetTests(unittest.TestCase):
                 shutil.copyfile(root / name, source / name)
             for name in (
                 "draftfit",
-                "speculative_train_platform",
-                "dspark",
-                "specforge",
                 "configs",
                 "examples/configs",
             ):
@@ -134,15 +133,7 @@ class AssetTests(unittest.TestCase):
                 direct_payload = {
                     name: archive.read(name)
                     for name in archive.namelist()
-                    if name.startswith(
-                        (
-                            "draftfit/",
-                            "speculative_train_platform/",
-                            "dspark/",
-                            "specforge/",
-                        )
-                    )
-                    or name.endswith("/LICENSE")
+                    if name.startswith("draftfit/") or name.endswith("/LICENSE")
                 }
             # Build through the source distribution, not just the checkout:
             # missing MANIFEST entries otherwise remain invisible to wheel tests.
@@ -192,15 +183,7 @@ class AssetTests(unittest.TestCase):
                 rebuilt_payload = {
                     name: archive.read(name)
                     for name in archive.namelist()
-                    if name.startswith(
-                        (
-                            "draftfit/",
-                            "speculative_train_platform/",
-                            "dspark/",
-                            "specforge/",
-                        )
-                    )
-                    or name.endswith("/LICENSE")
+                    if name.startswith("draftfit/") or name.endswith("/LICENSE")
                 }
                 self.assertEqual(direct_payload, rebuilt_payload)
                 self.assertTrue(
@@ -208,7 +191,16 @@ class AssetTests(unittest.TestCase):
                 )
                 for name in archive.namelist():
                     self.assertFalse(
-                        name.startswith(("build/", "runs/", ".git/")), name
+                        name.startswith(
+                            ("specforge/", "dspark/", "speculative_train_platform/")
+                        ),
+                        name,
+                    )
+                    self.assertFalse(
+                        name.startswith(
+                            ("build/", "runs/", ".git/", ".private/", "content/")
+                        ),
+                        name,
                     )
                     if name.endswith((".py", ".json", ".yaml", ".yml")):
                         data = archive.read(name)

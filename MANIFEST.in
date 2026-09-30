@@ -1,4 +1,5 @@
 include version.txt
+prune .private
 recursive-include configs *.json *.yaml *.yml
 recursive-include examples/configs *.json *.yaml *.yml
 include LICENSE

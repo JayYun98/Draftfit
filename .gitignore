@@ -202,3 +202,6 @@ wandb/
 
 # Local agent plans and experiment coordination, not product source.
 .planning/
+
+# Maintainer-only editorial drafts and internal records (never publish).
+/.private/

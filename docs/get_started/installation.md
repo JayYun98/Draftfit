@@ -10,7 +10,7 @@ cd Draftfit
 
 Create a fresh environment when migrating from an earlier distribution. Do not
 co-install Draftfit with the old platform or upstream SpecForge distributions:
-their compatibility packages can own overlapping files. Follow the migration
+old installations can leave stale package files. Follow the migration
 instructions in the environment guide instead of installing upstream
 `specforge` as a substitute.
 

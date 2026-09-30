@@ -197,14 +197,13 @@ The distribution and primary command are `draftfit`; the Python
 package is `draftfit`. The implementation lives in that package:
 application composition, draft
 algorithms, training, feature transport and teacher services are maintained here.
-The legacy `speculative_train_platform`, `dspark` and `specforge` imports resolve
-to the same implementation. The former `speculative-train-platform`, `dspark`
-and `specforge` commands remain aliases, not separately installed training frameworks.
+Use `draftfit` for all imports and CLI commands. Legacy package namespaces and
+command aliases have been removed; see [migration notes](docs/ENVIRONMENT.md#namespace-migration).
 
 DSpark names one supported draft algorithm, not the platform. Existing algorithm
 settings and checkpoint identifiers remain unchanged. Use a fresh environment
 when migrating from `speculative-train-platform`, `dspark-train-platform` or upstream SpecForge; the old and
-new distributions must not be installed together because compatibility files overlap.
+new distributions should not be mixed in one environment.
 
 The training engine is shipped in this distribution, not installed from upstream
 SpecForge. This remains a SpecForge-derived project with preserved attribution,

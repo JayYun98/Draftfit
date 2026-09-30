@@ -1,7 +1,6 @@
 # Customize a speculative draft, without reimplementing the target
 
-Use `draftfit` for the product CLI; `dspark` and `specforge` remain compatibility aliases in
-older examples below. Convert local OpenAI/ShareGPT data with `draftfit data prepare
+Use `draftfit` for the product CLI. Convert local OpenAI/ShareGPT data with `draftfit data prepare
 --input data.jsonl --output train.jsonl --split-eval --eval-output holdout.jsonl`.
 Splits are approximate five percent, grouping identical prompt contexts to avoid
 leakage. Unsupported semantic fields fail explicitly instead of being dropped.

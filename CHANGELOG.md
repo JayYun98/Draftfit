@@ -3,6 +3,18 @@
 User-visible changes are recorded here. Package publication is a separate,
 explicitly approved operation; a Git version tag does not imply a PyPI release.
 
+## Unreleased
+
+### Breaking cleanup
+
+- Remove `specforge`, `dspark` and `speculative_train_platform` import bridges
+  and their legacy CLI aliases. Use `draftfit` instead. Old Python-object
+  pickles naming these modules are no longer supported; tensor checkpoint keys,
+  draft configs and algorithm identifiers are unchanged.
+- Correct the Ling image recipe to copy/install the canonical Draftfit package.
+- Move maintainer editorial drafts, branding notes and internal migration history
+  out of the tracked source tree. Public usage, support and attribution remain.
+
 ## [0.2.0] — 2026-09-30
 
 - Public Draftfit identity, refreshed developer-first README and renamed repository.
@@ -49,7 +61,7 @@ Blog and LinkedIn materials remain unpublished drafts.
 This release includes a SpecForge-derived engine and attributed adaptations.
 Original notices remain intact; see [third-party notices](THIRDPARTY_NOTICES.md).
 The main branch starts with one consolidated release commit. Pre-release history
-is preserved on backup branches as described in [repository history](docs/REPOSITORY_HISTORY.md).
+was preserved separately during the consolidation.
 
 ### Version policy
 

@@ -80,9 +80,8 @@ test patterns. This is neither a complete content/history secret scan nor proof
 that publication is safe. No secret values were reported.
 
 `SOURCE_ATTRIBUTION.md` records a 2026-09-08 audit of the original repository,
-including its then-tracked operational handoff file. `REPOSITORY_HISTORY.md`
-describes the later snapshot import without that history. Read those dated
-findings in their respective repository contexts.
+including its then-tracked operational handoff file. Read dated findings in
+their respective repository contexts; removing current files is not a history purge.
 
 The CPU workflow uses hosted runners and read-only repository permissions.
 Publication is manual and requires the CPU workflow plus explicit identity
