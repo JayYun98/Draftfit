@@ -6,6 +6,18 @@ Use `draftfit algorithms` for the live registry and feature tensor contracts.
 
 ## Owned native teacher services
 
+The README distinguishes **Core** (the shared PyTorch trainer), **Maintained,
+validated configurations** (SGLang), **Native, bounded GPU validation**
+(Transformers) and **Native, experimental** (vLLM). Native means Draftfit owns
+the integration, not that every model or dtype is certified. TensorRT-LLM and
+TokenSpeed teachers are not implemented.
+
+Both native services have bounded real GPU 0 teacher → Mooncake → GPU 1 trainer
+evidence. The trainer is PyTorch regardless of teacher choice; Transformers and
+vLLM are not alternative training engines. Native vLLM capture requires an
+unquantized, single-device TP1/PP1 target and uses temporary files internally
+before transport; it is not a direct zero-disk worker-hook integration.
+
 `draftfit target prepare ... --teacher-backend transformers` or
 `--teacher-backend vllm` selects the platform's own teacher service. It publishes
 features through the same Mooncake transport and producer/consumer trainer as

@@ -19,6 +19,18 @@ Preserve upstream credits when editing inherited material; see
 | Measure inference performance | [Workload evaluation](PERFORMANCE_GATE.md) |
 | Contribute and validate | [Release checks](PUBLIC_RELEASE.md) · [Source tools](../scripts/README.md) |
 
+## Documentation languages
+
+English is the canonical language for public documentation, examples and agent
+guides. Private notes are exempt. The [Korean README](../README.ko.md) translates
+the project overview; detailed guides currently remain in English.
+
+To contribute another language, add `README.<language-code>.md` beside the English
+README and add reciprocal language links only after the translation exists.
+Keep commands, configuration keys, model IDs, support levels and validation
+limitations consistent with the English source. Update affected translations
+with the source, or clearly mark them as outdated; do not translate API names.
+
 ## Build and preview
 
 Use a separate documentation environment so building the site does not replace

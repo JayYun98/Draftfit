@@ -1,39 +1,40 @@
 ---
 name: dspark-rent
-description: DSpark Train Platform의 GPU 실험을 위한 Vast 인스턴스 검색, 승인된 예산 내 대여, 백업과 정확한 리소스 정리를 수행할 때 사용합니다.
+description: Search Vast offers, rent within authorized budgets, back up results and clean up exact GPU resources for Draftfit.
 ---
 
-# GPU 대여와 종료
+# GPU rental and cleanup
 
-이 스킬을 포함한 저장소 루트를 확인하고 [환경 선택](../../docs/MODEL_ENVIRONMENTS.md),
-[runtime profiles](../../docs/RUNTIME_PROFILES.md)를 읽는다. 문서에 적힌 과거 가격,
-잔액, offer/instance ID는 현재 대여 권한이나 활성 자원이 아니다.
+Locate the repository; read [environments](../../docs/MODEL_ENVIRONMENTS.md)
+and [runtime profiles](../../docs/RUNTIME_PROFILES.md). Historical prices,
+balances and IDs are neither current authorization nor active resources.
 
-검색만 요청한 경우 주어진 GPU/가격 조건으로 읽기 전용 비교를 수행한다.
-총 예산·시간 상한의 추가 확인은 실제 대여로 전환할 때 필요하며 검색을 막지 않는다.
+Search-only requests permit read-only comparisons. Confirm total budget/time
+before rental, without blocking searches.
 
-1. 먼저 로컬 검사와 실행할 GPU gate를 확정한다. 사용자 예산(디스크 포함 시간당
-   상한, 총 비용/시간 상한), GPU 수·VRAM·세대, spot 허용 여부를 확인한다.
-   단순 검색 요청으로 대여하지 않는다. 필수 비용 한도가 없으면 대여 전에 묻는다.
-2. 현재 계정 인스턴스·볼륨을 읽기 전용으로 조사하고 기존 자원을 따로 기록한다.
-   비밀키·접속 token은 출력하지 않는다. 기존 자원을 임의로 재사용/삭제하지 않는다.
-3. 설치된 Vast CLI help 또는 공식 API로 실제 문법을 확인한다. spot 검색에는
-   `-i`를 사용한다. `gpu_ram` 검색 입력은 GB, 반환 수치는 MiB일 수 있으므로
-   단위를 확인한다. 디스크 포함 총액, 가용성, 신뢰도와 GPU topology를 비교한다.
-   검색 결과는 예약이 아니며 stale일 수 있다. 같은 실패 offer를 계속 재시도하지 않는다.
-4. 승인된 범위 안에서만 대여하고 반환된 실제 instance ID를 즉시 run manifest에
-   기록한다. offer ID와 혼동하지 않는다. 생성한 별도 volume도 ID와 소유권을 기록한다.
-   생성 응답이 불확실하면 현재 자원을 재조회한 뒤 중복 생성 여부를 판단한다.
-5. SSH/CUDA/VRAM/disk/backend source를 검사하고 설치·다운로드 시간도 예산에 포함한다.
-   각 단계 후 작은 로그·config·JSON·checkpoint 메타데이터를 로컬로 백업한다.
-   큰 가중치/feature는 필요성과 용량을 판단하고 사용자 제한을 따른다.
-6. 잔액·누적비용을 단계마다 확인한다. 잔액 경고선은 사용자 설정을 따른다.
-   경고·중단·백업·삭제에 필요한 시간을 남겨 종료하고, top-up이 없으면 계속 과금하지 않는다.
-   상시 감시를 구현하지 않았으면 “계속 모니터링 중”이라고 말하지 않는다.
-7. 종료 요청/한도 도달 시 필요한 자료의 로컬 크기·해시를 확인하고, manifest에
-   소유권이 확인된 정확한 instance/volume만 제거한다. 재조회로 해당 ID의 부재를
-   확인한다. 다른 실험이 있다면 계정 전체가 빈 상태일 필요는 없다. 정지 상태가
-   디스크 과금까지 끝냈다는 뜻은 아니다. 미삭제 자원·백업 실패는 명시한다.
+1. Finish local checks and select GPU gates. Establish disk-inclusive hourly
+   and total cost/time limits, GPU count/VRAM/generation and spot permission.
+   Search is not rental authorization; ask for missing cost limits before renting.
+2. Inventory existing instances/volumes read-only and record them separately.
+   Keep keys/tokens secret; preserve other experiments' resources.
+3. Check installed CLI help or official API syntax. Spot search uses `-i`.
+   Verify units: `gpu_ram` filters use GB; results may use MiB. Compare total
+   disk-inclusive cost, availability, reliability and topology. Offers are not
+   reservations and can be stale; bound retries of failed offers.
+4. Rent only within authorization. Immediately record returned instance IDs,
+   distinct from offer IDs, and separate volume IDs/ownership in the manifest.
+   Re-query after ambiguous creation before risking duplicates.
+5. Check SSH/CUDA/VRAM/disk/backend source; setup/download time counts toward
+   budget. Back up small logs/configs/JSON/checkpoint metadata each stage.
+   Transfer large weights/features only when justified within user limits.
+6. Check balance/cost each stage against the user's warning threshold. Reserve
+   time for warning, stopping, backup and deletion; do not keep billing without
+   a top-up. Claim continuous monitoring only when actually implemented.
+7. At the stop condition, verify local backup sizes/hashes and delete only exact
+   IDs owned by this run. Re-query to confirm those IDs are absent; other
+   experiments may remain. Stopping alone may still incur disk charges.
+   Report remaining resources or backup failures.
 
-결과에는 실제 임대 ID, 총액 기준 가격, 실행 gate, 백업 위치, 종료 확인을 남긴다.
-API/CLI가 없으면 준비 목록을 제공하고 멈춘다. 자격증명을 파일에서 찾아 출력하지 않는다.
+Report rental IDs, total hourly price, gates, backup paths and cleanup evidence.
+If API/CLI access is unavailable, provide preparation steps and stop. Never
+expose credentials from local files.

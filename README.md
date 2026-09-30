@@ -1,10 +1,12 @@
 # Draftfit
 
+[English](README.md) | [한국어](README.ko.md)
+
 **Train speculative decoding drafts for your model, your workload, your data.**
 
 **DSpark · DFlash · DFlash2 · EAGLE3 · PEagle · Domino**
 
-[Quick start](#quick-start) · [Draft methods](#draft-methods) · [Example models](#example-models) · [Documentation](docs/README.md)
+[Quick start](#quick-start) · [Draft methods](#draft-methods) · [Backends](#backends) · [Example models](#example-models) · [Documentation](docs/README.md)
 
 Draftfit helps individual developers and agent builders train a smaller draft
 for the tasks their LLM actually handles. Start with your conversations, choose
@@ -63,9 +65,22 @@ follow the [complete workflow](docs/PUBLIC_WORKFLOW.md).
 | PEagle | No | Yes | Flex attention and method-specific feature layout |
 | Domino | Yes | Yes | Explicit compatible draft configuration |
 
-Teachers can use **SGLang, Hugging Face Transformers or vLLM** with the same
-PyTorch draft trainer. Availability depends on the target and pinned runtime;
-native HF/vLLM services remain experimental.
+## Backends
+
+All teachers feed the same **PyTorch draft trainer**. These levels describe
+implementation and retained evidence—not universal production certification.
+
+| Component | Role | Support level | Validation scope |
+| --- | --- | --- | --- |
+| PyTorch | Draft trainer | Core | Training, same-world resume and export; FSDP1 default, FSDP2 opt-in |
+| SGLang | Offline / online teacher | Maintained, validated configurations | Real Ling capture, training and bounded pinned serving/state checks |
+| Hugging Face Transformers | Offline / online teacher | Native, bounded GPU validation | Qwen3-0.6B BF16 feature parity; DSpark/DFlash2 train/resume/export |
+| vLLM | Offline / online teacher | Native, experimental | Qwen3-0.6B FP32 parity and train/resume/export; **BF16 parity failed** |
+| TensorRT-LLM / TokenSpeed | Teacher | Not implemented | No integration in this release |
+
+Native HF/vLLM capture currently targets single-device Llama/Qwen2/Qwen3 text
+decoders. Teacher support does not imply exported-draft serving support;
+DFlash2 live serving remains unverified.
 [Backend requirements and method limits →](docs/PUBLIC_SUPPORT.md)
 
 ## Example models
