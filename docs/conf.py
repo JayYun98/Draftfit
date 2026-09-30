@@ -53,7 +53,7 @@ html_copy_source = True
 html_last_updated_fmt = ""
 
 html_theme_options = {
-    "repository_url": "https://github.com/JayYun98/dspark-train-platform",
+    "repository_url": "https://github.com/JayYun98/Draftfit",
     "path_to_docs": "docs",
     "repository_branch": "main",
     "show_navbar_depth": 3,

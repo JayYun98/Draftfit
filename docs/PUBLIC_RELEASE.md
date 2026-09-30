@@ -51,14 +51,16 @@ index and a subsequent no-cache download produced the same mismatch. Hash checki
 downloaded hash was not added as trusted. The existing local environment passes
 the CPU gate, but uses Torch 2.13.0 / Transformers 5.14.1. The declared profile
 pins 2.11.0 / 5.8.1 and is verified on Linux only.
-Linux CI is configured but has not been run remotely in this task.
+Subsequent clean Linux locked-install, CPU and installed-wheel CI passed on
+main `2f4b066`: [release-hardening CI](https://github.com/JayYun98/Draftfit/actions/runs/36655471388).
+Each new release candidate must pass the same workflow on its own revision.
 
 After a successful dependency gate, build/install the local wheel without
 replacing the environment's backend:
 
 ```sh
 uv build --python .venv-cpu/bin/python --no-build-isolation
-uv pip install --python .venv-cpu/bin/python --no-deps dist/draftfit-0.1.0-py3-none-any.whl
+uv pip install --python .venv-cpu/bin/python --no-deps dist/draftfit-0.2.0-py3-none-any.whl
 uv run --no-project --python .venv-cpu/bin/python python -m draftfit.assets list
 uv run --no-project --python .venv-cpu/bin/python python -I scripts/check_public_install.py
 ```
@@ -101,10 +103,10 @@ serving validation remain separate gates.
   overwrite refusal and obvious local-path/private-key leaks. This bounded
   check is not a full secret/history audit.
 
-## Decisions still required from the maintainer
+## Release review checklist
 
-1. Review the `draftfit` distribution and command identity
-   before publication. The internal `specforge` namespace and legacy command remain
+1. The public source identity is **Draftfit**, with the `draftfit` distribution
+   and command. The legacy `specforge` namespace and command remain
    for checkpoint/import compatibility, and upstream authorship remains credited.
    Publication is still opt-in; changing metadata does not publish a package.
 2. Complete per-file attribution review before claiming license clearance.

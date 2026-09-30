@@ -6,7 +6,7 @@ for passes and retained failures; this is not blanket production certification.
 
 This guide is bundled in the wheel, but `scripts/gates/` and its fixtures are
 checkout-only validation tools. Run the commands below from a matching
-[repository checkout](https://github.com/JayYun98/dspark-train-platform);
+[repository checkout](https://github.com/JayYun98/Draftfit);
 exporting wheel assets alone does not provide those scripts.
 
 ## Image and hardware

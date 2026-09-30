@@ -1,17 +1,36 @@
 # Draftfit
 
+**Train speculative decoding drafts for your model, your workload, your data.**
+
+**DSpark · DFlash · DFlash2 · EAGLE3 · PEagle · Domino**
+
+[Quick start](#quick-start) · [Draft methods](#draft-methods-and-target-support) · [Evaluation](#customization-and-evaluation) · [Support matrix](docs/PUBLIC_SUPPORT.md) · [Docs](#docs)
+
+Draftfit helps individual developers and agent builders train a smaller draft
+for the tasks their LLM actually handles. Start with your conversations, choose
+a target and draft method, then train, export and benchmark through one CLI.
+Inference teams and researchers can use the same workflow to compare methods.
+
+Your target stays frozen. The draft proposes tokens; the target verifies them.
 **Your workload. Your draft.**
 
-Source release: **0.1.0** · [Changelog](CHANGELOG.md) · [Support boundaries](docs/PUBLIC_SUPPORT.md)
+Source release **0.2.0** · [Changelog](CHANGELOG.md) · [Upcoming work](plans/README.md)
 
-Train and fine-tune speculative decoding drafts for your target model and your
-own data. Draftfit brings conversation preparation, draft training, checkpoint
-recovery, export and workload evaluation into one workflow.
+[![Draftfit workflow: reviewed conversations, frozen target capture, draft training and held-out evaluation](assets/workflow.png)](https://github.com/JayYun98/Draftfit/releases/download/v0.2.0/draftfit-system-demo-en.mp4)
 
-Built for people running personal agents, teams serving repeated task patterns,
-and researchers comparing draft methods. Your target stays frozen; you customize
-the smaller draft that proposes tokens for it to verify. Better acceptance can
-help, but speedup must be measured against target-only inference on your workload.
+[Watch the 29-second workflow overview](https://github.com/JayYun98/Draftfit/releases/download/v0.2.0/draftfit-system-demo-en.mp4) — an illustrated workflow, not a measured speedup demo.
+
+## Why Draftfit?
+
+- **Use your own data.** Prepare reviewed conversation exports with a separate holdout set.
+- **Make the draft yours.** Configure the target, draft method, depth, feature layers and block size; fine-tune a compatible existing draft or train a new one.
+- **Choose how to train.** Reuse offline target features or stream them to separate training workers. Recover interrupted runs and export the result.
+- **Measure what matters.** Compare end-to-end throughput on your workload—not just training loss or token acceptance. Speedup is measured, not promised.
+
+```text
+Your conversations → Prepare → Capture → Train → Export → Benchmark
+                              teacher    draft            vs target only
+```
 
 ## How it works
 
@@ -27,8 +46,8 @@ The target stays frozen. The inference backend runs its architecture; this platf
 Use a Linux GPU environment matching your target backend. Start with the [runtime profiles](docs/RUNTIME_PROFILES.md) and their capture requirements; installing this package does not patch an inference server.
 
 ```sh
-git clone https://github.com/JayYun98/dspark-train-platform.git
-cd dspark-train-platform
+git clone https://github.com/JayYun98/Draftfit.git
+cd Draftfit
 
 # In an activated, provisioned training environment, preserve backend versions:
 uv pip install --python "${VIRTUAL_ENV:?Activate the runtime environment}/bin/python" --no-deps --no-build-isolation -e .
@@ -186,7 +205,6 @@ DSpark names one supported draft algorithm, not the platform. Existing algorithm
 settings and checkpoint identifiers remain unchanged. Use a fresh environment
 when migrating from `speculative-train-platform`, `dspark-train-platform` or upstream SpecForge; the old and
 new distributions must not be installed together because compatibility files overlap.
-The repository URL retains its existing name.
 
 The training engine is shipped in this distribution, not installed from upstream
 SpecForge. This remains a SpecForge-derived project with preserved attribution,
@@ -196,7 +214,10 @@ Custom SGLang and Mooncake remain explicit external runtimes; see
 
 The platform builds on SpecForge's training engine and adapts selected ideas and implementations from [TorchSpec](https://github.com/lightseekorg/TorchSpec), [AngelSpec](https://github.com/Tencent/AngelSpec), and DSpark-related projects. Upstream licenses and attribution remain intact. See [third-party notices](THIRDPARTY_NOTICES.md) and [source attribution](docs/SOURCE_ATTRIBUTION.md).
 
+## Docs
+
 - [Detailed workflow](docs/PUBLIC_WORKFLOW.md)
+- [Upcoming model experiments and personalization](plans/README.md)
 - [Add a target through configuration](docs/TARGET_EXTENSION.md)
 - [Compare personal-workload measurements](docs/PERFORMANCE_GATE.md)
 - [Production release gates](docs/RELEASE_GATES.md)

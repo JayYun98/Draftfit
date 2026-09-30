@@ -3,6 +3,16 @@
 User-visible changes are recorded here. Package publication is a separate,
 explicitly approved operation; a Git version tag does not imply a PyPI release.
 
+## [0.2.0] — 2026-09-30
+
+- Public Draftfit identity, refreshed developer-first README and renamed repository.
+- Explicit roadmap for recent-model experiments and personalized inference;
+  these experimental adapters/configurations are not included in this release.
+- Producer backpressure release hardening carried forward from main.
+- Updated installation links and package version; existing runtime support
+  boundaries and attribution remain unchanged. No new GPU certification or
+  inference-speedup result is claimed.
+
 ## [0.1.0] — 2026-09-19
 
 Initial Draftfit source release. **Your workload. Your draft.**

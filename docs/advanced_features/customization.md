@@ -2,7 +2,7 @@
 
 Customization starts from a typed YAML config. Pick the closest checked-in
 file under
-[`examples/configs`](https://github.com/JayYun98/dspark-train-platform/tree/main/examples/configs),
+[`examples/configs`](https://github.com/JayYun98/Draftfit/tree/main/examples/configs),
 change model and data paths, and keep the same training entry point:
 
 ```bash

@@ -1,12 +1,11 @@
 # Install Draftfit
 
 Use the maintained [environment guide](../ENVIRONMENT.md) for the exact uv
-commands, Python version and CPU dependency lock. The repository URL has not
-changed with the product name:
+commands, Python version and CPU dependency lock:
 
 ```sh
-git clone https://github.com/JayYun98/dspark-train-platform.git
-cd dspark-train-platform
+git clone https://github.com/JayYun98/Draftfit.git
+cd Draftfit
 ```
 
 Create a fresh environment when migrating from an earlier distribution. Do not

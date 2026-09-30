@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 description = "Train and fine-tune speculative decoding drafts on your own data"
 authors = [{name = "JayYun98"}, {name = "SpecForge contributors (upstream engine)"}]
 maintainers = [{name = "JayYun98"}]
-urls = {Homepage = "https://github.com/JayYun98/dspark-train-platform", Upstream = "https://github.com/sgl-project/SpecForge"}
+urls = {Homepage = "https://github.com/JayYun98/Draftfit", Upstream = "https://github.com/sgl-project/SpecForge"}
 dependencies = [
     "torch==2.11.0",
     "transformers==5.8.1",

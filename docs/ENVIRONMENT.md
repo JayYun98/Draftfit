@@ -18,7 +18,7 @@ uv pip sync --python .venv/bin/python requirements-cpu.lock \
 uv run --no-project --python .venv/bin/python python -m tests.public_cpu
 uv build --python .venv/bin/python --no-build-isolation
 uv pip install --python .venv/bin/python --no-deps \
-  dist/draftfit-0.1.0-py3-none-any.whl
+  dist/draftfit-0.2.0-py3-none-any.whl
 uv run --no-project --python .venv/bin/python python -I scripts/check_public_install.py
 ```
 

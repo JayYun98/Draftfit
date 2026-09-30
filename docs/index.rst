@@ -63,4 +63,4 @@ not a blanket compatibility or production-readiness claim.
    community_resources/specbundle
    community_resources/dashboard
 
-Source and issues: `Draftfit repository <https://github.com/JayYun98/dspark-train-platform>`_.
+Source and issues: `Draftfit repository <https://github.com/JayYun98/Draftfit>`_.
