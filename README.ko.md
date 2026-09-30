@@ -18,7 +18,7 @@ Draftfit은 개인 개발자와 에이전트 개발자가 실제 작업에 맞�
 
 소스 릴리스 **0.2.0** · [변경 이력](CHANGELOG.md) · [향후 계획](plans/README.md)
 
-[![Draftfit: 검토한 대화, 고정된 타깃의 feature 추출, draft 훈련과 holdout 평가](assets/workflow.png)](https://github.com/JayYun98/Draftfit/releases/download/v0.2.0/draftfit-system-demo-en.mp4)
+https://github.com/user-attachments/assets/ba787371-e71f-4413-aa03-d697090ccbb1
 
 [29초 워크플로 영상 보기](https://github.com/JayYun98/Draftfit/releases/download/v0.2.0/draftfit-system-demo-en.mp4) — 영어 설명 영상이며, 실제 속도 향상 측정 영상은 아닙니다.
 

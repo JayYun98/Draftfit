@@ -18,7 +18,7 @@ Your target stays frozen. The draft proposes tokens; the target verifies them.
 
 Source release **0.2.0** · [Changelog](CHANGELOG.md) · [Upcoming work](plans/README.md)
 
-[![Draftfit workflow: reviewed conversations, frozen target capture, draft training and held-out evaluation](assets/workflow.png)](https://github.com/JayYun98/Draftfit/releases/download/v0.2.0/draftfit-system-demo-en.mp4)
+https://github.com/user-attachments/assets/ba787371-e71f-4413-aa03-d697090ccbb1
 
 [Watch the 29-second workflow overview](https://github.com/JayYun98/Draftfit/releases/download/v0.2.0/draftfit-system-demo-en.mp4) — an illustrated workflow, not a measured speedup demo.
 
