@@ -1,5 +1,5 @@
 # Ling 3.0 tiny: offline target capture followed by DSpark training.
-# Capture the target with scripts/prepare_hidden_states.py before `specforge train`.
+# Capture the target with -m draftfit.offline_capture.prepare before `specforge train`.
 model:
   target_model_path: inclusionAI/Ling-3.0-tiny
   draft_model_config: configs/ling-3.0-tiny-dspark.json

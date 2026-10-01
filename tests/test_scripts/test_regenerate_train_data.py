@@ -15,7 +15,7 @@ class TestRegenerateTrainData(unittest.TestCase):
     def test_regenerate_sharegpt(self):
         port = get_available_port()
         data_process = execute_shell_command(
-            "python scripts/prepare_data.py --dataset sharegpt"
+            "python -m draftfit.data.prepare_presets --dataset sharegpt"
         )
         data_process.wait()
 
@@ -41,7 +41,7 @@ class TestRegenerateTrainData(unittest.TestCase):
                 process=sglang_process,
             )
             regeneration_process = execute_shell_command(
-                f"""python scripts/regenerate_train_data.py \
+                f"""python -m draftfit.data.regenerate \
     --model unsloth/Llama-3.2-1B-Instruct \
     --concurrency 128 \
     --max-tokens 128 \

@@ -12,12 +12,12 @@
 # when a reverse dry-run proves it matches the current patch byte-for-byte;
 # anything else fails loudly rather than testing against unknown server code.
 #
-# Usage: scripts/apply_sglang_spec_capture_patch.sh
+# Usage: patches/sglang/apply.sh
 #          [--target v0.5.14|kimi-k3-ee560a2|kimi-k3-9acd9cb|kimi-k3-f8493a4|ling-8ba213f]
 #          [--reverse]
 set -euo pipefail
 
-HERE="$(cd "$(dirname "$0")/.." && pwd)"
+HERE="$(cd "$(dirname "$0")/../.." && pwd)"
 TARGET="v0.5.14"
 PATCH_TARGET=""
 REVERSE=0

@@ -18,7 +18,7 @@ python3 -m sglang.launch_server \
 
 
 2. Regenerate the dataset using the `regenerate_train_data.py` script.
-python scripts/regenerate_train_data.py \
+python -m draftfit.data.regenerate \
     --model Qwen/Qwen3.5-35B-A3B \
     --concurrency 128 \
     --max-tokens 4096 \
@@ -47,10 +47,10 @@ except ModuleNotFoundError as exc:
 else:
     _OPENAI_IMPORT_ERROR = None
 
-try:
-    from scripts.conversation_validation import has_think_marker, validate_conversation
-except ModuleNotFoundError:
-    from conversation_validation import has_think_marker, validate_conversation
+from draftfit.data.conversation_validation import (
+    has_think_marker,
+    validate_conversation,
+)
 
 
 def validate_regen_input(data: Any) -> str | None:
@@ -91,7 +91,7 @@ def load_processed_ids(paths):
     return processed_ids
 
 
-def parse_arguments():
+def parse_arguments(argv=None):
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
         description="Re-generate training data using sglang model server"
@@ -190,7 +190,7 @@ def parse_arguments():
         nargs="+",
         help="Server address and port for sglang model server",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def get_random_reasoning_effort() -> str:
@@ -380,9 +380,9 @@ def call_sglang(
     return data
 
 
-def main():
+def main(argv=None):
     # Parse command line arguments
-    args = parse_arguments()
+    args = parse_arguments(argv)
 
     # Validate parameters
     if not (0.0 <= args.temperature <= 1.0):

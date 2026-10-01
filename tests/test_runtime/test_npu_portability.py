@@ -195,7 +195,7 @@ class NPURNGTest(unittest.TestCase):
 
 class NPUEvaluatorTest(unittest.TestCase):
     def test_hccl_collectives_use_the_bound_npu(self):
-        from draftfit.eval import Evaluator
+        from draftfit.training.evaluation import Evaluator
 
         device = SimpleNamespace(type="npu")
         with (

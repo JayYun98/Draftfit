@@ -1012,7 +1012,7 @@ def _managed_preflight(plan: LaunchPlan) -> None:
         if not patched_sglang:
             raise RuntimeError(
                 "managed_local requires patched SGLang spec capture; run "
-                "scripts/apply_sglang_spec_capture_patch.sh"
+                "patches/sglang/apply.sh"
             )
 
     for port in plan.managed_ports:

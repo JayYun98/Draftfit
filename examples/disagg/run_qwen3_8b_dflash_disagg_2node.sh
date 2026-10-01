@@ -220,7 +220,7 @@ run_inference_node() {
     command -v mooncake_master >/dev/null || fail "mooncake_master is not on PATH"
     command -v curl >/dev/null || fail "curl is not on PATH"
     if [[ "$APPLY_SGLANG_CAPTURE_PATCH" == "1" ]]; then
-        "$ROOT_DIR/scripts/apply_sglang_spec_capture_patch.sh"
+        "$ROOT_DIR/patches/sglang/apply.sh"
     fi
     export MOONCAKE_LOCAL_HOSTNAME="${INFERENCE_NODE_IP:-$HEAD_IP}"
     export MOONCAKE_GLOBAL_SEGMENT_SIZE="${MOONCAKE_GLOBAL_SEGMENT_SIZE:-$((32 << 30))}"

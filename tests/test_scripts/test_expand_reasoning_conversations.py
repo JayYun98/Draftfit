@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import torch
 
-from scripts.expand_reasoning_conversations import (
+from draftfit.data.expand_reasoning import (
     expand_row,
     main,
     skipped_path,

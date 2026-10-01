@@ -2,9 +2,9 @@
 
 Capture twice with identical native server arguments, adding only
 --enable-linear-replayssm-spec --linear-replayssm-cache-len 16 for replay:
-  python scripts/validate_ling_replay.py capture legacy --port 30100 -- <server args>
-  python scripts/validate_ling_replay.py capture replay --port 30100 -- <server args>
-  python scripts/validate_ling_replay.py compare legacy replay
+  python tests/integration/validate_ling_replay.py capture legacy --port 30100 -- <server args>
+  python tests/integration/validate_ling_replay.py capture replay --port 30100 -- <server args>
+  python tests/integration/validate_ling_replay.py compare legacy replay
 
 Both runs require --mamba-ssm-dtype float32, static ragged DSPARK, triton linear
 attention, a GPU-compatible full attention backend, disabled radix cache, and the same local target/draft.
@@ -169,7 +169,7 @@ def capture(
 ):
     import socket
 
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from draftfit.launch_plan import _terminate_processes
 
     if max_capture_bytes <= 0:

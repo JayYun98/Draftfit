@@ -9,7 +9,7 @@ from unittest import mock
 import torch
 
 from draftfit.algorithms.builtin import builtin_algorithm_registry
-from scripts.prepare_hidden_states import (
+from draftfit.offline_capture.prepare import (
     HiddenStatesGenerator,
     _generate_shared_vocab_mapping,
     _resolve_draft_vocab_size,
@@ -87,7 +87,7 @@ class PrepareHiddenStatesCaptureLayersTest(unittest.TestCase):
                         "os.environ", {"WORLD_SIZE": "1", "SPECFORGE_DEVICE": "cpu"}
                     ),
                     mock.patch(
-                        "scripts.prepare_hidden_states.load_offline_capture"
+                        "draftfit.offline_capture.prepare.load_offline_capture"
                     ) as load,
                 ):
                     build_target_model(
@@ -241,7 +241,7 @@ class PrepareHiddenStatesCaptureLayersTest(unittest.TestCase):
         )
         target = mock.Mock()
         with mock.patch(
-            "scripts.prepare_hidden_states.load_offline_capture",
+            "draftfit.offline_capture.prepare.load_offline_capture",
             return_value=target,
         ) as load:
             self.assertIs(
@@ -280,7 +280,7 @@ class PrepareHiddenStatesCaptureLayersTest(unittest.TestCase):
         target = mock.Mock()
         capture_layers = [1, 9, 17, 25, 33]
         with mock.patch(
-            "scripts.prepare_hidden_states.load_offline_capture",
+            "draftfit.offline_capture.prepare.load_offline_capture",
             return_value=target,
         ) as load:
             self.assertIs(
@@ -420,14 +420,14 @@ class PrepareHiddenStatesVocabMappingTest(unittest.TestCase):
 
             with (
                 mock.patch(
-                    "scripts.prepare_hidden_states.generate_vocab_mapping_file",
+                    "draftfit.offline_capture.prepare.generate_vocab_mapping_file",
                     side_effect=generate,
                 ) as generate_mock,
                 mock.patch(
-                    "scripts.prepare_hidden_states.dist.get_rank", return_value=0
+                    "draftfit.offline_capture.prepare.dist.get_rank", return_value=0
                 ),
                 mock.patch(
-                    "scripts.prepare_hidden_states.dist.broadcast_object_list"
+                    "draftfit.offline_capture.prepare.dist.broadcast_object_list"
                 ) as broadcast,
             ):
                 actual = _generate_shared_vocab_mapping(

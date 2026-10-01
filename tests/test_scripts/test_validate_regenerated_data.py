@@ -9,10 +9,10 @@ from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
 
-from scripts.regenerate_train_data import call_sglang
-from scripts.regenerate_train_data import main as regenerate_main
-from scripts.regenerate_train_data import set_skipped, validate_regen_input
-from scripts.validate_regenerated_data import validate_dataset, validate_row
+from draftfit.data.regenerate import call_sglang
+from draftfit.data.regenerate import main as regenerate_main
+from draftfit.data.regenerate import set_skipped, validate_regen_input
+from draftfit.data.validate import validate_dataset, validate_row
 
 
 def make_row(row_id="row-1", content="answer"):
@@ -27,6 +27,17 @@ def make_row(row_id="row-1", content="answer"):
 
 
 class TestValidateRegeneratedData(TestCase):
+    def test_cli_validates_real_file_and_rejects_invalid_row(self):
+        from draftfit.cli import main
+
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "data.jsonl"
+            path.write_text(json.dumps(make_row()) + "\n", encoding="utf-8")
+            self.assertEqual(main(["data", "validate", "--data-path", str(path)]), 0)
+            path.write_text("{}\n", encoding="utf-8")
+            with self.assertRaises(SystemExit):
+                main(["data", "validate", "--data-path", str(path)])
+
     def test_valid_non_reasoning_dataset_allows_duplicate_ids_with_warning(self):
         with TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "data.jsonl"
@@ -130,8 +141,8 @@ class TestValidateRegeneratedData(TestCase):
 class TestRegenerationGuards(TestCase):
     def test_missing_openai_client_has_actionable_error(self):
         with (
-            patch("scripts.regenerate_train_data.OpenAI", None),
-            self.assertRaisesRegex(ModuleNotFoundError, "specforge\\[data\\]"),
+            patch("draftfit.data.regenerate.OpenAI", None),
+            self.assertRaisesRegex(ModuleNotFoundError, "uv pip install openai"),
         ):
             call_sglang(
                 SimpleNamespace(),
@@ -181,7 +192,7 @@ class TestRegenerationGuards(TestCase):
             )
         )
 
-        with patch("scripts.regenerate_train_data.OpenAI", return_value=client):
+        with patch("draftfit.data.regenerate.OpenAI", return_value=client):
             result = call_sglang(
                 args,
                 "localhost:30000",
@@ -243,7 +254,7 @@ class TestRegenerationGuards(TestCase):
             ]
         }
 
-        with patch("scripts.regenerate_train_data.OpenAI", return_value=client):
+        with patch("draftfit.data.regenerate.OpenAI", return_value=client):
             result = call_sglang(args, "localhost:30000", data)
 
         self.assertEqual(result["status"], "success")
@@ -278,7 +289,7 @@ class TestRegenerationGuards(TestCase):
             )
         )
 
-        with patch("scripts.regenerate_train_data.OpenAI", return_value=client):
+        with patch("draftfit.data.regenerate.OpenAI", return_value=client):
             result = call_sglang(
                 args,
                 "localhost:30000",
@@ -336,7 +347,7 @@ class TestRegenerationGuards(TestCase):
             ]
             with (
                 patch("sys.argv", argv),
-                patch("scripts.regenerate_train_data.call_sglang", fake_call),
+                patch("draftfit.data.regenerate.call_sglang", fake_call),
             ):
                 regenerate_main()
 
@@ -357,7 +368,7 @@ import sys
 from pathlib import Path
 
 args = sys.argv[1:]
-if args and args[0].endswith("regenerate_train_data.py"):
+if args[:2] == ["-m", "draftfit.data.regenerate"]:
     def value(flag):
         return args[args.index(flag) + 1]
 

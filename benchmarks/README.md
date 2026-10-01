@@ -2,6 +2,29 @@
 
 ## Overview
 
+The primary user workflow is `draftfit benchmark`; see the
+[performance guide](../docs/PERFORMANCE_GATE.md). This directory also contains
+source-checkout experiments and benchmark harnesses.
+
+### Domino trainer microbenchmark
+
+From the repository root in a provisioned GPU environment, run
+`python -m benchmarks.bench_domino_mfu`. It uses the checked-in Qwen3-8B Domino
+configuration and synthetic inputs to measure trainer compute, not inference
+speedup. Its MFU reference is H200 SXM BF16 dense peak; that percentage is not
+a hardware-adjusted utilization metric for other GPUs.
+
+### Kernel and loss microbenchmarks
+
+From the repository root, use `python -m benchmarks.benchmark_loss` or
+`python -m benchmarks.benchmark_flex_attention` in their CUDA environment.
+These developer probes are not installed with the Draftfit wheel. The attention
+probe also requires matplotlib. They measure kernels, not workload speedup.
+
+### EAGLE3 benchmark harness
+
+The commands below run from this `benchmarks/` directory.
+
 We provided a unified script to test the performance of the Speculative Decoding with EAGLE3 algorithm on multiple datasets. You can follow the steps below to run the benchmarks.
 
 ## Run Benchmarks

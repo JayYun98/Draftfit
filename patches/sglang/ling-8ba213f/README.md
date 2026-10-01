@@ -26,7 +26,7 @@ docker build -f patches/sglang/ling-8ba213f/Dockerfile -t specforge-ling-capture
 Or on the exact base image after uploading this repository:
 
 ```sh
-bash scripts/apply_sglang_spec_capture_patch.sh --target ling-8ba213f
+bash patches/sglang/apply.sh --target ling-8ba213f
 # Bootstrap uv only; preserve the backend's Python/CUDA dependencies.
 python -m pip install --no-deps uv==0.9.18
 uv pip install --python "$(command -v python)" --no-deps accelerate==1.14.0 yunchang==0.6.4
@@ -51,7 +51,7 @@ Do not substitute the v0.5.14 or Kimi patch, or replace the CUDA12 Mooncake whee
   optimizer on GPU1. Start with a few steps, then 100 only after tensor checks.
 - Verify online/offline feature tensors for identical token IDs, revision,
   layer IDs and dtype; schema/manifest equality alone is not parity.
-- After stopping the online stack, run `scripts/validate_ling_replay.py` twice
+- After stopping the online stack, run `tests/integration/validate_ling_replay.py` twice
   (legacy, native ReplaySSM) and compare real committed temporal/conv states and
   output IDs. This does not validate radix checkpoint slots or every model family.
 - Back up small logs, config, results and exported draft after each stage. Raw

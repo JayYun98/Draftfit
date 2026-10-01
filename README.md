@@ -112,7 +112,7 @@ configuration alone cannot add an unsupported capture or serving backend.
 | Configure a new target or runtime | [Target extension](docs/TARGET_EXTENSION.md) · [Runtime profiles](docs/RUNTIME_PROFILES.md) |
 | Compare target-only and draft-enabled inference | [Workload evaluation](docs/PERFORMANCE_GATE.md) |
 | Check supported and unverified combinations | [Support matrix](docs/PUBLIC_SUPPORT.md) |
-| Develop or reproduce validation | [Documentation index](docs/README.md) · [Source tools](scripts/README.md) |
+| Develop or reproduce validation | [Documentation index](docs/README.md) · [Source tools](tests/VALIDATION.md) |
 
 Automatic trace ingestion and continual deployment are [future work](plans/README.md).
 A longer accepted draft is not necessarily faster: measure end-to-end throughput

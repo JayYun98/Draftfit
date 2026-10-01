@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from scripts import prepare_data
+from draftfit.data import prepare_presets as prepare_data
 
 
 class TestPrepareData(unittest.TestCase):

@@ -14,7 +14,7 @@ from unittest import mock
 import torch
 
 spec = importlib.util.spec_from_file_location(
-    "validator", Path(__file__).parents[2] / "scripts/validate_ling_replay.py"
+    "validator", Path(__file__).parents[2] / "tests/integration/validate_ling_replay.py"
 )
 validator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validator)

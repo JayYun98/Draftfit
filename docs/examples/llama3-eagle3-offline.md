@@ -7,7 +7,7 @@ but feature storage can be much larger than the source dataset.
 ## 1. Prepare ShareGPT
 
 ```bash
-python ./scripts/prepare_data.py --dataset sharegpt
+python ./-m draftfit.data.prepare_presets --dataset sharegpt
 ```
 
 ## 2. Capture hidden states
@@ -17,7 +17,7 @@ point:
 
 ```bash
 torchrun --standalone --nproc_per_node 8 \
-  scripts/prepare_hidden_states.py \
+  -m draftfit.offline_capture.prepare \
   --strategy eagle3 \
   --target-model-path meta-llama/Llama-3.1-8B-Instruct \
   --draft-model-config configs/llama3.1-8b-eagle3.json \

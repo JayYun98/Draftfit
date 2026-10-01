@@ -9,8 +9,8 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-GATE_DIR = ROOT / "scripts" / "gates"
-NORMALIZE = GATE_DIR / "normalize_dflash_export.py"
+GATE_DIR = ROOT / "tests" / "integration"
+NORMALIZE = ROOT / "draftfit" / "export" / "normalize_legacy.py"
 
 
 class TestNormalizeDFlashExport(unittest.TestCase):

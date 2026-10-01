@@ -111,7 +111,7 @@ Data preparation is platform independent — the same scripts run on ROCm. Write
 ShareGPT training set into `cache/dataset` from the repository root:
 
 ```bash
-python scripts/prepare_data.py --dataset sharegpt
+python -m draftfit.data.prepare_presets --dataset sharegpt
 ```
 
 This produces `./cache/dataset/sharegpt_train.jsonl` in the stable
@@ -139,7 +139,7 @@ radix cache selects the `extra_buffer` strategy, which asserts CUDA/MUSA/NPU
 ```bash
 SGLANG_USE_AITER=1 SGLANG_USE_AITER_UNIFIED_ATTN=1 AITER_FLYDSL_FORCE=1 \
 torchrun --standalone --nproc_per_node 1 \
-  scripts/prepare_hidden_states.py \
+  -m draftfit.offline_capture.prepare \
   --target-model-path Qwen/Qwen3.5-4B \
   --strategy dflash \
   --draft-model-config configs/qwen3.5-4b-dflash.json \

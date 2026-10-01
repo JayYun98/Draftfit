@@ -59,7 +59,7 @@ done
 mkdir -p "$(dirname "${OUTPUT_FILE}")"
 read -r -a server_args <<< "${SERVER_ADDRESSES}"
 
-"${PYTHON}" scripts/regenerate_train_data.py \
+"${PYTHON}" -m draftfit.data.regenerate \
     --model "${MODEL_PATH}" \
     --reasoning "${REASONING_MODE}" \
     --temperature 0 \
@@ -94,7 +94,7 @@ success_fraction = success_rows / completed_rows if completed_rows else 0.0
 print(f"success fraction: {success_fraction:.2%}")
 PY
 
-"${PYTHON}" scripts/validate_regenerated_data.py \
+"${PYTHON}" -m draftfit.data.validate \
     --data-path "${OUTPUT_FILE}" \
     "${VALIDATION_MODE[@]}" \
     --strict-think-markers

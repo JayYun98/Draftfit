@@ -57,7 +57,7 @@ replacing the environment's backend:
 uv build --python .venv-cpu/bin/python --no-build-isolation
 uv pip install --python .venv-cpu/bin/python --no-deps dist/draftfit-0.2.0-py3-none-any.whl
 uv run --no-project --python .venv-cpu/bin/python python -m draftfit.assets list
-uv run --no-project --python .venv-cpu/bin/python python -I scripts/check_public_install.py
+uv run --no-project --python .venv-cpu/bin/python python -I tests/packaging/check_public_install.py
 ```
 
 Use the actual wheel version if changed. The general package dependencies and

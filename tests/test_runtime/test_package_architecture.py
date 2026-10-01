@@ -136,11 +136,13 @@ OPERATIONAL_EXAMPLE_REPLACEMENTS = {
         "examples/configs/qwen3-8b-domino-multiserver-disaggregated.yaml",
     ),
     "examples/disagg/run_domino_dflash_serving_gate.sh": (
-        "scripts/gates/README.md",
-        "scripts/gates/normalize_dflash_export.py",
-        "scripts/gates/run_dflash_chat_serving_gate.py",
+        "tests/integration/README.md",
+        "draftfit/export/normalize_legacy.py",
+        "tests/integration/run_dflash_chat_serving_gate.py",
     ),
-    "examples/disagg/run_domino_disagg_overfit_gate.sh": ("scripts/gates/README.md",),
+    "examples/disagg/run_domino_disagg_overfit_gate.sh": (
+        "tests/integration/README.md",
+    ),
 }
 
 REMOVED_PACKAGE_DIRECTORIES = (
@@ -186,14 +188,12 @@ REMOVED_MODULE_PREFIXES = (
 
 SOURCE_ROOTS = (
     REPO_ROOT / "draftfit",
-    REPO_ROOT / "scripts",
     REPO_ROOT / "examples",
     REPO_ROOT / "tests",
 )
 
 PRODUCTION_ROOTS = (
     REPO_ROOT / "draftfit",
-    REPO_ROOT / "scripts",
     REPO_ROOT / "examples",
 )
 
@@ -706,7 +706,7 @@ class TestPackageArchitecture(unittest.TestCase):
                 self.assertIn("draft_model", parameters, name)
 
     def test_data_preparation_exposes_only_canonical_presets(self):
-        script_path = REPO_ROOT / "scripts" / "prepare_data.py"
+        script_path = REPO_ROOT / "draftfit" / "data" / "prepare_presets.py"
         self.assertTrue(
             set(CANONICAL_DATASET_PRESETS).issubset(
                 _literal_assignment(script_path, "SUPPORTED_DATASETS")
@@ -714,7 +714,7 @@ class TestPackageArchitecture(unittest.TestCase):
         )
 
     def test_offline_capture_uses_only_the_dedicated_local_capture(self):
-        source = (REPO_ROOT / "scripts" / "prepare_hidden_states.py").read_text()
+        source = (REPO_ROOT / "draftfit" / "offline_capture" / "prepare.py").read_text()
         self.assertNotIn("--enable-aux-hidden-states", source)
         self.assertNotIn("--aux-hidden-states-layers", source)
         self.assertNotIn("Eagle3TargetModel", source)
@@ -774,7 +774,7 @@ class TestPackageArchitecture(unittest.TestCase):
 
     def test_examples_and_scripts_do_not_bypass_the_cli(self):
         direct_imports = []
-        for root in (REPO_ROOT / "scripts", REPO_ROOT / "examples"):
+        for root in (REPO_ROOT / "examples",):
             for path in sorted(root.rglob("*.py")):
                 for line_number, module in _imported_modules(path):
                     if module == "draftfit.launch" or module.startswith(
@@ -796,7 +796,7 @@ class TestPackageArchitecture(unittest.TestCase):
         }
         bypasses = []
         train_command = re.compile(r"\btrain\s+(?:--config|-c)\b")
-        for root in (REPO_ROOT / "scripts", REPO_ROOT / "examples"):
+        for root in (REPO_ROOT / "examples",):
             for path in sorted(root.rglob("*.sh")):
                 relative = path.relative_to(REPO_ROOT)
                 if train_command.search(path.read_text()) and relative not in allowed:

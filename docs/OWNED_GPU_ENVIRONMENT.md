@@ -4,7 +4,7 @@ Environment checked and bounded GPU campaign executed 2026-09-14.
 See [model validation](MODEL_VALIDATION.md#native-teacher-two-gpu-functional-evidence-2026-09-14)
 for passes and retained failures; this is not blanket production certification.
 
-This guide is bundled in the wheel, but `scripts/gates/` and its fixtures are
+This guide is bundled in the wheel, but `tests/integration/` and its fixtures are
 checkout-only validation tools. Run the commands below from a matching
 [repository checkout](https://github.com/JayYun98/Draftfit);
 exporting wheel assets alone does not provide those scripts.
@@ -92,11 +92,11 @@ run the managed training supervisor. Both GPUs must remain visible to its main
 process. It currently uses four repeated prompts capped at 96 tokens.
 
 ```sh
-"$campaign_python" scripts/gates/run_owned_teacher_gpu.py \
+"$campaign_python" tests/integration/run_owned_teacher_gpu.py \
   --backend transformers --teacher-python "$campaign_python" \
   --model Qwen/Qwen3-0.6B --revision c1899de289a04d12100db370d81485cdf75e47ca \
   --output ./evidence/native-hf --steps 20 --algorithms dspark dflash2
-"$campaign_python" scripts/gates/run_owned_teacher_gpu.py \
+"$campaign_python" tests/integration/run_owned_teacher_gpu.py \
   --backend vllm --teacher-python "$campaign_python" \
   --model Qwen/Qwen3-0.6B --revision c1899de289a04d12100db370d81485cdf75e47ca \
   --output ./evidence/native-vllm --steps 20 --algorithms dspark dflash2 \
@@ -114,7 +114,7 @@ and disabled TF32 are required for the evidenced exact FP32 next-step resume.
 
 ### Separate managed supervisor gate
 
-The checked-in `scripts/gates/fixtures/owned-managed-{transformers,vllm}.yaml`
+The checked-in `tests/integration/fixtures/owned-managed-{transformers,vllm}.yaml`
 configs use the same four conversation rows, two DSpark updates, target taps
 `[3,24]`, two draft layers, batch 1 and length 128. They select `tp_size: 1`,
 capture device `["0"]`, trainer device `["1"]`, and Mooncake TCP. Run from the
@@ -124,10 +124,10 @@ ports. Both configs were validated through the real CLI `--plan` with
 `HF_HUB_OFFLINE=1` and cached target metadata, without mocks or GPU execution.
 
 ```sh
-"$campaign_python" -m specforge.cli train -c scripts/gates/fixtures/owned-managed-transformers.yaml --plan
-"$campaign_python" -m specforge.cli train -c scripts/gates/fixtures/owned-managed-transformers.yaml
-"$campaign_python" -m specforge.cli train -c scripts/gates/fixtures/owned-managed-vllm.yaml --plan
-"$campaign_python" -m specforge.cli train -c scripts/gates/fixtures/owned-managed-vllm.yaml
+"$campaign_python" -m draftfit.cli train -c tests/integration/fixtures/owned-managed-transformers.yaml --plan
+"$campaign_python" -m draftfit.cli train -c tests/integration/fixtures/owned-managed-transformers.yaml
+"$campaign_python" -m draftfit.cli train -c tests/integration/fixtures/owned-managed-vllm.yaml --plan
+"$campaign_python" -m draftfit.cli train -c tests/integration/fixtures/owned-managed-vllm.yaml
 ```
 
 The model ID/revision is real; weights are resolved on the GPU host. Relative

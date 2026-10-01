@@ -607,7 +607,7 @@ class TrainerController:
         were processed globally. ``data=None`` (an empty local shard) still
         joins the evaluator's collectives.
         """
-        from draftfit.eval import Evaluator
+        from draftfit.training.evaluation import Evaluator
 
         module = self.core.strategy.trainable_module()
         was_training = module.training

@@ -98,7 +98,7 @@ class TargetRevisionTests(unittest.TestCase):
             self.assertEqual(argv[argv.index("--revision") + 1], "abc123")
 
     def test_offline_capture_revision(self):
-        from scripts.prepare_hidden_states import build_target_model, parse_args
+        from draftfit.offline_capture.prepare import build_target_model, parse_args
 
         with patch(
             "sys.argv",
@@ -113,7 +113,7 @@ class TargetRevisionTests(unittest.TestCase):
             ],
         ):
             args = parse_args()
-        with patch("scripts.prepare_hidden_states.load_offline_capture") as load:
+        with patch("draftfit.offline_capture.prepare.load_offline_capture") as load:
             build_target_model(args, SimpleNamespace(dtype="bfloat16"), [1, 2, 3])
             self.assertEqual(load.call_args.kwargs["revision"], "abc123")
 

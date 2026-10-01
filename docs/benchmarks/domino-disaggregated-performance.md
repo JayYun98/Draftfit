@@ -134,7 +134,7 @@ choice validated against acceptance length; the checked-in recipe keeps 256.
 
 ## MFU and FLOPs
 
-The isolated trainer microbenchmark used `bench_domino_mfu.py`, BF16, real
+The isolated trainer microbenchmark used [benchmarks/bench_domino_mfu.py](../../benchmarks/bench_domino_mfu.py), BF16, real
 Qwen3-8B Domino shapes, `num_anchors=256`, sequence length 768, CUDA event
 timing, and `torch.utils.flop_counter`:
 

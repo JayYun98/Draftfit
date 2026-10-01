@@ -6,7 +6,7 @@ Data is an important aspect of speculative decoding as the quality of the datase
 
 ## ☁️ Canonical Dataset Presets
 
-`scripts/prepare_data.py --dataset NAME` exposes the same 19 text presets
+`draftfit data presets --dataset NAME` exposes the same 19 text presets
 used by the checked-in recipes:
 
 | Family | Presets |
@@ -25,10 +25,10 @@ Run the script from the repository root:
 
 ```bash
 # ultrachat
-python scripts/prepare_data.py --dataset ultrachat
+python -m draftfit.data.prepare_presets --dataset ultrachat
 
 # sharegpt
-python scripts/prepare_data.py --dataset sharegpt
+python -m draftfit.data.prepare_presets --dataset sharegpt
 ```
 
 By default, each command writes `<preset>_train.jsonl` under `cache/dataset`.
@@ -39,7 +39,7 @@ For a local ShareGPT-format dataset, pass a JSON or JSONL file with
 `--data-path`:
 
 ```bash
-python scripts/prepare_data.py \
+python -m draftfit.data.prepare_presets \
     --dataset sharegpt \
     --data-path ./raw_sharegpt.jsonl \
     --output-path ./cache/dataset
@@ -78,7 +78,7 @@ python3 -m sglang.launch_server \
 2. Regenerate the dataset using the `regenerate_train_data.py` script.
 
 ```shell
-python scripts/regenerate_train_data.py \
+python -m draftfit.data.regenerate \
     --model meta-llama/Llama-3.1-8B-Instruct \
     --concurrency 128 \
     --max-tokens 98304 \
@@ -99,7 +99,7 @@ output into one generation-event row per assistant turn so every reasoning
 target is trained with the visible history available at its serving boundary:
 
 ```bash
-python scripts/expand_reasoning_conversations.py \
+python -m draftfit.data.expand_reasoning \
     --input-file-path ./cache/dataset/sharegpt_train_regen_reasoning.jsonl \
     --output-file-path ./cache/dataset/sharegpt_train_regen_reasoning_exploded.jsonl
 ```
@@ -258,14 +258,14 @@ draftfit train --config ./my-eagle3-disaggregated.yaml
 ## 💾 Prepare offline target features
 
 Offline EAGLE3, DFlash, Domino, and DSpark runs consume target features created
-by `scripts/prepare_hidden_states.py`. Select the same strategy and draft
+by `draftfit capture`. Select the same strategy and draft
 configuration that the later training recipe uses; these values determine both
 the target layers captured and the checkpoint schema. For example, prepare the
 checked-in Qwen3-8B DFlash recipe with:
 
 ```bash
 torchrun --nproc_per_node=8 \
-    scripts/prepare_hidden_states.py \
+    -m draftfit.offline_capture.prepare \
     --strategy dflash \
     --target-model-path Qwen/Qwen3-8B \
     --draft-model-config configs/qwen3-8b-dflash.json \
@@ -316,7 +316,7 @@ For preformatted input, add `--is-preformatted` to the same command and keep
 
 ```bash
 torchrun --nproc_per_node=8 \
-    scripts/prepare_hidden_states.py \
+    -m draftfit.offline_capture.prepare \
     --strategy eagle3 \
     --target-model-path meta-llama/Llama-3.1-8B-Instruct \
     --draft-model-config configs/llama3.1-8b-eagle3.json \
@@ -348,3 +348,14 @@ If you have multiple datasets, you can just merge them into the one jsonl file. 
 ```bash
 cat dataset1.jsonl dataset2.jsonl > merged_dataset.jsonl
 ```
+
+## Installed commands
+
+Dataset tools ship with Draftfit; a source checkout is not required.
+Use `draftfit data presets`, `draftfit data regenerate`,
+`draftfit data expand-reasoning`, and `draftfit data validate`.
+Offline capture is available as `draftfit capture`; for multiple ranks use
+`torchrun --nproc_per_node=2 -m draftfit.offline_capture.prepare`.
+Each command accepts `--help`. Default data and feature caches live under
+`./cache/` relative to the working directory, never inside the installed package.
+These commands replace the former preparation/regeneration scripts.

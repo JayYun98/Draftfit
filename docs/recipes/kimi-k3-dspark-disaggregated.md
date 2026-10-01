@@ -13,7 +13,7 @@ placeholder paths/endpoints and verify the exact backend before execution.
 - The K3 SGLang tree patched with:
 
   ```bash
-  scripts/apply_sglang_spec_capture_patch.sh --target kimi-k3-ee560a2
+  patches/sglang/apply.sh --target kimi-k3-ee560a2
   ```
 
 The patch is generated against `ee560a2` and compatibility-checked against
