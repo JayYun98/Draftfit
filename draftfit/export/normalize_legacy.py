@@ -1,4 +1,4 @@
-"""Normalize a SpecForge DFlash-family HF export for SGLang loading."""
+"""Normalize a legacy DFlash-family HF export for SGLang loading."""
 
 from __future__ import annotations
 

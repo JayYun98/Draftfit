@@ -172,8 +172,25 @@ def _config_for_role(cfg: Config, role: str) -> Config:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    from importlib import import_module
+
+    argv = list(sys.argv[1:] if argv is None else argv)
+    data_tools = {
+        "presets": "prepare_presets",
+        "regenerate": "regenerate",
+        "expand-reasoning": "expand_reasoning",
+        "validate": "validate",
+    }
+    if argv[:1] == ["capture"]:
+        from draftfit.offline_capture.prepare import main as capture_main
+
+        return capture_main(argv[1:]) or 0
+    if len(argv) >= 2 and argv[0] == "data" and argv[1] in data_tools:
+        module = import_module(f"draftfit.data.{data_tools[argv[1]]}")
+        return module.main(argv[2:]) or 0
     parser = argparse.ArgumentParser(prog="draftfit")
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("capture", help="capture offline teacher features")
     train = sub.add_parser("train", help="train a draft model from a typed config")
     train.add_argument("-c", "--config", required=True, help="YAML or JSON run config")
     train.add_argument(
@@ -206,6 +223,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     data = sub.add_parser("data", help="prepare local user data for training")
     data_sub = data.add_subparsers(dest="data_command", required=True)
+    for name in data_tools:
+        data_sub.add_parser(name, help=f"run the {name} data tool")
     data_prepare = data_sub.add_parser(
         "prepare",
         help="normalize OpenAI messages or ShareGPT rows to canonical JSONL",

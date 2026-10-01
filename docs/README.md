@@ -17,7 +17,7 @@ Preserve upstream credits when editing inherited material; see
 | Add your target | [Configuration and adapters](TARGET_EXTENSION.md) |
 | Select a backend environment | [Runtime profiles](RUNTIME_PROFILES.md) · [Model environments](MODEL_ENVIRONMENTS.md) |
 | Measure inference performance | [Workload evaluation](PERFORMANCE_GATE.md) |
-| Contribute and validate | [Release checks](PUBLIC_RELEASE.md) · [Source tools](../scripts/README.md) |
+| Contribute and validate | [Release checks](PUBLIC_RELEASE.md) · [Source tools](../tests/VALIDATION.md) |
 
 ## Documentation languages
 
@@ -32,6 +32,10 @@ limitations consistent with the English source. Update affected translations
 with the source, or clearly mark them as outdated; do not translate API names.
 
 ## Build and preview
+
+Documentation is maintained in this repository; automatic GitHub Pages deployment
+is not configured. The old upstream dashboard and deployment workflow are not
+part of Draftfit. Use the uv environment below for local documentation builds.
 
 Use a separate documentation environment so building the site does not replace
 the CPU training lock or a custom GPU runtime. The current documentation

@@ -55,9 +55,9 @@ an LM-head-scaled hidden state into the logits processor. The capture patch
 restores the pre-head-scale post-norm representation because SpecForge folds
 the same multiplier into the frozen target head used during training.
 
-Apply the default patch with `scripts/apply_sglang_spec_capture_patch.sh`, or
+Apply the default patch with `patches/sglang/apply.sh`, or
 the K3 patch with
-`scripts/apply_sglang_spec_capture_patch.sh --target kimi-k3-9acd9cb`.
+`patches/sglang/apply.sh --target kimi-k3-9acd9cb`.
 On the default patch, `--spec-capture-method dspark` rides the DFlash aux
 plumbing (`set_dflash_layers_to_capture`), which both stock v0.5.14 targets
 and `inkling-support`'s Inkling model implement; DSpark and DFlash capture
@@ -72,7 +72,7 @@ either supported source revision.
 ## Offline: dedicated local capture
 
 [`../offline_capture`](../offline_capture) is used exclusively by
-`scripts/prepare_hidden_states.py`. Its `sglang_backend` owns the local,
+`-m draftfit.offline_capture.prepare`. Its `sglang_backend` owns the local,
 version-pinned APIs required for offline EAGLE3 preprocessing:
 
 | Dependency | Upgrade risk |

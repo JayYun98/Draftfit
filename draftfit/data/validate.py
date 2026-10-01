@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
-try:
-    from scripts.conversation_validation import has_think_marker, validate_conversation
-except ModuleNotFoundError:
-    from conversation_validation import has_think_marker, validate_conversation
+from draftfit.data.conversation_validation import (
+    has_think_marker,
+    validate_conversation,
+)
 
 
 @dataclass(frozen=True)
@@ -20,7 +20,7 @@ class ValidationSummary:
     duplicate_rows: int
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Validate regenerated ShareGPT JSONL before training."
     )
@@ -41,7 +41,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Reject <think> and </think> in assistant content or reasoning_content.",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def iter_jsonl(path: Path) -> Iterable[tuple[int, Dict[str, Any]]]:
@@ -164,8 +164,8 @@ def validate_dataset(
     )
 
 
-def main() -> None:
-    args = parse_args()
+def main(argv=None) -> None:
+    args = parse_args(argv)
     try:
         summary = validate_dataset(
             args.data_path,

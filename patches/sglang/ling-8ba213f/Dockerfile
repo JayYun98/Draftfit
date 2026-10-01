@@ -7,10 +7,10 @@ COPY docs ./docs
 COPY draftfit ./draftfit
 COPY configs ./configs
 COPY examples ./examples
-COPY scripts ./scripts
 COPY tests ./tests
+COPY patches/sglang/apply.sh ./patches/sglang/apply.sh
 COPY patches/sglang/ling-8ba213f ./patches/sglang/ling-8ba213f
-RUN bash scripts/apply_sglang_spec_capture_patch.sh --target ling-8ba213f \
+RUN bash patches/sglang/apply.sh --target ling-8ba213f \
     && python -m pip install --no-deps uv==0.9.18 \
     && uv pip install --python "$(command -v python)" --no-deps accelerate==1.14.0 yunchang==0.6.4 \
     && uv pip install --python "$(command -v python)" --no-deps --no-build-isolation -e . \

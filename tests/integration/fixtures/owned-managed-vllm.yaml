@@ -10,7 +10,7 @@ model:
   trust_remote_code: false
   vllm_gpu_memory_utilization: 0.4
 data:
-  train_data_path: scripts/gates/fixtures/owned-teacher-conversations.jsonl
+  train_data_path: tests/integration/fixtures/owned-teacher-conversations.jsonl
   chat_template: qwen
   max_length: 128
   cache_dir: outputs/owned-managed-vllm/cache

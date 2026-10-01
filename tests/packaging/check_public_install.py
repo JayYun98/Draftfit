@@ -1,6 +1,6 @@
 """CPU/offline onboarding against an INSTALLED wheel, never the source checkout.
 
-Run with the provisioned environment: python -I scripts/check_public_install.py.
+Run with the provisioned environment: python -I tests/packaging/check_public_install.py.
 This checks metadata/configuration, not real target training or GPU support.
 """
 
@@ -15,7 +15,6 @@ from pathlib import Path
 
 def main():
     import draftfit
-    from draftfit.config import Config
 
     if not sys.flags.isolated:
         raise RuntimeError("run with python -I to exclude the source checkout")

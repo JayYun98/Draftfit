@@ -8,7 +8,7 @@ import torch
 
 spec = importlib.util.spec_from_file_location(
     "ling_features",
-    Path(__file__).parents[2] / "scripts/gates/check_ling_online_features.py",
+    Path(__file__).parents[2] / "tests/integration/check_ling_online_features.py",
 )
 gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)

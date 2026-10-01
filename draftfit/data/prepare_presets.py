@@ -37,7 +37,7 @@ SUPPORTED_DATASETS = (
     "nebius-llama31-8b-infinity-instruct",
 )
 UNSUPPORTED_VLM_DATASETS = frozenset({"sharegpt4v", "allava4v"})
-DEFAULT_OUTPUT_DIRECTORY = Path(__file__).resolve().parent.parent / "cache" / "dataset"
+DEFAULT_OUTPUT_DIRECTORY = Path("cache") / "dataset"
 SUPPORTED_DATA_PATH_SUFFIXES = {".json", ".jsonl"}
 OPC_SUBSETS = (
     "largescale_diverse_instruct",

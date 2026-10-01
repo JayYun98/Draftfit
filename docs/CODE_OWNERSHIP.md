@@ -35,8 +35,8 @@ The platform is an in-tree derivative with its own composition, not a CLI over
 TorchSpec/AngelSpec. `training/disaggregated.py` assembles our producer/channel/
 consumer; `runtime/` owns task leases, backpressure, acknowledgments and cleanup;
 algorithm providers own model/loss/feature contracts. The canonical `draftfit`
-package exposes these responsibilities directly. Legacy imports resolve to
-the same implementation objects, without a second algorithm registry or trainer.
+package exposes these responsibilities directly. Removed legacy namespaces are
+not import aliases; use `draftfit` for imports and command execution.
 
 ## Module responsibilities
 
@@ -49,11 +49,41 @@ the same implementation objects, without a second algorithm registry or trainer.
 | `draftfit.inference` / `offline_capture` | Teacher adapters and captured feature contracts | Draft optimization |
 | `draftfit.runtime` | Worker supervision, control flow and feature transport | Algorithm-specific loss |
 | `draftfit.export` | Artifact conversion and loader metadata | Serving performance certification |
-| `speculative_train_platform` / `dspark` / `specforge` | Compatibility imports and legacy module execution | Independent implementation |
 
 Compatibility retains existing environment variables, serialized field names,
 checkpoint tensor keys and wire contracts. Product naming is not a reason to
 invalidate stored artifacts or change runtime safety controls.
+
+## Repository levels
+
+`draftfit/` is the installable Python product. Root-level directories contain
+source inputs, contributor tools or documentation; they are not additional
+installed training frameworks.
+
+| Location | Responsibility | Installation boundary |
+| --- | --- | --- |
+| `draftfit/config/` | Configuration schemas, validation and resolution | Python package |
+| `configs/` | Target/draft recipe source files | Selected files bundled at build time |
+| `examples/` | Runnable usage examples and training configurations | Selected configs bundled; scripts remain checkout tools |
+| `draftfit/data/` | Data preparation, rendering and masks | Python package |
+| `draftfit/data/` | Dataset preparation, regeneration and validation | Installed package and CLI |
+| `draftfit/training/evaluation.py` | Training-time validation metric aggregation | Python package |
+| `draftfit/benchmarks/` | Installed inference benchmark/report functionality | Python package |
+| `benchmarks/` | Source-only benchmark harnesses and trainer experiments | Source checkout only |
+| `draftfit/assets/` | Access/export API for bundled recipes and guides | Python package; `_data` generated during build |
+| `assets/` | Website/README visual assets | Not model weights or packaged recipes |
+| `tests/integration/` and `tests/packaging/` | Opt-in runtime gates and installed-wheel checks | Source checkout only |
+| `tests/` | Automated checks | Development only |
+| `patches/` | Versioned external-backend patches and image recipes | Provision separately |
+| `docs/`, `plans/`, `.skill/` | Guides, roadmap and agent workflows | Documentation; selected guides bundled |
+| `.private/`, `.planning/` | Local archives and working records | Git-ignored; not public package contents |
+
+Recipes have one source of truth: root `configs/` and `examples/configs/`.
+`setup.py` copies them into the wheel; do not maintain a second hand-edited copy
+inside `draftfit/assets/`. Keep runtime imports independent of checkout-only
+tools. Packaging files, dependency locks, licenses and the README intentionally
+remain at the root. New standalone performance probes belong in `benchmarks/`;
+user-facing evaluation functionality belongs in the installed package.
 
 The backend-specific producer constraint has been removed: `teacher_server.py`
 runs our HF/vLLM extraction services, `capture_sink.py` maintains our existing

@@ -9,7 +9,7 @@ target-regenerated dataset is recommended for production checkpoints.
 Run from the repository root:
 
 ```bash
-python ./scripts/prepare_data.py --dataset sharegpt
+python ./-m draftfit.data.prepare_presets --dataset sharegpt
 ```
 
 ## 2. Use the checked-in run config

@@ -6,17 +6,12 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-try:
-    from scripts.conversation_validation import (
-        validate_conversation as validate_basic_conversation,
-    )
-except ModuleNotFoundError:
-    from conversation_validation import (
-        validate_conversation as validate_basic_conversation,
-    )
+from draftfit.data.conversation_validation import (
+    validate_conversation as validate_basic_conversation,
+)
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Convert conversation-level regenerated reasoning JSONL into one "
@@ -30,7 +25,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Path for skipped invalid rows. Defaults to <output>_skipped.jsonl.",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def skipped_path(output_file_path: str) -> str:
@@ -151,8 +146,8 @@ def expand_row(row: Any, source_row_index: int) -> List[Dict[str, Any]]:
     return events
 
 
-def main() -> None:
-    args = parse_args()
+def main(argv=None) -> None:
+    args = parse_args(argv)
     try:
         skip_path = args.skipped_file_path or skipped_path(args.output_file_path)
         validate_paths(args.input_file_path, args.output_file_path, skip_path)

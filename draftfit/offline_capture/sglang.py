@@ -10,7 +10,7 @@ from draftfit.inference.capture import TeacherCaptureBatch as OfflineCaptureBatc
 
 
 class OfflineSGLangCapture:
-    """Frozen local target used by ``scripts/prepare_hidden_states.py`` only."""
+    """Frozen local target used by ``-m draftfit.offline_capture.prepare`` only."""
 
     def __init__(self, backend) -> None:
         self._backend = backend

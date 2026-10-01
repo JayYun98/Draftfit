@@ -10,7 +10,7 @@ import sys
 import threading
 import unittest
 
-from scripts.gates.run_owned_teacher_gpu import (
+from tests.integration.run_owned_teacher_gpu import (
     arguments,
     stop_owned_group,
     training_inputs,

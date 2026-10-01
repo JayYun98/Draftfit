@@ -113,7 +113,7 @@ DFlash2의 실제 serving은 아직 검증되지 않았습니다.
 | 새 타깃·runtime 설정 | [타깃 확장](docs/TARGET_EXTENSION.md) · [Runtime profiles](docs/RUNTIME_PROFILES.md) |
 | 타깃 단독과 draft 추론 비교 | [작업별 평가](docs/PERFORMANCE_GATE.md) |
 | 지원·미검증 조합 확인 | [지원 범위](docs/PUBLIC_SUPPORT.md) |
-| 개발·검증 재현 | [문서 목록](docs/README.md) · [소스 도구](scripts/README.md) |
+| 개발·검증 재현 | [문서 목록](docs/README.md) · [소스 도구](tests/VALIDATION.md) |
 
 자동 trace 수집과 continual deployment는 [향후 계획](plans/README.md)입니다.
 수용된 draft가 길어도 더 빠르다는 보장은 없습니다. Holdout 요청에서 전체 처리량을

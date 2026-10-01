@@ -11,7 +11,7 @@ which is used for the offline training.
 
 Usage:
 torchrun --nproc_per_node=2 \
-    scripts/prepare_hidden_states.py \
+    -m draftfit.offline_capture.prepare \
     --target-model-path Qwen/Qwen3-8B \
     --data-path ./cache/dataset/sharegpt_train.jsonl \
     --output-path ./cache/hidden_states/sharegpt_qwen3-8b \
@@ -26,7 +26,7 @@ torchrun --nproc_per_node=2 \
 
 For pre-formatted data (with chat template already applied), add --is-preformatted:
 torchrun --nproc_per_node=2 \
-    scripts/prepare_hidden_states.py \
+    -m draftfit.offline_capture.prepare \
     --target-model-path Qwen/Qwen3-8B \
     --data-path ./cache/dataset/sharegpt_train.jsonl \
     --output-path ./cache/hidden_states/sharegpt_qwen3-8b \
@@ -105,7 +105,7 @@ class OfflineCapturePlan:
     loss_mask_filter: Optional[Callable[[object], bool]]
 
 
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser()
 
     # model-related arguments
@@ -250,7 +250,7 @@ def parse_args():
             "(FLA) at server init."
         ),
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def _resolve_draft_vocab_size(source: str) -> int:
@@ -918,20 +918,18 @@ class HiddenStatesGenerator:
         dist.barrier()
 
 
-def main():
+def main(argv=None):
     with ExitStack() as cleanup:
-        _main(cleanup)
+        _main(cleanup, argv)
 
 
-def _main(cleanup):
-    args = parse_args()
+def _main(cleanup, argv=None):
+    args = parse_args(argv)
     if args.num_io_threads is None:
         cpu_cores = os.cpu_count() or 1
         args.num_io_threads = max(1, cpu_cores)
     if args.output_path is None:
-        args.output_path = os.path.join(
-            Path(__file__).parent.parent, "cache", "hidden_states"
-        )
+        args.output_path = os.path.join("cache", "hidden_states")
 
     target_model_config = AutoConfig.from_pretrained(
         args.target_model_path,
@@ -1024,11 +1022,7 @@ def _main(cleanup):
         dataset = Dataset.from_generator(
             generator=safe_conversations_generator,
             gen_kwargs={"file_path": args.data_path},
-            cache_dir=os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                "cache",
-                "hf_dataset",
-            ),
+            cache_dir=os.path.join("cache", "hf_dataset"),
             num_proc=min(args.build_dataset_num_proc, 32),
         )
     if args.num_samples is not None and capture_plan.loss_mask_filter is None:

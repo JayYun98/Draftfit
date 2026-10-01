@@ -18,6 +18,12 @@ safetensors artifacts; do not bypass restricted checkpoint loading.
 
 ## CPU preparation and contributor checks
 
+Internal training evaluation now lives at `draftfit.training.evaluation.Evaluator`
+(formerly `draftfit.eval`). Developer GPU probes moved from
+`draftfit.benchmarks.benchmark_loss` and `benchmark_flex_attention` into the
+source-only `benchmarks/` directory. CLI commands, config fields and tensor
+checkpoint keys are unchanged; update direct imports of the moved internal modules.
+
 From this checkout:
 
 ```sh
@@ -28,7 +34,7 @@ uv run --no-project --python .venv/bin/python python -m tests.public_cpu
 uv build --python .venv/bin/python --no-build-isolation
 uv pip install --python .venv/bin/python --no-deps \
   dist/draftfit-0.2.0-py3-none-any.whl
-uv run --no-project --python .venv/bin/python python -I scripts/check_public_install.py
+uv run --no-project --python .venv/bin/python python -I tests/packaging/check_public_install.py
 ```
 
 Use the current wheel version if it changes. `requirements-cpu.in` and its
@@ -126,7 +132,7 @@ Given an existing compatible draft config and reviewed conversation dataset:
 ```sh
 # Run from this checkout in the selected, activated teacher environment.
 uv run --no-project python -m torch.distributed.run --standalone --nproc_per_node=1 \
-  scripts/prepare_hidden_states.py \
+  -m draftfit.offline_capture.prepare \
   --target-backend transformers \
   --target-model-path /path/to/target \
   --draft-model-config /path/to/draft.json --strategy dspark \

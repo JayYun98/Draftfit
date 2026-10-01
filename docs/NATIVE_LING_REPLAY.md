@@ -47,10 +47,10 @@ LING_ARGS=(--model-path "$LING_TARGET" --trust-remote-code --tp-size 1
   --max-running-requests 1 --mem-fraction-static 0.72
   --speculative-algorithm DSPARK --speculative-draft-model-path "$LING_DRAFT"
   --speculative-num-draft-tokens 8 --speculative-eagle-topk 1)
-python scripts/validate_ling_replay.py capture legacy --port 30110 -- "${LING_ARGS[@]}"
-python scripts/validate_ling_replay.py capture native --port 30111 -- "${LING_ARGS[@]}" \
+python tests/integration/validate_ling_replay.py capture legacy --port 30110 -- "${LING_ARGS[@]}"
+python tests/integration/validate_ling_replay.py capture native --port 30111 -- "${LING_ARGS[@]}" \
   --enable-linear-replayssm-spec --linear-replayssm-cache-len 16
-python scripts/validate_ling_replay.py compare legacy native
+python tests/integration/validate_ling_replay.py compare legacy native
 ```
 
 Set `LING_TARGET` and `LING_DRAFT` to existing local directories first. Repeat

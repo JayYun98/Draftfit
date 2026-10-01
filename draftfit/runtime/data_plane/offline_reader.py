@@ -9,7 +9,7 @@
 """OfflineManifestReader: turn precomputed feature files into ``SampleRef``s.
 
 The reader walks a directory of SpecForge offline feature files (the ``.ckpt`` /
-``.ckpt.gz`` produced by ``scripts/prepare_hidden_states.py``) and emits one
+``.ckpt.gz`` produced by ``-m draftfit.offline_capture.prepare``) and emits one
 metadata-only ``SampleRef`` per file, referencing the file in place via a
 ``file://`` URI (read-only existing-file mode — no tensor copy, no tensor
 through the controller). The strategy registry selects the raw feature keys and
