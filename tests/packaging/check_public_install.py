@@ -15,7 +15,6 @@ from pathlib import Path
 
 def main():
     import draftfit
-    from draftfit.config import Config
 
     if not sys.flags.isolated:
         raise RuntimeError("run with python -I to exclude the source checkout")
