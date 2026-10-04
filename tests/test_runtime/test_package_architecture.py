@@ -747,6 +747,13 @@ class TestPackageArchitecture(unittest.TestCase):
                 "qwen3-4b-dspark.json",
                 "qwen3-8b-dspark.json",
                 "qwen3.6-27b-dspark.json",
+                "minicpm5-2b-dspark.json",
+                "lfm2.5-2.6b-dspark.json",
+                "lfm2.5-8b-a1b-dspark.json",
+                "xing4-29b-a4b-dspark.json",
+                "zdtaichu5-9b-dspark.json",
+                "hemmingway-1-dspark.json",
+                "agnes3-flash-dspark.json",
             },
         )
         expected_attention_modes = {
@@ -757,6 +764,13 @@ class TestPackageArchitecture(unittest.TestCase):
             "qwen3-4b-dspark.json": "gqa",
             "qwen3-8b-dspark.json": "gqa",
             "qwen3.6-27b-dspark.json": "gqa",
+            "minicpm5-2b-dspark.json": "gqa",
+            "lfm2.5-2.6b-dspark.json": "gqa",
+            "lfm2.5-8b-a1b-dspark.json": "gqa",
+            "xing4-29b-a4b-dspark.json": "gqa",
+            "zdtaichu5-9b-dspark.json": "gqa",
+            "hemmingway-1-dspark.json": "gqa",
+            "agnes3-flash-dspark.json": "gqa",
         }
         for name, payload in dspark_configs.items():
             with self.subTest(config=name):

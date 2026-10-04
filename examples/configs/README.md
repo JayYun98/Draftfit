@@ -1,7 +1,10 @@
 # Unified training recipe catalog
 
-Every draft model JSON under `configs/` has at least one typed YAML recipe in
-this directory. Run any recipe through the one public training entry:
+The stable draft model JSON files under `configs/` have typed YAML recipes in
+this directory. The five recent-target DSpark/DFlash2 metadata recipes are
+experimental and documented separately in
+[recent target experiments](../../docs/RECENT_MODEL_EXPERIMENTS.md); they need
+real-weight GPU and serving validation. Run a YAML recipe through the training entry:
 
 ```bash
 specforge train --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml
@@ -88,6 +91,15 @@ The Pydantic models in `specforge/config/schema.py` are the authoritative
 schema. This section explains what belongs in each YAML section and records the
 defaults that matter when writing a recipe. Unknown or misspelled fields are
 errors; YAML files and dotted CLI overrides go through the same validation.
+
+For DSpark ablations, `training.dspark_acceptance_loss` selects `eal` or `wtv`,
+`training.dspark_acceptance_loss_alpha` sets its weight, and
+`training.dspark_acceptance_temperature` controls soft acceptance weights.
+`training.dspark_head_only` set to `true` freezes the shared backbone when warm-starting
+from a draft checkpoint. For published anchor-style DSpark → DFlash/DFlash2
+initialization, `training.retrain_anchor_alignment` set to `true` explicitly changes
+the destination label alignment and requires fresh training. The default
+rejects this transfer; see the MiniCPM5 family matrix linked above.
 
 New checked-in recipes should explicitly set `training.strategy`,
 `deployment.mode`, `deployment.trainer.nnodes`,

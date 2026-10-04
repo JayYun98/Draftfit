@@ -54,6 +54,11 @@ runtime dependencies. Installing the platform must not silently replace the
 patched server with PyPI SGLang. The optional `sglang` extra selects stock 0.5.14
 on Linux only and does NOT provide the Ling capture patch or certify DFlash2 serving.
 
+CUDA training defaults to NCCL. On the tested RTX A6000 image (driver 560.35.03,
+PyTorch 2.11/CUDA 12.8), NCCL failed at process-group initialization while a
+single-rank CUDA Gloo run worked. Set `DRAFTFIT_CUDA_DIST_BACKEND=gloo` for that
+environment; this fallback has not been validated for multi-GPU training.
+
 For a new custom backend build, record its source commit, patch digest, image or
 wheel SHA256 and dependency inventory; use that immutable artifact in the runtime
 profile. Keep the inference server's build separate from the owned training wheel.

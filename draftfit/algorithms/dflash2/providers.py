@@ -122,7 +122,7 @@ def algorithm_spec() -> AlgorithmSpec:
     return AlgorithmSpec(
         name=ALGORITHM_NAME,
         draft=DraftRequirement(
-            compatible_architectures={DRAFT_ARCHITECTURE},
+            compatible_architectures={DRAFT_ARCHITECTURE, "TaichuDFlash2DraftModel"},
             default_architecture=DRAFT_ARCHITECTURE,
             supported_overrides={"num_hidden_layers", "block_size"},
         ),
@@ -163,6 +163,7 @@ def algorithm_providers() -> AlgorithmProviders:
         model=ModelProvider(
             draft_config=DraftConfigProvider(
                 architecture=DRAFT_ARCHITECTURE,
+                compatible_architectures=frozenset({DRAFT_ARCHITECTURE, "TaichuDFlash2DraftModel"}),
                 expected_auto_map_model="dflash2.DFlash2DraftModel",
                 target_defaults=TargetDerivedDraftDefaults(
                     model_type="qwen3",

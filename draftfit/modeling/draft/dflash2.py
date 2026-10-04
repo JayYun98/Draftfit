@@ -119,6 +119,8 @@ class DFlash2Config(Qwen3Config):
     """
 
     model_type = "qwen3_dflash2"
+    supports_text_mrope = False
+    supports_mixed_attention = False
 
     def __init__(
         self,
@@ -258,14 +260,52 @@ class DFlash2Config(Qwen3Config):
         fc_norm = bool(kwargs.pop("fc_norm", False))
         if fc_norm:
             raise ValueError("DFlash2 training does not support fc_norm=True")
-        if kwargs.get("rope_scaling") is not None:
-            raise ValueError("DFlash2 training does not support rope_scaling")
-        unsupported_rope_keys = set(rope_parameters) - {"rope_theta", "rope_type"}
+        scaling = kwargs.pop("rope_scaling", None)
+        if scaling is not None:
+            scaling = dict(scaling)
+            scaling["rope_type"] = scaling.pop(
+                "type", scaling.get("rope_type", "default")
+            )
+            rope_parameters.update(scaling)
+        rope_type = rope_parameters.get("rope_type", "default")
+        allowed_rope_keys = {"rope_theta", "rope_type"}
+        if rope_type == "yarn":
+            allowed_rope_keys |= {
+                "factor",
+                "original_max_position_embeddings",
+                "beta_fast",
+                "beta_slow",
+                "attention_factor",
+                "mscale",
+                "mscale_all_dim",
+                "truncate",
+            }
+            factor = rope_parameters.get("factor", 0)
+            if (
+                not isinstance(factor, (int, float))
+                or not math.isfinite(factor)
+                or factor < 1
+            ):
+                raise ValueError("DFlash2 YaRN requires a finite factor >= 1")
+        if self.supports_text_mrope and rope_type == "default":
+            allowed_rope_keys |= {"mrope_section", "partial_rotary_factor"}
+            if rope_parameters.get("partial_rotary_factor", 1.0) != 1.0:
+                raise ValueError("DFlash2 text MRoPE requires partial_rotary_factor=1.0")
+            sections = rope_parameters.get("mrope_section")
+            head_dim = kwargs.get("head_dim") or hidden_size // kwargs.get("num_attention_heads", 32)
+            if sections is not None and (
+                not isinstance(sections, list) or len(sections) != 3
+                or any(type(part) is not int or part < 0 for part in sections)
+                or sum(sections) != head_dim // 2
+            ):
+                raise ValueError("DFlash2 text mrope_section must cover half the head_dim")
         if (
-            rope_parameters.get("rope_type", "default") != "default"
-            or unsupported_rope_keys
+            rope_type not in {"default", "yarn"}
+            or set(rope_parameters) - allowed_rope_keys
         ):
-            raise ValueError("DFlash2 training supports only default rope_parameters")
+            raise ValueError(
+                "DFlash2 training supports only default or yarn rope_parameters"
+            )
 
         num_hidden_layers = _strict_int(
             kwargs.get("num_hidden_layers", 5), "num_hidden_layers"
@@ -302,7 +342,7 @@ class DFlash2Config(Qwen3Config):
             raise ValueError(
                 f"Unsupported DFlash2 layer types: {sorted(attention_types)}"
             )
-        if len(attention_types) > 1:
+        if len(attention_types) > 1 and not self.supports_mixed_attention:
             raise ValueError(
                 "DFlash2 training does not support mixed full and sliding layers"
             )
@@ -609,6 +649,9 @@ class DFlash2DraftModel(DFlashDraftModel):
             rank=config.selector_rank,
             top_k=config.selector_top_k,
         )
+
+    def score_candidates(self, *args, **kwargs):
+        return self.candidate_selector.score_candidates(*args, **kwargs)
 
     def config_for_serving(self) -> dict[str, Any]:
         return dflash2_config_for_serving(self.config.to_dict())

@@ -608,6 +608,33 @@ class TestDFlashLosses(unittest.TestCase):
         torch.testing.assert_close(accuracy, acc_num / acc_den)
         self.assertIn("ce_position", _metrics["ratio_metrics"])
 
+    def test_dspark_dflash_anchor_alignment_excludes_anchor(self):
+        model = _make_dspark_model(
+            self.logits, self.anchors, self.keep_mask,
+            sample_from_anchor=False,
+            dspark_ce_loss_alpha=1.0,
+            dspark_l1_loss_alpha=0.0,
+            dspark_confidence_head_alpha=0.0,
+        )
+        targets, mask, indices = model._build_dspark_labels_and_mask(
+            self.input_ids, self.loss_mask, self.anchors, self.keep_mask
+        )
+        self.assertTrue(torch.equal(indices[..., 0][self.keep_mask], self.anchors[self.keep_mask]))
+        self.assertTrue(torch.equal(
+            indices[..., 1][self.keep_mask], self.anchors[self.keep_mask] + 1
+        ))
+        self.assertFalse(mask[..., 0].any())
+        self.assertTrue(mask[..., 1:].any())
+        loss, _, _ = model(
+            input_ids=self.input_ids,
+            hidden_states=self.hidden_states,
+            loss_mask=self.loss_mask,
+        )
+        neg_log_q = _neg_log_q(self.logits, targets)
+        torch.testing.assert_close(
+            loss, (neg_log_q * mask).sum() / mask.sum(), rtol=0, atol=1e-10
+        )
+
     def test_dspark_ce_only_skips_target_distribution(self):
         target_logits = torch.randn_like(self.logits)
         model = _make_dspark_model(
@@ -713,6 +740,55 @@ class TestDFlashLosses(unittest.TestCase):
                 loss_mask=self.loss_mask,
             )
 
+    def test_dspark_acceptance_losses_match_prefix_expectation(self):
+        target_logits = torch.randn_like(self.logits)
+        for objective, temperature in (("eal", 1.0), ("wtv", 0.7)):
+            with self.subTest(objective=objective):
+                model = _make_dspark_model(
+                    self.logits, self.anchors, self.keep_mask,
+                    lm_head=_DualFixedHead(self.logits, target_logits).double(),
+                    sample_from_anchor=False,
+                    dspark_ce_loss_alpha=0.0,
+                    dspark_l1_loss_alpha=0.0,
+                    dspark_confidence_head_alpha=0.0,
+                    dspark_acceptance_loss=objective,
+                    dspark_acceptance_loss_alpha=1.0,
+                    dspark_acceptance_temperature=temperature,
+                )
+                loss, _, metrics = model(
+                    input_ids=self.input_ids,
+                    hidden_states=self.hidden_states,
+                    loss_mask=self.loss_mask,
+                    target_last_hidden_states=torch.zeros_like(self.hidden_states),
+                )
+                _, mask, _ = model._build_dspark_labels_and_mask(
+                    self.input_ids, self.loss_mask, self.anchors, self.keep_mask
+                )
+                if objective == "eal":
+                    q = torch.softmax(self.logits.float(), dim=-1)
+                    step = q.gather(-1, target_logits.argmax(dim=-1).unsqueeze(-1)).squeeze(-1)
+                else:
+                    p = torch.softmax(target_logits.float() / temperature, dim=-1)
+                    q = torch.softmax(self.logits.float() / temperature, dim=-1)
+                    step = torch.minimum(p, q).sum(dim=-1)
+                valid = mask[..., 1:].float()
+                want = (valid.cumprod(-1) - (valid * step[..., 1:]).cumprod(-1)).sum() / valid.sum()
+                torch.testing.assert_close(loss, want, rtol=0, atol=1e-6, check_dtype=False)
+                num, den = metrics["ratio_metrics"]["acceptance_regret"]
+                torch.testing.assert_close(num / den, want, rtol=0, atol=1e-6, check_dtype=False)
+
+    def test_dspark_acceptance_requires_target_hidden_states(self):
+        model = _make_dspark_model(
+            self.logits, self.anchors, self.keep_mask,
+            dspark_ce_loss_alpha=0.0,
+            dspark_l1_loss_alpha=0.0,
+            dspark_confidence_head_alpha=0.0,
+            dspark_acceptance_loss="eal",
+            dspark_acceptance_loss_alpha=1.0,
+        )
+        with self.assertRaisesRegex(ValueError, "target_last_hidden_states"):
+            model(self.input_ids, self.hidden_states, self.loss_mask)
+
     def test_dspark_chunking_matches_full_loss_and_gradient(self):
         torch.manual_seed(99)
         head = nn.Linear(4, self.logits.shape[-1], bias=False).double()
@@ -726,6 +802,8 @@ class TestDFlashLosses(unittest.TestCase):
             dspark_l1_loss_alpha=0.9,
             dspark_confidence_head_alpha=1.0,
             objective_chunk_blocks=0,
+            dspark_acceptance_loss="eal",
+            dspark_acceptance_loss_alpha=0.5,
         )
         chunked = _make_dspark_model(
             self.logits,
@@ -737,6 +815,8 @@ class TestDFlashLosses(unittest.TestCase):
             dspark_l1_loss_alpha=0.9,
             dspark_confidence_head_alpha=1.0,
             objective_chunk_blocks=1,
+            dspark_acceptance_loss="eal",
+            dspark_acceptance_loss_alpha=0.5,
         )
         chunked.load_state_dict(full.state_dict())
         target_hidden = torch.randn_like(self.hidden_states)

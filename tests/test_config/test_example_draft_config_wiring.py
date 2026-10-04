@@ -73,7 +73,7 @@ class ExampleDraftConfigWiringTest(unittest.TestCase):
                         architecture,
                     )
 
-    def test_only_future_vlm_draft_configs_lack_a_unified_recipe(self):
+    def test_only_documented_experiments_lack_a_unified_recipe(self):
         referenced = {
             draft_config.resolve()
             for _, _, draft_config in _local_draft_configs()
@@ -86,6 +86,20 @@ class ExampleDraftConfigWiringTest(unittest.TestCase):
             {
                 "qwen2-5-vl-7b-eagle3.json",
                 "qwen2.5-vl-32b-eagle3.json",
+                "minicpm5-2b-dspark.json",
+                "minicpm5-2b-dflash2.json",
+                "xing4-29b-a4b-dspark.json",
+                "xing4-29b-a4b-dflash2.json",
+                "zdtaichu5-9b-dspark.json",
+                "zdtaichu5-9b-dflash2.json",
+                "hemmingway-1-dspark.json",
+                "hemmingway-1-dflash2.json",
+                "agnes3-flash-dspark.json",
+                "agnes3-flash-dflash2.json",
+                "lfm2.5-8b-a1b-dspark.json",
+                "lfm2.5-2.6b-dspark.json",
+                "lfm2.5-8b-a1b-dspark.json",
+                "lfm2.5-2.6b-dspark.json",
             },
         )
 

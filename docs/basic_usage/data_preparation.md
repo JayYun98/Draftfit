@@ -6,13 +6,13 @@ Data is an important aspect of speculative decoding as the quality of the datase
 
 ## ☁️ Canonical Dataset Presets
 
-`scripts/prepare_data.py --dataset NAME` exposes the same 19 text presets
-used by the checked-in recipes:
+`scripts/prepare_data.py --dataset NAME` exposes text presets and fixed-size mixtures:
 
 | Family | Presets |
 | --- | --- |
-| General chat | `ultrachat`, `sharegpt`, `eaglechat`, `perfectblend`, `perfectblend-llama3.1-8b-instruct`, `perfectblend-llama3.3-70b-instruct`, `perfectblend-llama4-scout-instruct`, `perfectblend-llama4-maverick-instruct`, `magpie-qwen2.5-pro-1m-v0.1`, `nebius-llama31-8b-infinity-instruct` |
+| General chat | `ultrachat`, `sharegpt`, `eaglechat`, `perfectblend`, `perfectblend-dedup`, `perfectblend-llama3.1-8b-instruct`, `perfectblend-llama3.3-70b-instruct`, `perfectblend-llama4-scout-instruct`, `perfectblend-llama4-maverick-instruct`, `magpie-qwen2.5-pro-1m-v0.1`, `nebius-llama31-8b-infinity-instruct` |
 | Reasoning, math, and code | `opc`, `gsm8k`, `hendrycks_math`, `math_qa`, `codealpaca-20k`, `opencodeinstruct`, `magicoder-evol-instruct`, `sciq`, `camel` |
+| Agentic | `apigen-mt`, `nemotron-agentic` |
 
 VLM data preparation and training, including ALLaVA and ShareGPT4V, are not
 supported.
@@ -48,6 +48,50 @@ python scripts/prepare_data.py \
 Each raw row must contain an `id` and a `conversations` list whose messages use
 ShareGPT's `from` and `value` keys. Custom paths are intentionally limited to
 the `sharegpt` preset.
+
+### Fixed-size dataset mixtures
+
+From the repository root with the [CPU environment](../ENVIRONMENT.md) active,
+choose a total number of output conversation rows:
+
+```bash
+uv run --no-project python scripts/prepare_data.py \
+  --dataset baseline --sample-size 10000 --output-path ./cache/baseline-dataset
+
+uv run --no-project python scripts/prepare_data.py \
+  --dataset agent-aware --sample-size 10000 --output-path ./cache/agent-dataset
+
+uv run --no-project python scripts/prepare_data.py \
+  --dataset mix --sample-size 10000 --output-path ./cache/custom-dataset \
+  --ratios perfectblend-dedup=60,opencodeinstruct=20,apigen-mt=10,nemotron-agentic=10
+```
+
+| Mixture | PerfectBlend dedup | OpenCodeInstruct | APIGen-MT | Nemotron-Agentic |
+| --- | ---: | ---: | ---: | ---: |
+| `baseline` | 80% | 20% | 0% | 0% |
+| `agent-aware` | 70% | 10% | 10% | 10% |
+
+`--ratios` can override either named mixture. Specify percentages as
+`source=weight` pairs separated by commas; omitted sources get 0%, and weights
+must sum to 100%. Fractional percentages are accepted. Counts use
+largest-remainder rounding, so the total equals `--sample-size`. `--seed`
+(default 42) fixes source sampling and output order. `--split-eval` reserves
+5% of the selected total for a separate `_test.jsonl` file; source proportions
+apply before that split. Existing mixture files are never overwritten. A source
+with too few usable unique rows raises an error instead of changing the ratio.
+
+Sources: [PerfectBlend deduplicated](https://huggingface.co/datasets/tepirale/open-perfectblend-deduplicate-mlabonne),
+[OpenCodeInstruct](https://huggingface.co/datasets/nvidia/OpenCodeInstruct),
+[APIGen-MT-5k](https://huggingface.co/datasets/Salesforce/APIGen-MT-5k), and
+[Nemotron-Agentic-v1](https://huggingface.co/datasets/nvidia/Nemotron-Agentic-v1).
+The Nemotron preset uses its `interactive_agent` split (about 19k raw rows);
+APIGen-MT has about 5k raw rows. Incomplete raw dialogues are skipped and
+replaced with another row; `apigen-mt` and `nemotron-agentic` also require
+`--sample-size` when used alone so this filtering remains in effect. Large
+requests can exhaust either source. APIGen-MT
+is **CC BY-NC 4.0**; review its noncommercial terms and every source's license
+before training or distributing a model. Tool calls are retained, so use a
+tokenizer/chat template that supports tool messages.
 
 
 ## ↩️ Regenerate Datasets
@@ -136,7 +180,7 @@ python -m sglang.launch_server \
 ```
 
 After `curl --fail http://127.0.0.1:30000/health` succeeds, run the recipe from
-the Draftfit repository root:
+the SpecForge repository root:
 
 ```bash
 MODEL_PROFILE=qwen3-8b \
@@ -252,7 +296,7 @@ loss mask.
 #   train_data_path: ./your_preformatted_dataset.jsonl
 #   is_preformatted: true
 #   chat_template: llama3
-draftfit train --config ./my-eagle3-disaggregated.yaml
+draftfit train -c ./my-eagle3-disaggregated.yaml
 ```
 
 ## 💾 Prepare offline target features
@@ -334,7 +378,7 @@ Launch the matching recipe after its `data.hidden_states_path` points at the
 generated directory:
 
 ```bash
-draftfit train --config examples/configs/qwen3-8b-dflash-offline.yaml
+draftfit train -c examples/configs/qwen3-8b-dflash-offline.yaml
 ```
 
 See the [Training](training.md) guide for the complete run schema and supported

@@ -12,6 +12,8 @@ trackers to that seam without putting tracker-specific branches in the trainer.
 from __future__ import annotations
 
 import numbers
+import json
+import os
 from typing import Any, Callable, Dict, Mapping, Optional
 
 
@@ -64,6 +66,28 @@ def training_metric_names(metrics: Mapping[str, float]) -> Dict[str, float]:
         key if key.startswith(("train/", "eval/")) else f"train/{key}": value
         for key, value in metrics.items()
     }
+
+
+class JsonlMetricLogger:
+    """Persist the same scalar stream used by console and external trackers."""
+
+    def __init__(self, output_dir: str, delegate: Callable[[Mapping[str, Any], int], None]):
+        self.path = os.path.join(output_dir, "metrics.jsonl")
+        self.delegate = delegate
+
+    def __call__(self, metrics: Mapping[str, Any], step: int) -> None:
+        self.delegate(metrics, step)
+        if os.environ.get("RANK", "0") != "0":
+            return
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        row = {"step": step, **training_metric_names(scalar_metrics(metrics))}
+        with open(self.path, "a", encoding="utf-8") as stream:
+            stream.write(json.dumps(row, allow_nan=False, sort_keys=True) + "\n")
+
+    def close(self) -> None:
+        close = getattr(self.delegate, "close", None)
+        if callable(close):
+            close()
 
 
 class TrackerLogger:

@@ -608,6 +608,12 @@ class TrainingConfig(StrictConfigModel):
     dspark_ce_loss_alpha: float = 0.1
     dspark_l1_loss_alpha: float = 0.9
     dspark_confidence_head_alpha: float = 1.0
+    dspark_acceptance_loss: Optional[Literal["eal", "wtv"]] = None
+    dspark_acceptance_loss_alpha: float = Field(default=0.0, ge=0.0)
+    dspark_acceptance_temperature: float = Field(default=1.0, gt=0.0)
+    dspark_head_only: bool = False
+    #: Explicitly re-align an anchor-sampling DSpark backbone for DFlash/DFlash2.
+    retrain_anchor_alignment: bool = False
     dflash2_selector_loss_alpha: float = Field(default=1.0, gt=0.0)
     #: P-EAGLE COD sampling/model knobs.
     num_depths: int = Field(default=8, gt=0)
@@ -637,6 +643,14 @@ class TrainingConfig(StrictConfigModel):
 
     @model_validator(mode="after")
     def _validate_training_shape(self):
+        if not math.isfinite(self.dspark_acceptance_loss_alpha) or not math.isfinite(
+            self.dspark_acceptance_temperature
+        ):
+            raise ValueError(
+                "training.dspark_acceptance_loss_alpha and temperature must be finite"
+            )
+        if self.dspark_acceptance_loss_alpha and self.dspark_acceptance_loss is None:
+            raise ValueError("training.dspark_acceptance_loss is required when its alpha is positive")
         if not math.isfinite(self.dflash2_selector_loss_alpha):
             raise ValueError("training.dflash2_selector_loss_alpha must be finite")
         if not 0.0 <= self.dpace_alpha <= 1.0:
@@ -813,6 +827,24 @@ class Config(StrictConfigModel):
             raise ValueError(
                 "model.draft_checkpoint_path (weights-only warm start) and "
                 "training.resume_from (full resume) are mutually exclusive"
+            )
+        if self.training.dspark_head_only and (
+            self.training.strategy != "dspark"
+            or not (self.model.draft_checkpoint_path or self.training.resume_from)
+        ):
+            raise ValueError(
+                "training.dspark_head_only requires strategy=dspark and "
+                "model.draft_checkpoint_path or training.resume_from"
+            )
+        if self.training.dspark_acceptance_loss_alpha > 0 and self.training.strategy != "dspark":
+            raise ValueError("training.dspark_acceptance_loss_alpha requires strategy=dspark")
+        if self.training.retrain_anchor_alignment and (
+            self.training.strategy not in ("dflash", "dflash2")
+            or not self.model.draft_checkpoint_path
+        ):
+            raise ValueError(
+                "training.retrain_anchor_alignment requires a DFlash/DFlash2 "
+                "weights-only draft checkpoint"
             )
         if self.training.role == "producer" and self.profiling.enabled:
             raise ValueError(

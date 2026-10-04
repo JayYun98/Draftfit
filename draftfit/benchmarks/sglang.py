@@ -73,6 +73,8 @@ class BenchmarkResult:
     average_acceptance_length: Optional[float] = None
     spec_verify_count: Optional[int] = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    domain_metrics: dict[str, dict[str, Any]] = field(default_factory=dict)
+    request_metrics: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _limit_samples(prompts: list[Any], max_samples: Optional[int]) -> list[Any]:
@@ -116,7 +118,7 @@ def _load_prompts(name: str, max_samples: Optional[int]) -> list[list[str]]:
 
 def _load_messages_jsonl(
     path: str | Path, max_samples: Optional[int]
-) -> list[list[dict[str, Any]]]:
+) -> list[tuple[list[dict[str, Any]], str]]:
     """Load held-out conversations, omitting each row's final answer."""
 
     if max_samples is not None and max_samples <= 0:
@@ -125,7 +127,7 @@ def _load_messages_jsonl(
     if not path.is_file():
         raise ValueError(f"messages JSONL does not exist: {path}")
 
-    prompts: list[list[dict[str, Any]]] = []
+    prompts: list[tuple[list[dict[str, Any]], str]] = []
     with path.open("rb") as input_file:
         line_number = 0
         while True:
@@ -214,7 +216,19 @@ def _load_messages_jsonl(
                 raise ValueError(
                     f"messages JSONL line {line_number} must contain a user message"
                 )
-            prompts.append(prompt)
+            domain = row.get("domain")
+            if domain is None:
+                row_id = row.get("id")
+                domain = (
+                    row_id.partition(":")[0]
+                    if isinstance(row_id, str) and ":" in row_id
+                    else "unlabeled"
+                )
+            if not isinstance(domain, str) or not domain.strip() or len(domain) > 128:
+                raise ValueError(
+                    f"messages JSONL line {line_number} has an invalid domain"
+                )
+            prompts.append((prompt, domain.strip()))
 
     if not prompts:
         raise ValueError(f"messages JSONL {path} did not contain any prompts")
@@ -271,6 +285,12 @@ def _send_sglang(args, prompt: str) -> dict[str, Any]:
     return payload[0] if isinstance(payload, list) else payload
 
 
+def _timed_send_sglang(args, prompt: str) -> tuple[dict[str, Any], float]:
+    start = time.perf_counter()
+    output = _send_sglang(args, prompt)
+    return output, time.perf_counter() - start
+
+
 def _run_sglang(args) -> BenchmarkResult:
     import requests
     from transformers import AutoTokenizer
@@ -290,7 +310,10 @@ def _run_sglang(args) -> BenchmarkResult:
             "sample_count": len(dataset),
         }
     else:
-        dataset = _load_prompts(args.dataset, args.max_samples)
+        dataset = [
+            (prompt, args.dataset)
+            for prompt in _load_prompts(args.dataset, args.max_samples)
+        ]
         dataset_name = args.dataset
         source_metadata = {
             "kind": "builtin",
@@ -304,10 +327,13 @@ def _run_sglang(args) -> BenchmarkResult:
     prompt_count = args.num_prompts
     warmup_count = args.concurrency
     prompts = [
-        _apply_chat_template(
-            tokenizer,
-            _prompt_messages(dataset[index % len(dataset)]),
-            args.enable_thinking,
+        (
+            _apply_chat_template(
+                tokenizer,
+                _prompt_messages(dataset[index % len(dataset)][0]),
+                args.enable_thinking,
+            ),
+            dataset[index % len(dataset)][1],
         )
         for index in range(prompt_count + warmup_count)
     ]
@@ -323,7 +349,7 @@ def _run_sglang(args) -> BenchmarkResult:
     with ThreadPoolExecutor(max_workers=warmup_count) as executor:
         list(
             executor.map(
-                lambda prompt: _send_sglang(args, prompt), prompts[:warmup_count]
+                lambda item: _send_sglang(args, item[0]), prompts[:warmup_count]
             )
         )
     prompts = prompts[warmup_count:]
@@ -331,20 +357,60 @@ def _run_sglang(args) -> BenchmarkResult:
     total_tokens = 0
     verify_count = 0
     acceptance_lengths: list[float] = []
+    request_metrics: list[dict[str, Any]] = []
     start = time.perf_counter()
     with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
-        futures = [executor.submit(_send_sglang, args, prompt) for prompt in prompts]
+        futures = {
+            executor.submit(_timed_send_sglang, args, prompt): (index, domain)
+            for index, (prompt, domain) in enumerate(prompts)
+        }
         for future in as_completed(futures):
-            output = future.result()
+            output, request_elapsed = future.result()
+            index, domain = futures[future]
             metadata = output.get("meta_info", {}) or {}
-            total_tokens += int(metadata.get("completion_tokens", 0))
+            output_tokens = int(metadata.get("completion_tokens", 0))
+            total_tokens += output_tokens
             verify_count += int(metadata.get("spec_verify_ct", 0))
+            acceptance_length = None
             if metadata.get("spec_accept_length") is not None:
                 try:
-                    acceptance_lengths.append(float(metadata["spec_accept_length"]))
+                    acceptance_length = float(metadata["spec_accept_length"])
+                    acceptance_lengths.append(acceptance_length)
                 except (TypeError, ValueError):
                     pass
+            request_metrics.append(
+                {
+                    "index": index,
+                    "domain": domain,
+                    "output_tokens": output_tokens,
+                    "latency_seconds": request_elapsed,
+                    "tokens_per_second": output_tokens / max(request_elapsed, 1e-12),
+                    "acceptance_length": acceptance_length,
+                }
+            )
     elapsed = time.perf_counter() - start
+    request_metrics.sort(key=lambda row: row["index"])
+    by_domain: dict[str, list[dict[str, Any]]] = {}
+    for row in request_metrics:
+        by_domain.setdefault(row["domain"], []).append(row)
+    domain_metrics = {}
+    for domain, rows in sorted(by_domain.items()):
+        accepted = [
+            row["acceptance_length"]
+            for row in rows
+            if row["acceptance_length"] is not None
+        ]
+        domain_metrics[domain] = {
+            "samples": len(rows),
+            "output_tokens": sum(row["output_tokens"] for row in rows),
+            "median_request_tokens_per_second": statistics.median(
+                row["tokens_per_second"] for row in rows
+            ),
+            "median_latency_seconds": statistics.median(
+                row["latency_seconds"] for row in rows
+            ),
+            "average_acceptance_length": statistics.fmean(accepted) if accepted else None,
+        }
     return BenchmarkResult(
         backend="sglang",
         dataset=dataset_name,
@@ -356,6 +422,8 @@ def _run_sglang(args) -> BenchmarkResult:
             statistics.fmean(acceptance_lengths) if acceptance_lengths else None
         ),
         spec_verify_count=verify_count or None,
+        domain_metrics=domain_metrics,
+        request_metrics=request_metrics,
         metadata={
             "seed": 42,
             "model": args.model,
@@ -387,6 +455,11 @@ def _print_result(result: BenchmarkResult) -> None:
         print(f"Average acceptance length: {result.average_acceptance_length:.3f}")
     if result.spec_verify_count is not None:
         print(f"Speculative verify count: {result.spec_verify_count}")
+    for domain, row in result.domain_metrics.items():
+        print(
+            f"Domain {domain!r}: {row['samples']} requests, "
+            f"median {row['median_request_tokens_per_second']:.2f} tok/s/request"
+        )
 
 
 def run(args) -> int:

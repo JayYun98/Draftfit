@@ -295,8 +295,10 @@ def _logger(metrics, step):
 
 def _configured_logger(cfg: Config):
     """Create an external tracker only for a trainer-bearing run."""
+    from draftfit.training.tracking import JsonlMetricLogger
+
     if cfg.tracking.report_to == "none" or cfg.training.role == "producer":
-        return _logger
+        return JsonlMetricLogger(cfg.output_dir, _logger)
 
     from types import SimpleNamespace
 
@@ -314,8 +316,11 @@ def _configured_logger(cfg: Config):
         # runs. Keep the complete resolved config next to the metric stream;
         # tracker._public_config recursively redacts credentials before init.
         options["specforge_config"] = cfg.model_dump(mode="json")
-    return create_tracker_logger(
-        SimpleNamespace(**options), cfg.output_dir, console_logger=_logger
+    return JsonlMetricLogger(
+        cfg.output_dir,
+        create_tracker_logger(
+            SimpleNamespace(**options), cfg.output_dir, console_logger=_logger
+        ),
     )
 
 

@@ -89,6 +89,16 @@ draftfit train -c ./my-finetune/train.json
 
 This is a weights-only warm start with a new optimizer and schedule. To continue an interrupted run instead, set `training.resume_from=/path/to/training-checkpoint`. Do not combine warm start and resume. Optimizer resume requires the same trainer world size.
 
+For a shared offline feature cache, `draftfit family --manifest family.json --plan`
+checks a sequential DSpark/DFlash/DFlash2 training and ablation matrix;
+`draftfit family --manifest family.json` runs it. Each arm saves an independent
+checkpoint and held-out metrics. An official anchor-style DSpark draft can
+initialize DFlash/DFlash2 only with explicit
+`training.retrain_anchor_alignment=true` and fresh training. See the
+[MiniCPM5 matrix and verification plan](docs/RECENT_MODEL_EXPERIMENTS.md#one-command-minicpm5-matrix).
+For a cheaper first stage, [raw-text pretraining and zero-column auxiliary widening](docs/DFLASH_FAMILY.md#raw-text-pretraining)
+can initialize any one DFlash-family draft before verifier-feature distillation.
+
 ### Train from saved features
 
 Replace `--train-data` with `--hidden-states /path/to/features` to create an offline run. Caches must match the target revision, tokenizer, capture layers and draft method. See [the workflow guide](docs/PUBLIC_WORKFLOW.md) for capture requirements and overrides.
@@ -197,6 +207,8 @@ Custom SGLang and Mooncake remain explicit external runtimes; see
 The platform builds on SpecForge's training engine and adapts selected ideas and implementations from [TorchSpec](https://github.com/lightseekorg/TorchSpec), [AngelSpec](https://github.com/Tencent/AngelSpec), and DSpark-related projects. Upstream licenses and attribution remain intact. See [third-party notices](THIRDPARTY_NOTICES.md) and [source attribution](docs/SOURCE_ATTRIBUTION.md).
 
 - [Detailed workflow](docs/PUBLIC_WORKFLOW.md)
+- [DSpark / DFlash family paths](docs/DFLASH_FAMILY.md)
+- [Recent target training and MiniCPM5 evidence](docs/RECENT_TARGET_BRANCH_SUMMARY.md)
 - [Add a target through configuration](docs/TARGET_EXTENSION.md)
 - [Compare personal-workload measurements](docs/PERFORMANCE_GATE.md)
 - [Production release gates](docs/RELEASE_GATES.md)

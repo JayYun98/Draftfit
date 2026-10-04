@@ -24,6 +24,9 @@ from draftfit.runtime.data_plane.feature_store import LocalFeatureStore
 
 
 class TeacherTrainingTest(unittest.TestCase):
+    def make_teacher(self, config):
+        return Qwen3ForCausalLM(config)
+
     def test_qwen3_capture_disk_loader_and_draft_updates(self):
         with torch.random.fork_rng(devices=[]):
             torch.manual_seed(29)
@@ -39,7 +42,7 @@ class TeacherTrainingTest(unittest.TestCase):
                 tie_word_embeddings=False,
             )
             config._attn_implementation = "eager"
-            teacher = Qwen3ForCausalLM(config).eval().requires_grad_(False)
+            teacher = self.make_teacher(config).eval().requires_grad_(False)
             capture = OfflineTransformersCapture(teacher)
             registry = builtin_algorithm_registry()
             for name in ("dspark", "dflash2"):
@@ -171,6 +174,34 @@ class TeacherTrainingTest(unittest.TestCase):
                             parameter.grad is None for parameter in teacher.parameters()
                         )
                     )
+
+
+class HybridTeacherTrainingTest(TeacherTrainingTest):
+    def make_teacher(self, config):
+        from transformers import Qwen3_5ForCausalLM, Qwen3_5TextConfig
+
+        return Qwen3_5ForCausalLM(
+            Qwen3_5TextConfig(
+                vocab_size=64,
+                hidden_size=32,
+                intermediate_size=64,
+                num_hidden_layers=3,
+                num_attention_heads=4,
+                num_key_value_heads=2,
+                head_dim=8,
+                linear_num_key_heads=2,
+                linear_num_value_heads=2,
+                linear_key_head_dim=8,
+                linear_value_head_dim=8,
+                layer_types=["linear_attention", "full_attention", "linear_attention"],
+                rope_parameters={
+                    "rope_type": "default",
+                    "rope_theta": 10000,
+                    "partial_rotary_factor": 1.0,
+                    "mrope_section": [1, 1, 2],
+                },
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -70,12 +70,25 @@ def resolve_dflash_attention_layout(
     return layer_types, sliding_window
 
 
-def apply_rotary_pos_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
+def _rotate_interleaved(x: torch.Tensor) -> torch.Tensor:
+    pairs = x.reshape(*x.shape[:-1], -1, 2)
+    return torch.stack((-pairs[..., 1], pairs[..., 0]), dim=-1).flatten(-2)
+
+
+def apply_rotary_pos_emb(
+    q, k, cos, sin, position_ids=None, unsqueeze_dim=1, *, is_neox_style=True
+):
+    if not is_neox_style:
+        # Qwen3RotaryEmbedding emits [frequencies, frequencies]. LFM's
+        # interleaved convention instead pairs adjacent feature dimensions.
+        cos = cos[..., : cos.shape[-1] // 2].repeat_interleave(2, dim=-1)
+        sin = sin[..., : sin.shape[-1] // 2].repeat_interleave(2, dim=-1)
+    rotate = rotate_half if is_neox_style else _rotate_interleaved
     cos = cos.unsqueeze(unsqueeze_dim)
     sin = sin.unsqueeze(unsqueeze_dim)
     q_len = q.size(-2)
-    q_embed = (q * cos[..., -q_len:, :]) + (rotate_half(q) * sin[..., -q_len:, :])
-    k_embed = (k * cos) + (rotate_half(k) * sin)
+    q_embed = (q * cos[..., -q_len:, :]) + (rotate(q) * sin[..., -q_len:, :])
+    k_embed = (k * cos) + (rotate(k) * sin)
     return q_embed, k_embed
 
 
@@ -177,7 +190,10 @@ class Qwen3DFlashAttention(nn.Module):
         k = self.k_norm(k).transpose(1, 2)
         v = v.transpose(1, 2)
         cos, sin = position_embeddings
-        q, k = apply_rotary_pos_emb(q, k, cos, sin)
+        q, k = apply_rotary_pos_emb(
+            q, k, cos, sin,
+            is_neox_style=getattr(self.config, "rope_is_neox_style", True),
+        )
         if past_key_values is not None:
             cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
             k, v = past_key_values.update(k, v, self.layer_idx, cache_kwargs)

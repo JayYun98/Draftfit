@@ -4,6 +4,10 @@ from unittest.mock import patch
 
 import torch
 from transformers import (
+    Lfm2Config,
+    Lfm2Model,
+    Lfm2MoeConfig,
+    Lfm2MoeModel,
     LlamaConfig,
     LlamaModel,
     Qwen2Config,
@@ -11,11 +15,88 @@ from transformers import (
     Qwen3Config,
     Qwen3Model,
 )
+from transformers.models.qwen3_5.configuration_qwen3_5 import Qwen3_5TextConfig
+from transformers.models.qwen3_5.modeling_qwen3_5 import Qwen3_5TextModel
 
 from draftfit.offline_capture.transformers import OfflineTransformersCapture
 
 
 class TransformersCaptureTest(unittest.TestCase):
+    def test_taichu_text_model_capture(self):
+        from types import SimpleNamespace
+
+        config = Qwen3_5TextConfig(
+            vocab_size=32, hidden_size=16, intermediate_size=32,
+            num_hidden_layers=2, num_attention_heads=2, num_key_value_heads=1,
+            head_dim=8, layer_types=["linear_attention", "full_attention"],
+            linear_num_key_heads=2, linear_num_value_heads=2,
+            linear_key_head_dim=8, linear_value_head_dim=8,
+        )
+        text = Qwen3_5TextModel(config)
+        wrapper = SimpleNamespace(base_model=SimpleNamespace(
+            config=SimpleNamespace(model_type="zdtaichu5_0"),
+            language_model=SimpleNamespace(model=text),
+        ))
+        teacher = OfflineTransformersCapture(wrapper)
+        teacher.set_capture_layers([0, 1], capture_method="dspark")
+        ids = torch.tensor([[1, 2, 3, 4]])
+        result = teacher.capture(
+            input_ids=ids, attention_mask=torch.ones_like(ids), loss_mask=torch.ones_like(ids)
+        )
+        torch.testing.assert_close(
+            text.norm(result.hidden_states[..., 16:]), result.last_hidden_states
+        )
+
+    def test_lfm_conv_and_moe_capture_unnormalized_taps(self):
+        for config_cls, model_cls in ((Lfm2Config, Lfm2Model), (Lfm2MoeConfig, Lfm2MoeModel)):
+            with self.subTest(model=model_cls.__name__):
+                options = dict(
+                    vocab_size=32, hidden_size=16, intermediate_size=32,
+                    num_hidden_layers=2, num_attention_heads=2,
+                    num_key_value_heads=1, layer_types=["conv", "full_attention"],
+                )
+                if config_cls is Lfm2MoeConfig:
+                    options.update(num_experts=2, num_experts_per_tok=1, moe_intermediate_size=16)
+                model = model_cls(config_cls(**options))
+                teacher = OfflineTransformersCapture(model)
+                teacher.set_capture_layers([0, 1], capture_method="dspark")
+                ids = torch.tensor([[1, 2, 3, 4]])
+                result = teacher.capture(
+                    input_ids=ids, attention_mask=torch.ones_like(ids), loss_mask=torch.ones_like(ids)
+                )
+                torch.testing.assert_close(
+                    model.embedding_norm(result.hidden_states[..., 16:]),
+                    result.last_hidden_states,
+                )
+                self.assertEqual(result.hidden_states.shape, (1, 4, 32))
+
+    def test_vlm_text_decoder_selection_and_xing_reduction(self):
+        from types import SimpleNamespace
+
+        decoder = self.model()
+        for family, language_model in (
+            ("agnes", decoder),
+            ("qwen3_5", decoder),
+            ("zdtaichu5_0", SimpleNamespace(base_model=decoder)),
+        ):
+            wrapper = SimpleNamespace(
+                base_model=SimpleNamespace(
+                    config=SimpleNamespace(model_type=family),
+                    language_model=language_model,
+                )
+            )
+            teacher = OfflineTransformersCapture(wrapper)
+            teacher.set_capture_layers([0, 2], capture_method="dspark")
+            result = teacher.capture(**self.batch())
+            self.assertEqual(result.hidden_states.shape, (2, 4, 32))
+        decoder.config.model_type = "xing4_0"
+        decoder.config.hc_mult = 4
+        teacher = OfflineTransformersCapture(decoder)
+        streams = torch.randn(2, 3, 4, 16)
+        torch.testing.assert_close(teacher._capture_output(streams), streams.mean(2))
+        with self.assertRaisesRegex(ValueError, "hyperconnection"):
+            teacher._capture_output(streams[:, :, :2])
+
     def model(self, config_cls=LlamaConfig, model_cls=LlamaModel):
         torch.manual_seed(3)
         return model_cls(

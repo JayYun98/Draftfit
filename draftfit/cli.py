@@ -204,6 +204,27 @@ def main(argv: Optional[List[str]] = None) -> int:
     sub.add_parser(
         "algorithms", help="list registered draft methods and feature requirements"
     )
+    family = sub.add_parser("family", help="train DFlash-family variants from one feature cache")
+    family.add_argument("--manifest", required=True, help="JSON run matrix")
+    family.add_argument("--plan", action="store_true", help="validate and show stages without training")
+    pretrain = sub.add_parser("pretrain", help="raw-text warm start for a DFlash-family draft")
+    pretrain.add_argument("--target", required=True)
+    pretrain.add_argument("--target-revision")
+    pretrain.add_argument("--draft-config", required=True)
+    pretrain.add_argument("--strategy", choices=("dflash", "dspark", "dflash2"), required=True)
+    pretrain.add_argument("--corpus", required=True, help="JSONL rows with a text field")
+    pretrain.add_argument("--validation", help="separate held-out text JSONL")
+    pretrain.add_argument("--validation-sequences", type=int, default=32)
+    pretrain.add_argument("--output", required=True)
+    pretrain.add_argument("--steps", type=int, required=True)
+    pretrain.add_argument("--sequence-length", type=int, required=True)
+    pretrain.add_argument("--batch-size", type=int, default=1)
+    pretrain.add_argument("--learning-rate", type=float, default=1e-4)
+    pretrain.add_argument("--seed", type=int, default=42)
+    expand = sub.add_parser("expand-aux-layers", help="zero-widen a one-tap DFlash-family projection")
+    expand.add_argument("--checkpoint", required=True)
+    expand.add_argument("--output", required=True)
+    expand.add_argument("--target-layer-ids", type=int, nargs="+", required=True)
     data = sub.add_parser("data", help="prepare local user data for training")
     data_sub = data.add_subparsers(dest="data_command", required=True)
     data_prepare = data_sub.add_parser(
@@ -446,6 +467,36 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         print(json.dumps(algorithm_catalog(), indent=2))
         return 0
+    if args.command in {"pretrain", "expand-aux-layers"}:
+        from draftfit.pretraining import expand_aux_layers, pretrain
+
+        try:
+            result = (
+                pretrain(
+                    target=args.target, target_revision=args.target_revision,
+                    draft_config=args.draft_config, strategy=args.strategy,
+                    corpus=args.corpus, validation=args.validation,
+                    validation_sequences=args.validation_sequences,
+                    output=args.output, steps=args.steps,
+                    sequence_length=args.sequence_length, batch_size=args.batch_size,
+                    learning_rate=args.learning_rate, seed=args.seed,
+                )
+                if args.command == "pretrain"
+                else expand_aux_layers(args.checkpoint, args.output, args.target_layer_ids)
+            )
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "family":
+        from draftfit.family import run_family
+
+        try:
+            result = run_family(args.manifest, plan=args.plan)
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if args.plan or all(run["status"] == "complete" for run in result["runs"]) else 1
     if args.command == "data":
         from draftfit.data.prepare import prepare_dataset
 

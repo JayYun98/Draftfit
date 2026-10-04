@@ -45,9 +45,15 @@ class NPUDistributedTest(unittest.TestCase):
             setattr(sf_dist, name, value)
 
     def test_backend_mapping_is_device_specific(self):
-        self.assertEqual(sf_dist._distributed_backend("cuda"), "nccl")
+        with mock.patch.dict(os.environ, {"DRAFTFIT_CUDA_DIST_BACKEND": "nccl"}):
+            self.assertEqual(sf_dist._distributed_backend("cuda"), "nccl")
         self.assertEqual(sf_dist._distributed_backend("npu"), "hccl")
         self.assertEqual(sf_dist._distributed_backend("cpu"), "gloo")
+        with mock.patch.dict(os.environ, {"DRAFTFIT_CUDA_DIST_BACKEND": "gloo"}):
+            self.assertEqual(sf_dist._distributed_backend("cuda"), "gloo")
+        with mock.patch.dict(os.environ, {"DRAFTFIT_CUDA_DIST_BACKEND": "invalid"}):
+            with self.assertRaises(ValueError):
+                sf_dist._distributed_backend("cuda")
 
     def test_pre_group_binding_falls_back_to_global_rank(self):
         accelerator = mock.Mock()
