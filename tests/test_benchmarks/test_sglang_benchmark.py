@@ -102,12 +102,15 @@ class SGLangBenchmarkTest(unittest.TestCase):
         self.assertEqual(
             prompts,
             [
-                [
-                    {"role": "system", "content": "rules"},
-                    {"role": "user", "content": "first"},
-                    {"role": "assistant", "content": "history"},
-                    {"role": "user", "content": "follow-up"},
-                ]
+                (
+                    [
+                        {"role": "system", "content": "rules"},
+                        {"role": "user", "content": "first"},
+                        {"role": "assistant", "content": "history"},
+                        {"role": "user", "content": "follow-up"},
+                    ],
+                    "unlabeled",
+                )
             ],
         )
 
@@ -321,6 +324,77 @@ class SGLangBenchmarkTest(unittest.TestCase):
             "http://127.0.0.1:30000/flush_cache",
             timeout=30,
         )
+
+    def test_local_domain_rates_keep_request_labels_and_exclude_warmup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "held-out.jsonl"
+            path.write_text(
+                "\n".join(
+                    json.dumps(
+                        {
+                            "id": f"{domain}:1",
+                            "conversations": [
+                                {"role": "user", "content": domain},
+                                {"role": "assistant", "content": "answer"},
+                            ],
+                        }
+                    )
+                    for domain in ("code", "chat")
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            args = SimpleNamespace(
+                model="/models/Inkling",
+                trust_remote_code=False,
+                dataset=None,
+                messages_jsonl=str(path),
+                max_samples=None,
+                num_prompts=2,
+                concurrency=1,
+                enable_thinking=False,
+                base_url="http://127.0.0.1:30000",
+                timeout_seconds=30,
+            )
+
+            class FakeTokenizer:
+                def apply_chat_template(self, messages, **_kwargs):
+                    return messages[-1]["content"]
+
+            def respond(_args, prompt):
+                return {
+                    "meta_info": {
+                        "completion_tokens": 4 if prompt == "code" else 2,
+                        "spec_verify_ct": 1,
+                        "spec_accept_length": 3 if prompt == "code" else 2,
+                    }
+                }
+
+            with (
+                mock.patch(
+                    "transformers.AutoTokenizer.from_pretrained",
+                    return_value=FakeTokenizer(),
+                ),
+                mock.patch("requests.get") as flush,
+                mock.patch.object(sglang, "_send_sglang", side_effect=respond) as send,
+            ):
+                result = sglang._run_sglang(args)
+
+        self.assertEqual(send.call_count, 3)  # one warmup, two measured
+        self.assertEqual(result.output_tokens, 6)
+        self.assertEqual(
+            {name: row["samples"] for name, row in result.domain_metrics.items()},
+            {"code": 1, "chat": 1},
+        )
+        self.assertEqual(
+            [(row["index"], row["domain"], row["output_tokens"]) for row in result.request_metrics],
+            [(0, "chat", 2), (1, "code", 4)],
+        )
+        self.assertTrue(
+            all(row["median_request_tokens_per_second"] > 0 for row in result.domain_metrics.values())
+        )
+        self.assertNotIn("answer", json.dumps(result.request_metrics))
+        flush.assert_called_once()
 
     def test_shared_cli_dispatches_sglang_benchmark(self):
         from draftfit.cli import main

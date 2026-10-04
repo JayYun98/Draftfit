@@ -25,6 +25,11 @@ _DISTRIBUTED_BACKENDS = {
 
 
 def _distributed_backend(device_type: str) -> str:
+    if device_type == "cuda":
+        backend = os.environ.get("DRAFTFIT_CUDA_DIST_BACKEND", "nccl").lower()
+        if backend not in {"nccl", "gloo"}:
+            raise ValueError("DRAFTFIT_CUDA_DIST_BACKEND must be nccl or gloo")
+        return backend
     try:
         return _DISTRIBUTED_BACKENDS[device_type]
     except KeyError:

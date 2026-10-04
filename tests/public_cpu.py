@@ -12,6 +12,9 @@ os.environ["WANDB_MODE"] = "disabled"
 
 def load_tests(loader, tests, pattern):
     modules = [
+        "tests.test_family",
+        "tests.test_pretraining",
+        "tests.test_scripts.test_prepare_data",
         "tests.test_target_project",
         "tests.test_target_spec",
         "tests.test_target_inspector",

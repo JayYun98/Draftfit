@@ -8,7 +8,7 @@ from draftfit.inference.capture import TeacherCaptureBatch as OfflineCaptureBatc
 
 
 class OfflineTransformersCapture:
-    """Capture Llama/Qwen decoder block outputs before final normalization.
+    """Capture supported text decoder block outputs before final normalization.
 
     SGLang's dense EAGLE/DFlash hooks capture the residual stream entering the
     next block. HF's final hidden_states entry is already normalized, so block
@@ -18,15 +18,48 @@ class OfflineTransformersCapture:
 
     def __init__(self, model):
         self._model = model.base_model
-        if self._model.config.model_type not in {"llama", "qwen2", "qwen3"}:
-            raise ValueError(
-                "Transformers offline capture supports llama, qwen2, qwen3 text decoders only"
+        family = self._model.config.model_type
+        if family == "zdtaichu5_0":
+            language_model = self._model.language_model
+            self._model = getattr(
+                language_model, "base_model", getattr(language_model, "model", language_model)
             )
-        if not hasattr(self._model, "layers") or not hasattr(self._model, "norm"):
+        elif family in {"agnes", "qwen3_5"}:
+            self._model = self._model.language_model
+        if self._model.config.model_type not in {
+            "llama",
+            "qwen2",
+            "qwen3",
+            "qwen3_5_text",
+            "agnes_text",
+            "xing4_0",
+            "lfm2",
+            "lfm2_moe",
+        }:
+            raise ValueError(
+                f"unsupported Transformers text decoder: {self._model.config.model_type}"
+            )
+        final_norm = (
+            "embedding_norm"
+            if self._model.config.model_type in {"lfm2", "lfm2_moe"}
+            else "norm"
+        )
+        if not hasattr(self._model, "layers") or not hasattr(self._model, final_norm):
             raise ValueError("target must expose decoder layers and final norm")
         self._model.requires_grad_(False).eval()
         self.capture_layers = None
         self.capture_method = "eagle3"
+
+    def _capture_output(self, output):
+        hidden = output[0] if isinstance(output, tuple) else output
+        if self._model.config.model_type == "xing4_0":
+            # Xing's own readout reduces hyperconnection streams before norm.
+            # This explicit feature contract must also be used by draft serving.
+            expected = (self._model.config.hc_mult, self._model.config.hidden_size)
+            if hidden.ndim != 4 or tuple(hidden.shape[-2:]) != expected:
+                raise ValueError("invalid Xing hyperconnection feature shape")
+            hidden = hidden.mean(dim=2)
+        return hidden.detach().clone()
 
     @classmethod
     def from_pretrained(
@@ -113,11 +146,7 @@ class OfflineTransformersCapture:
 
         def save_layer(index):
             def save(module, args, output):
-                states[index] = (
-                    (output[0] if isinstance(output, tuple) else output)
-                    .detach()
-                    .clone()
-                )
+                states[index] = self._capture_output(output)
 
             return save
 

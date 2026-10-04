@@ -515,6 +515,7 @@ class FSDP2TrainingBackend(FSDPTrainingBackend):
                     "project_hidden_states",
                     "compute_logits",
                     "backbone",
+                    "score_candidates",
                 ):
                     callback = getattr(target, method, None)
                     if callable(callback) and not isinstance(callback, nn.Module):

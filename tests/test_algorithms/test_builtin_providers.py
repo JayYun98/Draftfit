@@ -22,14 +22,14 @@ from draftfit.algorithms.common.providers import (
 from draftfit.algorithms.contracts import AlgorithmSpec, FeatureMode
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILTINS = ("dflash", "domino", "dspark", "eagle3", "peagle")
+BUILTINS = ("dflash", "dflash2", "domino", "dspark", "eagle3", "peagle")
 
 
 class BuiltinProviderContractTest(unittest.TestCase):
     def setUp(self):
         self.registry = builtin_algorithm_registry()
 
-    def test_five_builtins_are_explicit_and_instance_owned(self):
+    def test_builtins_are_explicit_and_instance_owned(self):
         self.assertEqual(BUILTINS, self.registry.names)
         self.assertIsNot(builtin_algorithm_registry(), self.registry)
 
@@ -173,7 +173,7 @@ class BuiltinProviderContractTest(unittest.TestCase):
         )
         config = SimpleNamespace(training=training)
         draft = SimpleNamespace(
-            config=SimpleNamespace(num_hidden_layers=2),
+            config=SimpleNamespace(num_hidden_layers=2, target_num_hidden_layers=12),
             layers=[object(), object()],
             norm_before_residual=True,
             target_layer_ids=[3, 7],
@@ -191,6 +191,7 @@ class BuiltinProviderContractTest(unittest.TestCase):
             dspark_ce_loss_alpha=0.1,
             dspark_l1_loss_alpha=0.8,
             dspark_confidence_head_alpha=0.2,
+            selector_loss_alpha=1.0,
         )
         models = {
             "eagle3": SimpleNamespace(
@@ -207,6 +208,7 @@ class BuiltinProviderContractTest(unittest.TestCase):
                 mask_token_id=31,
             ),
             "dflash": dflash_family,
+            "dflash2": dflash_family,
             "domino": dflash_family,
             "dspark": dflash_family,
         }
@@ -229,6 +231,11 @@ class BuiltinProviderContractTest(unittest.TestCase):
                 "dflash_num_anchors",
                 "dflash_loss_type",
                 "dflash_dpace_alpha",
+            },
+            "dflash2": {
+                "dflash2_block_size",
+                "dflash2_target_layer_ids",
+                "dflash2_selector_loss_alpha",
             },
             "domino": {
                 "domino_block_size",
@@ -427,7 +434,7 @@ class BuiltinProviderContractTest(unittest.TestCase):
         code = (
             "import sys; "
             "from draftfit.algorithms.builtin import builtin_algorithm_registry; "
-            "r=builtin_algorithm_registry(); assert len(r)==5; "
+            "r=builtin_algorithm_registry(); assert len(r)==6; "
             "assert 'torch' not in sys.modules; "
             "assert 'draftfit.training.strategies.registry' not in sys.modules"
         )

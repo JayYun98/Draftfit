@@ -29,6 +29,31 @@ candidate/baseline ratio, with `production_gate: not_evaluated` even for many ru
 Duplicate file paths are rejected, but copied reports cannot be identified as
 independent experiments. The CLI does not authenticate report provenance.
 
+## Inspect speed by held-out data domain
+
+For a local messages JSONL, add a short `domain` string to each row or use an
+`id` such as `opencodeinstruct:sample-id`. The benchmark groups by `domain`
+first, otherwise by the ID prefix before `:`, and uses `unlabeled` when neither
+is present. It does not save prompt or generated response text.
+
+```sh
+python -m draftfit.cli benchmark \
+  --model /path/to/target --data-path heldout.jsonl \
+  --num-prompts 53 --concurrency 1 --max-new-tokens 128 \
+  --output-json official-1.json
+```
+
+Use a fresh output path for every target-only, official-draft and candidate
+repetition. The JSON keeps the original run-wide `throughput_tokens_per_second`
+and adds `request_metrics` and `domain_metrics`. Each domain reports its number
+of measured requests, output token count, median request tok/s, median request
+latency and mean available acceptance length. Warmups are excluded. Repeated
+prompts count as repeated requests. With concurrency above one, a domain median
+includes shared-server contention; it is **not** isolated domain throughput.
+Compare each domain across models only with the same ordered held-out file,
+model target, output limit and server settings. Use balanced disjoint domains
+and at least three independent, order-alternated runs for a firm conclusion.
+
 ## GPU evidence still required before deployment
 
 1. Record real target-only and speculative server commands, software versions,

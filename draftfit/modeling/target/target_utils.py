@@ -67,7 +67,9 @@ def load_target_config(
 
 
 def target_text_config(config):
-    return getattr(config, "text_config", config)
+    if isinstance(config, dict):
+        return config.get("text_config", config.get("llm_config", config))
+    return getattr(config, "text_config", getattr(config, "llm_config", config))
 
 
 def target_vocab_size(config) -> int:

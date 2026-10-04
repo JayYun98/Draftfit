@@ -200,11 +200,9 @@ def inspect_target(
     raw_config = loaded.get("config.json")
     if not isinstance(raw_config, dict):
         raise ValueError(f"{source!r} has no readable config.json")
-    config = (
-        raw_config.get("text_config")
-        if isinstance(raw_config.get("text_config"), dict)
-        else raw_config
-    )
+    config = raw_config.get("text_config", raw_config.get("llm_config", raw_config))
+    if not isinstance(config, dict):
+        raise ValueError("target text_config/llm_config must be an object")
     tokenizer = loaded.get("tokenizer_config.json") or {}
     if not isinstance(tokenizer, dict):
         tokenizer = {}

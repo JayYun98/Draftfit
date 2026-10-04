@@ -241,7 +241,7 @@ def safe_conversations_generator(file_path):
                     cleaned_convs.append(new_msg)
 
                 # Build result with conversations
-                result = {"conversations": cleaned_convs}
+                result = {"conversations": cleaned_convs, "tools": "[]"}
 
                 # Preserve 'tools' field if present
                 if "tools" in row:
@@ -267,7 +267,7 @@ def safe_conversations_generator(file_path):
                             # Primitive type, keep as-is
                             result["tools"] = tools
                     else:
-                        result["tools"] = []
+                        result["tools"] = "[]"
 
                 yield result
 

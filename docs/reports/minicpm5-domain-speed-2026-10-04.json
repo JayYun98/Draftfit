@@ -1,0 +1,252 @@
+{
+  "title": "MiniCPM5 v4 MLX held-out domain speed",
+  "date": "2026-10-04",
+  "method": "53 disjoint prompts; one timed run after one warmup per prompt; median of request-level generated tokens/s; max 128 tokens; 4-bit draft; cap 3",
+  "caveat": "Official/target/DFlash2 and the other trained arms were measured in separate sequential sessions. Domains other than PerfectBlend have only six prompts. Do not infer a robust cross-model ranking or A100 throughput.",
+  "source_sha256": {
+    "mlx-v4-all53.json": "2fe494dc7e7630d7b61d6f074c3dd22240c52bea7c60e14511d40e2a307db508",
+    "mlx-v4-family53.json": "ee1a78509a844c44be9eded2532736021022282899fe9d566ac85b3ee45af89d"
+  },
+  "rows": [
+    {
+      "domain": "perfectblend-dedup",
+      "model": "target",
+      "requests": 35,
+      "median_tokens_per_second": 50.763893030928415,
+      "min_tokens_per_second": 47.4658638379994,
+      "max_tokens_per_second": 52.26729711445328,
+      "median_acceptance_length": 1.0,
+      "exact_official_count": 11
+    },
+    {
+      "domain": "perfectblend-dedup",
+      "model": "official-dspark",
+      "requests": 35,
+      "median_tokens_per_second": 107.83444136262395,
+      "min_tokens_per_second": 79.41535534491045,
+      "max_tokens_per_second": 134.68549070923316,
+      "median_acceptance_length": 3.0476190476190474,
+      "exact_official_count": 35
+    },
+    {
+      "domain": "perfectblend-dedup",
+      "model": "dspark",
+      "requests": 35,
+      "median_tokens_per_second": 118.28555137184743,
+      "min_tokens_per_second": 81.07532515700228,
+      "max_tokens_per_second": 146.4338232727019,
+      "median_acceptance_length": 2.909090909090909,
+      "exact_official_count": 35
+    },
+    {
+      "domain": "perfectblend-dedup",
+      "model": "dflash-ce",
+      "requests": 35,
+      "median_tokens_per_second": 89.02013549237236,
+      "min_tokens_per_second": 63.959932631733444,
+      "max_tokens_per_second": 131.58587883737368,
+      "median_acceptance_length": 2.3703703703703702,
+      "exact_official_count": 35
+    },
+    {
+      "domain": "perfectblend-dedup",
+      "model": "dflash-dpace",
+      "requests": 35,
+      "median_tokens_per_second": 89.84064795869617,
+      "min_tokens_per_second": 66.18168343323171,
+      "max_tokens_per_second": 135.55302698052844,
+      "median_acceptance_length": 2.3703703703703702,
+      "exact_official_count": 35
+    },
+    {
+      "domain": "perfectblend-dedup",
+      "model": "dflash2-v4",
+      "requests": 35,
+      "median_tokens_per_second": 78.37345067555327,
+      "min_tokens_per_second": 47.31872851415902,
+      "max_tokens_per_second": 126.37597252862622,
+      "median_acceptance_length": 2.327272727272727,
+      "exact_official_count": 35
+    },
+    {
+      "domain": "opencodeinstruct",
+      "model": "target",
+      "requests": 6,
+      "median_tokens_per_second": 51.040987944578134,
+      "min_tokens_per_second": 48.80583869091812,
+      "max_tokens_per_second": 51.60453844645487,
+      "median_acceptance_length": 1.0,
+      "exact_official_count": 3
+    },
+    {
+      "domain": "opencodeinstruct",
+      "model": "official-dspark",
+      "requests": 6,
+      "median_tokens_per_second": 112.18558845901835,
+      "min_tokens_per_second": 94.30854459925656,
+      "max_tokens_per_second": 123.83337108429845,
+      "median_acceptance_length": 3.282051282051282,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "opencodeinstruct",
+      "model": "dspark",
+      "requests": 6,
+      "median_tokens_per_second": 122.27642826313419,
+      "min_tokens_per_second": 101.79251214741127,
+      "max_tokens_per_second": 130.43022977274416,
+      "median_acceptance_length": 3.1609756097560977,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "opencodeinstruct",
+      "model": "dflash-ce",
+      "requests": 6,
+      "median_tokens_per_second": 99.17979354244726,
+      "min_tokens_per_second": 80.55479921202365,
+      "max_tokens_per_second": 118.8614523756863,
+      "median_acceptance_length": 2.6133333333333333,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "opencodeinstruct",
+      "model": "dflash-dpace",
+      "requests": 6,
+      "median_tokens_per_second": 103.20123465658762,
+      "min_tokens_per_second": 80.42767730889302,
+      "max_tokens_per_second": 114.44029863949567,
+      "median_acceptance_length": 2.72463768115942,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "opencodeinstruct",
+      "model": "dflash2-v4",
+      "requests": 6,
+      "median_tokens_per_second": 92.76426920608444,
+      "min_tokens_per_second": 78.5545461316045,
+      "max_tokens_per_second": 105.56594335625078,
+      "median_acceptance_length": 2.6133333333333333,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "apigen-mt",
+      "model": "target",
+      "requests": 6,
+      "median_tokens_per_second": 51.474542315946316,
+      "min_tokens_per_second": 50.75990935523008,
+      "max_tokens_per_second": 52.080243813547476,
+      "median_acceptance_length": 1.0,
+      "exact_official_count": 3
+    },
+    {
+      "domain": "apigen-mt",
+      "model": "official-dspark",
+      "requests": 6,
+      "median_tokens_per_second": 107.78676605174223,
+      "min_tokens_per_second": 91.02066360693625,
+      "max_tokens_per_second": 113.47143372552037,
+      "median_acceptance_length": 2.9767441860465116,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "apigen-mt",
+      "model": "dspark",
+      "requests": 6,
+      "median_tokens_per_second": 116.03808059007144,
+      "min_tokens_per_second": 108.50335511602141,
+      "max_tokens_per_second": 124.22273563511476,
+      "median_acceptance_length": 3.0121816168327795,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "apigen-mt",
+      "model": "dflash-ce",
+      "requests": 6,
+      "median_tokens_per_second": 92.49219545088566,
+      "min_tokens_per_second": 88.4802657221668,
+      "max_tokens_per_second": 98.65064405694595,
+      "median_acceptance_length": 2.3944055944055944,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "apigen-mt",
+      "model": "dflash-dpace",
+      "requests": 6,
+      "median_tokens_per_second": 91.6214567506135,
+      "min_tokens_per_second": 89.96711171155742,
+      "max_tokens_per_second": 102.26019114491906,
+      "median_acceptance_length": 2.4383164005805513,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "apigen-mt",
+      "model": "dflash2-v4",
+      "requests": 6,
+      "median_tokens_per_second": 87.49367603298424,
+      "min_tokens_per_second": 79.89413223262252,
+      "max_tokens_per_second": 89.0578650367647,
+      "median_acceptance_length": 2.3711835334476845,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "nemotron-agentic",
+      "model": "target",
+      "requests": 6,
+      "median_tokens_per_second": 51.814272480195356,
+      "min_tokens_per_second": 50.074365907964875,
+      "max_tokens_per_second": 52.34043462560474,
+      "median_acceptance_length": 1.0,
+      "exact_official_count": 1
+    },
+    {
+      "domain": "nemotron-agentic",
+      "model": "official-dspark",
+      "requests": 6,
+      "median_tokens_per_second": 85.85780139452216,
+      "min_tokens_per_second": 71.5852126192007,
+      "max_tokens_per_second": 98.48402909371073,
+      "median_acceptance_length": 2.4697588126159555,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "nemotron-agentic",
+      "model": "dspark",
+      "requests": 6,
+      "median_tokens_per_second": 91.98629555609884,
+      "min_tokens_per_second": 82.42389301661848,
+      "max_tokens_per_second": 103.49789638622596,
+      "median_acceptance_length": 2.328042328042328,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "nemotron-agentic",
+      "model": "dflash-ce",
+      "requests": 6,
+      "median_tokens_per_second": 79.30643450517675,
+      "min_tokens_per_second": 67.59858192676847,
+      "max_tokens_per_second": 91.54090185206024,
+      "median_acceptance_length": 2.0650533437418686,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "nemotron-agentic",
+      "model": "dflash-dpace",
+      "requests": 6,
+      "median_tokens_per_second": 76.96840063548801,
+      "min_tokens_per_second": 69.15506735481125,
+      "max_tokens_per_second": 85.64330669031862,
+      "median_acceptance_length": 2.133926090580717,
+      "exact_official_count": 6
+    },
+    {
+      "domain": "nemotron-agentic",
+      "model": "dflash2-v4",
+      "requests": 6,
+      "median_tokens_per_second": 70.40738747340276,
+      "min_tokens_per_second": 60.61527122428482,
+      "max_tokens_per_second": 87.15807587920136,
+      "median_acceptance_length": 1.9398392652123997,
+      "exact_official_count": 6
+    }
+  ]
+}

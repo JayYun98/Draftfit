@@ -65,6 +65,15 @@ follow the [complete workflow](docs/PUBLIC_WORKFLOW.md).
 | PEagle | No | Yes | Flex attention and method-specific feature layout |
 | Domino | Yes | Yes | Explicit compatible draft configuration |
 
+For a compatible offline cache, `draftfit family --manifest family.json --plan`
+checks independent DSpark, DFlash and DFlash2 arms before
+`draftfit family --manifest family.json` runs them. Existing DSpark weights can
+initialize another family method with explicit anchor-alignment retraining;
+same-method warm start and interrupted-run resume are separate paths. See the
+[family guide](docs/DFLASH_FAMILY.md) and
+[MiniCPM5 evidence](docs/RECENT_TARGET_BRANCH_SUMMARY.md). None of these
+handoffs is a zero-step quality-preserving conversion.
+
 ## Backends
 
 All teachers feed the same **PyTorch draft trainer**. These levels describe
@@ -113,6 +122,7 @@ configuration alone cannot add an unsupported capture or serving backend.
 | Compare target-only and draft-enabled inference | [Workload evaluation](docs/PERFORMANCE_GATE.md) |
 | Check supported and unverified combinations | [Support matrix](docs/PUBLIC_SUPPORT.md) |
 | Develop or reproduce validation | [Documentation index](docs/README.md) · [Source tools](tests/VALIDATION.md) |
+| Compare recent-target draft families | [Family workflow](docs/DFLASH_FAMILY.md) · [MiniCPM5 results](docs/RECENT_TARGET_BRANCH_SUMMARY.md) |
 
 Automatic trace ingestion and continual deployment are [future work](plans/README.md).
 A longer accepted draft is not necessarily faster: measure end-to-end throughput

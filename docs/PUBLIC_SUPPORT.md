@@ -22,8 +22,11 @@ before transport; it is not a direct zero-disk worker-hook integration.
 `--teacher-backend vllm` selects the platform's own teacher service. It publishes
 features through the same Mooncake transport and producer/consumer trainer as
 the SGLang path; it does not launch a TorchSpec/AngelSpec training wrapper.
-Native capture is limited to supported single-device Llama/Qwen2/Qwen3 text
-decoders, with real GPU evidence limited to the pinned Qwen3-0.6B campaign.
+Native vLLM capture remains limited to single-device Llama/Qwen2/Qwen3 text
+decoders. Transformers also has experimental Qwen3.5, Agnes, Taichu text-decoder
+and Xing hyperconnection capture paths. See [recent target recipes](RECENT_MODEL_EXPERIMENTS.md)
+for their CPU evidence and unverified real-weight gates. Real GPU evidence for
+the native teachers remains limited to the pinned Qwen3-0.6B campaign.
 
 HF BF16 feature parity passed. Native vLLM BF16 cross-engine elementwise parity
 failed; FP32 parity and deterministic next-step replay passed. Both managed

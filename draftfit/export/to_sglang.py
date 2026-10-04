@@ -94,23 +94,21 @@ def export_to_sglang(
         state, draft_config_path, vocab_mapping_path=vocab_mapping_path
     )
     model_name = type(model).__name__
-    if strategy == "dflash2" and model_name != "DFlash2DraftModel":
+    from draftfit.modeling.draft.dflash2 import DFlash2DraftModel
+
+    is_dflash2 = isinstance(model, DFlash2DraftModel)
+    if strategy == "dflash2" and not is_dflash2:
         raise ValueError(
             "dflash2 checkpoint does not contain a DFlash2DraftModel; "
             f"draft config resolved to {model_name}"
         )
-    if strategy == "eagle3" and model_name == "DFlash2DraftModel":
+    if strategy == "eagle3" and is_dflash2:
         raise ValueError("eagle3 checkpoint cannot use a DFlash2DraftModel config")
-    if model_name == "DFlash2DraftModel":
+    if is_dflash2:
         if vocab_mapping_path:
             raise ValueError("DFlash2 serving does not support vocabulary pruning")
-        from draftfit.modeling.draft.dflash2 import (
-            dflash2_config_for_serving,
-            dflash2_state_dict_for_serving,
-        )
-
-        config = dflash2_config_for_serving(model.config.to_dict())
-        full = dflash2_state_dict_for_serving(model.state_dict())
+        config = model.config_for_serving()
+        full = model.state_dict_for_serving()
         model.save_pretrained(
             output_dir,
             state_dict=_serving_state(

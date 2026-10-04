@@ -330,7 +330,8 @@ class UnifiedFeatureReachabilityTest(unittest.TestCase):
         ) as create:
             result = _configured_logger(cfg)
 
-        self.assertIs(result, tracker_logger)
+        self.assertIs(result.delegate, tracker_logger)
+        self.assertEqual(result.path, "/tmp/output/metrics.jsonl")
         args, output_dir = create.call_args.args
         self.assertEqual(args.report_to, "wandb")
         self.assertEqual(args.wandb_project, "project")
