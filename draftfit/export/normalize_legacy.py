@@ -13,6 +13,8 @@ _DSPARK_TOP_LEVEL_FIELDS = (
     "markov_head_type",
     "enable_confidence_head",
     "confidence_head_with_markov",
+    "sample_from_anchor",
+    "sliding_window_non_causal",
 )
 
 
@@ -61,6 +63,15 @@ def _normalize_dspark(config: Dict[str, Any], method_config: Dict[str, Any]) -> 
     # The two required fields may already be top-level rather than nested.
     config["markov_rank"] = markov_rank
     config["markov_head_type"] = markov_head_type.lower()
+    # Draftfit/LFM use rope_is_neox_style; vLLM's Qwen3 DSpark uses
+    # is_neox_style. Preserve both names so export cannot silently change Q/K.
+    if "rope_is_neox_style" in config:
+        layout = config["rope_is_neox_style"]
+        if not isinstance(layout, bool):
+            raise ValueError("DSpark RoPE layout must be a boolean")
+        if "is_neox_style" in config and config["is_neox_style"] != layout:
+            raise ValueError("conflicting DSpark RoPE layout aliases")
+        config["is_neox_style"] = layout
     config["architectures"] = ["Qwen3DSparkModel"]
 
 

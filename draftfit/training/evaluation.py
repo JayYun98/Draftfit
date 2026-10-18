@@ -23,11 +23,16 @@ import torch.distributed as dist
 from draftfit.runtime.contracts import TrainBatch
 from draftfit.training.strategies.base import StepOutput
 
-
 _FAMILY_EVAL_RATIOS = (
-    "ce_loss", "l1_loss", "confidence_loss", "confidence_abs_error",
-    "teacher_agreement", "teacher_top1_prob", "draft_top1_prob",
-    "tau_probabilistic", "selector_loss",
+    "ce_loss",
+    "l1_loss",
+    "confidence_loss",
+    "confidence_abs_error",
+    "teacher_agreement",
+    "teacher_top1_prob",
+    "draft_top1_prob",
+    "tau_probabilistic",
+    "selector_loss",
     "acceptance_regret",
 )
 
@@ -70,7 +75,11 @@ class Evaluator:
                     else torch.tensor(float(out.loss), dtype=torch.float64)
                 )
                 if sums is None:
-                    sums = torch.zeros(7 + 2 * len(_FAMILY_EVAL_RATIOS), dtype=torch.float64, device=loss.device)
+                    sums = torch.zeros(
+                        7 + 2 * len(_FAMILY_EVAL_RATIOS),
+                        dtype=torch.float64,
+                        device=loss.device,
+                    )
                 tokens = self._token_count(batch, m, device=sums.device)
                 if out.loss_terms is None:
                     sums[0] += loss.to(sums.device) * tokens
@@ -131,7 +140,9 @@ class Evaluator:
         if world_size > 1:
             device = self._comm_device()
             sums = (
-                sums if sums is not None else torch.zeros(7 + 2 * len(_FAMILY_EVAL_RATIOS), dtype=torch.float64)
+                sums
+                if sums is not None
+                else torch.zeros(7 + 2 * len(_FAMILY_EVAL_RATIOS), dtype=torch.float64)
             ).to(device)
             dist.all_reduce(sums, op=dist.ReduceOp.SUM)
             local_len = pp.size(1) if pp is not None else 0

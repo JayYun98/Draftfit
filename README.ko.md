@@ -1,5 +1,7 @@
 # Draftfit
 
+> Translation notice: this overview predates the joint/unattended workflow. See the [canonical English README](README.md) for current features and support boundaries.
+
 [English](README.md) | [한국어](README.ko.md)
 
 **내 모델, 내 작업, 내 데이터에 맞는 speculative decoding draft를 훈련하세요.**

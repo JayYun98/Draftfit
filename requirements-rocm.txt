@@ -3,7 +3,7 @@
 
 pre-commit
 torch==2.11.0+rocm7.2
-transformers==5.8.1
+transformers==5.12.1
 datasets
 setuptools
 tqdm

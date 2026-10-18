@@ -6,7 +6,7 @@
 
 **DSpark · DFlash · DFlash2 · EAGLE3 · PEagle · Domino**
 
-[Quick start](#quick-start) · [Draft methods](#draft-methods) · [Backends](#backends) · [Example models](#example-models) · [Documentation](docs/README.md)
+[Quick start](#quick-start) · [Joint training](#joint-training-and-unattended-runs) · [Draft methods](#draft-methods) · [Backends](#backends) · [Example models](#example-models) · [Documentation](docs/README.md)
 
 Draftfit helps individual developers and agent builders train a smaller draft
 for the tasks their LLM actually handles. Start with your conversations, choose
@@ -26,7 +26,8 @@ https://github.com/user-attachments/assets/ba787371-e71f-4413-aa03-d697090ccbb1
 
 - **Use your own data.** Prepare reviewed conversation exports with a separate holdout set.
 - **Make the draft yours.** Configure the target, draft method, depth, feature layers and block size; fine-tune a compatible existing draft or train a new one.
-- **Choose how to train.** Reuse offline target features or stream them to separate training workers. Recover interrupted runs and export the result.
+- **Share the expensive work.** Capture frozen-target features once per microbatch and jointly train a compatible DSpark/DFlash/DFlash2 backbone with separate method heads. Independent runs and offline features remain available.
+- **Run bounded experiments.** Use a RAM feature queue, fixed-holdout verification, early stopping, registered batch/LR phases and durable best/latest exports. Optional background HF publication preserves retry receipts.
 - **Measure what matters.** Compare end-to-end throughput on your workload—not just training loss or token acceptance. Speedup is measured, not promised.
 
 ```text
@@ -65,14 +66,49 @@ follow the [complete workflow](docs/PUBLIC_WORKFLOW.md).
 | PEagle | No | Yes | Flex attention and method-specific feature layout |
 | Domino | Yes | Yes | Explicit compatible draft configuration |
 
-For a compatible offline cache, `draftfit family --manifest family.json --plan`
-checks independent DSpark, DFlash and DFlash2 arms before
-`draftfit family --manifest family.json` runs them. Existing DSpark weights can
-initialize another family method with explicit anchor-alignment retraining;
-same-method warm start and interrupted-run resume are separate paths. See the
-[family guide](docs/DFLASH_FAMILY.md) and
-[MiniCPM5 evidence](docs/RECENT_TARGET_BRANCH_SUMMARY.md). None of these
-handoffs is a zero-step quality-preserving conversion.
+Three main paths are available: train a family from scratch, initialize compatible
+families from an existing draft, or continue a saved run. Weight transfer between
+families requires compatible layouts and, where applicable, explicit anchor
+realignment and retraining. It does not guarantee unchanged quality. Exact resume
+also restores optimizer/RNG/cursor state; a weights-only warm start does not.
+See the [family guide](docs/DFLASH_FAMILY.md).
+
+## Joint training and unattended runs
+
+A single-device joint run shares a backbone and target features across compatible
+DSpark/DFlash/DFlash2 arms, then exports each method separately:
+
+```sh
+draftfit family --manifest family.json --joint --plan
+draftfit family --manifest family.json --joint
+```
+
+For automatic milestone decisions, use a prepared
+[unattended configuration](docs/UNATTENDED_NATIVE.md):
+
+```sh
+draftfit unattended --config controller.json --plan
+draftfit unattended --config controller.json
+# Recover the same run after interruption.
+draftfit unattended --config controller.json --resume
+```
+
+![Shared target capture, joint family training, milestone verification and bounded policy.](docs/_static/diagrams/joint-lifecycle.svg)
+
+The user supplies the supported target/draft configuration, tokenized data,
+explicit limits and fresh external cost observations. Scratch and compatible
+existing-draft initialization use the same pipeline. Current native selection is
+based on loss or acceptance; batch/LR changes choose predeclared phases.
+Capture and training alternate synchronously. Production-speed optimization,
+automatic architecture search and guaranteed GPU saturation are not provided.
+
+Native verification keeps the target resident; an optional bounded SGLang
+handoff offloads training models, runs a separate engine, confirms cleanup and
+restores training. Native timings are reference diagnostics, and short engine
+smokes do not certify long-output parity or speedup. Longer-output serving parity
+remains an open gate. See [joint setup](docs/JOINT_ONLINE.md),
+[queue and verification](docs/SHARED_TARGET_FEATURE_QUEUE.md) and
+[monitoring](docs/JOINT_MONITORING.md).
 
 ## Backends
 
@@ -85,11 +121,14 @@ implementation and retained evidence—not universal production certification.
 | SGLang | Offline / online teacher | Maintained, validated configurations | Real Ling capture, training and bounded pinned serving/state checks |
 | Hugging Face Transformers | Offline / online teacher | Native, bounded GPU validation | Qwen3-0.6B BF16 feature parity; DSpark/DFlash2 train/resume/export |
 | vLLM | Offline / online teacher | Native, experimental | Qwen3-0.6B FP32 parity and train/resume/export; **BF16 parity failed** |
+| MLX | Optional external evaluation | Adapter integration | Compatible Apple Silicon runtime and export required; not a training backend |
 | TensorRT-LLM / TokenSpeed | Teacher | Not implemented | No integration in this release |
 
-Native HF/vLLM capture currently targets single-device Llama/Qwen2/Qwen3 text
-decoders. Teacher support does not imply exported-draft serving support;
-DFlash2 live serving remains unverified.
+Native vLLM capture targets single-device Llama/Qwen2/Qwen3 text decoders.
+Transformers has additional architecture-specific paths with separate support
+boundaries. Teacher support does not imply exported-draft serving correctness;
+DSpark/DFlash/DFlash2 live-engine checks remain bounded and do not certify
+production speed or long-output parity.
 [Backend requirements and method limits →](docs/PUBLIC_SUPPORT.md)
 
 ## Example models
@@ -122,6 +161,9 @@ configuration alone cannot add an unsupported capture or serving backend.
 | Compare target-only and draft-enabled inference | [Workload evaluation](docs/PERFORMANCE_GATE.md) |
 | Check supported and unverified combinations | [Support matrix](docs/PUBLIC_SUPPORT.md) |
 | Develop or reproduce validation | [Documentation index](docs/README.md) · [Source tools](tests/VALIDATION.md) |
+| Share features and train a family backbone | [Joint online](docs/JOINT_ONLINE.md) · [Queue and verification](docs/SHARED_TARGET_FEATURE_QUEUE.md) |
+| Run automatic bounded experiments | [Unattended controller](docs/UNATTENDED_NATIVE.md) · [External campaigns](docs/FAMILY_CAMPAIGN.md) |
+| Inspect decisions or upload selected exports | [Monitoring](docs/JOINT_MONITORING.md) · [HF publication](docs/HF_PUBLICATION.md) |
 | Compare recent-target draft families | [Family workflow](docs/DFLASH_FAMILY.md) · [MiniCPM5 results](docs/RECENT_TARGET_BRANCH_SUMMARY.md) |
 
 Automatic trace ingestion and continual deployment are [future work](plans/README.md).

@@ -120,7 +120,7 @@ class DFlash2Config(Qwen3Config):
 
     model_type = "qwen3_dflash2"
     supports_text_mrope = False
-    supports_mixed_attention = False
+    supports_mixed_attention = True
 
     def __init__(
         self,
@@ -290,15 +290,22 @@ class DFlash2Config(Qwen3Config):
         if self.supports_text_mrope and rope_type == "default":
             allowed_rope_keys |= {"mrope_section", "partial_rotary_factor"}
             if rope_parameters.get("partial_rotary_factor", 1.0) != 1.0:
-                raise ValueError("DFlash2 text MRoPE requires partial_rotary_factor=1.0")
+                raise ValueError(
+                    "DFlash2 text MRoPE requires partial_rotary_factor=1.0"
+                )
             sections = rope_parameters.get("mrope_section")
-            head_dim = kwargs.get("head_dim") or hidden_size // kwargs.get("num_attention_heads", 32)
+            head_dim = kwargs.get("head_dim") or hidden_size // kwargs.get(
+                "num_attention_heads", 32
+            )
             if sections is not None and (
-                not isinstance(sections, list) or len(sections) != 3
+                not isinstance(sections, list)
+                or len(sections) != 3
                 or any(type(part) is not int or part < 0 for part in sections)
                 or sum(sections) != head_dim // 2
             ):
-                raise ValueError("DFlash2 text mrope_section must cover half the head_dim")
+                raise ValueError(
+                    "DFlash2 text mrope_section must cover half the head_dim"
+                )
         if (
             rope_type not in {"default", "yarn"}
             or set(rope_parameters) - allowed_rope_keys
@@ -408,6 +415,7 @@ class DFlash2Config(Qwen3Config):
         kwargs["rope_parameters"] = rope_parameters
         kwargs["layer_types"] = layer_types
         kwargs["sliding_window"] = sliding_window
+        kwargs["use_sliding_window"] = "sliding_attention" in attention_types
         super().__init__(architectures=architectures, **kwargs)
         self.model_type = type(self).model_type
         self.target_num_hidden_layers = target_depth

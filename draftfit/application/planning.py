@@ -202,7 +202,14 @@ def validate_resolved_run(
             "resolved algorithm does not match training.strategy: "
             f"{algorithm.name!r} != {cfg.training.strategy!r}"
         )
-    mode = _feature_mode(cfg)
+    # The joint runner captures online but feeds the existing local feature
+    # consumer contract. Keep all algorithm checks; only topology is distinct.
+    if cfg.training.joint_online_capture:
+        if cfg.training.compact_teacher:
+            raise ValueError("joint online capture does not support compact_teacher")
+        mode = FeatureMode.OFFLINE
+    else:
+        mode = _feature_mode(cfg)
     _validate_feature_provider(cfg, algorithm, mode)
     _validate_draft_options(cfg, algorithm)
     _validate_algorithm_capabilities(cfg, algorithm, mode)

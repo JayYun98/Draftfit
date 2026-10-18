@@ -1,0 +1,32 @@
+{
+  "milestones": [1000, 3000, 10000, 20000, 30000],
+  "patience": 2,
+  "min_speedup": 1.0,
+  "min_domain_speedup": 0.9,
+  "min_relative_gain": 0.01,
+  "min_requests": 32,
+  "branch_at": 3000,
+  "branch_top_k": 2,
+  "branch_min_speedup": 1.05,
+  "resources": {"gpu": 1, "validation": 1},
+  "budget": {
+    "max_hours": 6,
+    "max_usd": 3,
+    "hourly_usd": 0.4,
+    "fixed_usd": 0.2,
+    "reserve_usd": 0.3
+  },
+  "targets": [
+    {
+      "name": "target-a",
+      "manifest": "/absolute/path/family.json",
+      "comparison_id": "target-a-fixed-validation-v1",
+      "training_resource": "gpu",
+      "evaluation_resource": "validation",
+      "training_timeout_seconds": 21600,
+      "evaluation_timeout_seconds": 7200,
+      "evaluate": ["/absolute/path/mlx-python", "-m", "draftfit.campaign_mlx", "--profile", "/absolute/path/mlx-profile.json"],
+      "branches": []
+    }
+  ]
+}

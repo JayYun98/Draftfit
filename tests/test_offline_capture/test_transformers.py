@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import torch
@@ -22,47 +23,116 @@ from draftfit.offline_capture.transformers import OfflineTransformersCapture
 
 
 class TransformersCaptureTest(unittest.TestCase):
+    def test_cached_hub_snapshot_uses_pinned_repo_for_remote_code(self):
+        revision = "a" * 40
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = (
+                Path(directory)
+                / "models--TaichuAI--ZDTaichu5.0-9B"
+                / "snapshots"
+                / revision
+            )
+            snapshot.mkdir(parents=True)
+            (snapshot / "config.json").write_text("{}")
+            with patch(
+                "transformers.AutoModel.from_pretrained", return_value=self.model()
+            ) as load:
+                OfflineTransformersCapture.from_pretrained(
+                    str(snapshot),
+                    revision=revision,
+                    trust_remote_code=True,
+                    torch_dtype=torch.float32,
+                    device="cpu",
+                )
+            load.assert_called_once_with(
+                "TaichuAI/ZDTaichu5.0-9B",
+                revision=revision,
+                trust_remote_code=True,
+                torch_dtype=torch.float32,
+                cache_dir=directory,
+                attn_implementation="sdpa",
+                local_files_only=True,
+            )
+
+    def test_cached_hub_snapshot_rejects_mismatched_revision(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = (
+                Path(directory)
+                / "models--TaichuAI--ZDTaichu5.0-9B"
+                / "snapshots"
+                / ("a" * 40)
+            )
+            snapshot.mkdir(parents=True)
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                OfflineTransformersCapture.from_pretrained(
+                    str(snapshot),
+                    revision="b" * 40,
+                    trust_remote_code=True,
+                )
+
     def test_taichu_text_model_capture(self):
         from types import SimpleNamespace
 
         config = Qwen3_5TextConfig(
-            vocab_size=32, hidden_size=16, intermediate_size=32,
-            num_hidden_layers=2, num_attention_heads=2, num_key_value_heads=1,
-            head_dim=8, layer_types=["linear_attention", "full_attention"],
-            linear_num_key_heads=2, linear_num_value_heads=2,
-            linear_key_head_dim=8, linear_value_head_dim=8,
+            vocab_size=32,
+            hidden_size=16,
+            intermediate_size=32,
+            num_hidden_layers=2,
+            num_attention_heads=2,
+            num_key_value_heads=1,
+            head_dim=8,
+            layer_types=["linear_attention", "full_attention"],
+            linear_num_key_heads=2,
+            linear_num_value_heads=2,
+            linear_key_head_dim=8,
+            linear_value_head_dim=8,
         )
         text = Qwen3_5TextModel(config)
-        wrapper = SimpleNamespace(base_model=SimpleNamespace(
-            config=SimpleNamespace(model_type="zdtaichu5_0"),
-            language_model=SimpleNamespace(model=text),
-        ))
+        wrapper = SimpleNamespace(
+            base_model=SimpleNamespace(
+                config=SimpleNamespace(model_type="zdtaichu5_0"),
+                language_model=SimpleNamespace(model=text),
+            )
+        )
         teacher = OfflineTransformersCapture(wrapper)
         teacher.set_capture_layers([0, 1], capture_method="dspark")
         ids = torch.tensor([[1, 2, 3, 4]])
         result = teacher.capture(
-            input_ids=ids, attention_mask=torch.ones_like(ids), loss_mask=torch.ones_like(ids)
+            input_ids=ids,
+            attention_mask=torch.ones_like(ids),
+            loss_mask=torch.ones_like(ids),
         )
         torch.testing.assert_close(
             text.norm(result.hidden_states[..., 16:]), result.last_hidden_states
         )
 
     def test_lfm_conv_and_moe_capture_unnormalized_taps(self):
-        for config_cls, model_cls in ((Lfm2Config, Lfm2Model), (Lfm2MoeConfig, Lfm2MoeModel)):
+        for config_cls, model_cls in (
+            (Lfm2Config, Lfm2Model),
+            (Lfm2MoeConfig, Lfm2MoeModel),
+        ):
             with self.subTest(model=model_cls.__name__):
                 options = dict(
-                    vocab_size=32, hidden_size=16, intermediate_size=32,
-                    num_hidden_layers=2, num_attention_heads=2,
-                    num_key_value_heads=1, layer_types=["conv", "full_attention"],
+                    vocab_size=32,
+                    hidden_size=16,
+                    intermediate_size=32,
+                    num_hidden_layers=2,
+                    num_attention_heads=2,
+                    num_key_value_heads=1,
+                    layer_types=["conv", "full_attention"],
                 )
                 if config_cls is Lfm2MoeConfig:
-                    options.update(num_experts=2, num_experts_per_tok=1, moe_intermediate_size=16)
+                    options.update(
+                        num_experts=2, num_experts_per_tok=1, moe_intermediate_size=16
+                    )
                 model = model_cls(config_cls(**options))
                 teacher = OfflineTransformersCapture(model)
                 teacher.set_capture_layers([0, 1], capture_method="dspark")
                 ids = torch.tensor([[1, 2, 3, 4]])
                 result = teacher.capture(
-                    input_ids=ids, attention_mask=torch.ones_like(ids), loss_mask=torch.ones_like(ids)
+                    input_ids=ids,
+                    attention_mask=torch.ones_like(ids),
+                    loss_mask=torch.ones_like(ids),
                 )
                 torch.testing.assert_close(
                     model.embedding_norm(result.hidden_states[..., 16:]),

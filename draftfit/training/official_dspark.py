@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import os
 import json
+import os
 
 
 def is_official_taichu_source(source: str) -> bool:
     if source.startswith("TaichuAI/ZDTaichu5.0-9B-DSpark"):
         return True
     if source.startswith("file://"):
-        source = source[len("file://"):]
+        source = source[len("file://") :]
     if not os.path.isdir(source):
         return False
     config_path = os.path.join(source, "config.json")
@@ -31,7 +31,7 @@ def verify_taichu_target_copies(source: str, target_parts, *, cache_dir=None) ->
     from safetensors import safe_open
 
     if source.startswith("file://"):
-        source = source[len("file://"):]
+        source = source[len("file://") :]
     if os.path.isdir(source):
         path = os.path.join(source, "model.safetensors")
     else:

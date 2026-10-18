@@ -9,11 +9,13 @@ from types import SimpleNamespace
 import torch
 from safetensors.torch import save_file
 
-from draftfit.modeling.draft.dflash import apply_rotary_pos_emb
 from draftfit.modeling.auto import AutoDraftModel
+from draftfit.modeling.draft.dflash import apply_rotary_pos_emb
 from draftfit.training.model_loading import (
-    _draft_config_from_dict, _load_pretrained_draft_state,
-    convert_family_draft_config, warm_start_draft_model,
+    _draft_config_from_dict,
+    _load_pretrained_draft_state,
+    convert_family_draft_config,
+    warm_start_draft_model,
 )
 from draftfit.training.official_dspark import verify_taichu_target_copies
 
@@ -21,14 +23,23 @@ from draftfit.training.official_dspark import verify_taichu_target_copies
 def _base_config():
     return {
         "architectures": ["DSparkDraftModel"],
-        "model_type": "qwen3", "vocab_size": 32, "hidden_size": 16,
-        "intermediate_size": 32, "num_hidden_layers": 1,
-        "num_attention_heads": 2, "num_key_value_heads": 1,
-        "head_dim": 8, "max_position_embeddings": 128,
-        "layer_types": ["full_attention"], "block_size": 4,
-        "num_target_layers": 4, "dflash_config": {
-            "target_layer_ids": [1], "mask_token_id": 31,
-            "projector_type": "dspark", "markov_rank": 4,
+        "model_type": "qwen3",
+        "vocab_size": 32,
+        "hidden_size": 16,
+        "intermediate_size": 32,
+        "num_hidden_layers": 1,
+        "num_attention_heads": 2,
+        "num_key_value_heads": 1,
+        "head_dim": 8,
+        "max_position_embeddings": 128,
+        "layer_types": ["full_attention"],
+        "block_size": 4,
+        "num_target_layers": 4,
+        "dflash_config": {
+            "target_layer_ids": [1],
+            "mask_token_id": 31,
+            "projector_type": "dspark",
+            "markov_rank": 4,
             "sample_from_anchor": True,
         },
     }
@@ -36,15 +47,21 @@ def _base_config():
 
 def _nested_taichu_config():
     base = _base_config()
-    transformer = {key: value for key, value in base.items() if key not in (
-        "architectures", "block_size", "num_target_layers", "dflash_config"
-    )}
+    transformer = {
+        key: value
+        for key, value in base.items()
+        if key
+        not in ("architectures", "block_size", "num_target_layers", "dflash_config")
+    }
     return {
         "architectures": ["DSparkDraftModel"],
         "transformer_layer_config": transformer,
-        "aux_hidden_state_layer_ids": [1], "block_size": 4,
-        "mask_token_id": 31, "sample_from_anchor": True,
-        "markov_rank": 4, "markov_head_type": "vanilla",
+        "aux_hidden_state_layer_ids": [1],
+        "block_size": 4,
+        "mask_token_id": 31,
+        "sample_from_anchor": True,
+        "markov_rank": 4,
+        "markov_head_type": "vanilla",
         "enable_confidence_head": False,
     }
 
@@ -62,16 +79,21 @@ class OfficialDSparkWarmStartTest(unittest.TestCase):
             incompatible = _draft_config_from_dict({**_base_config(), "block_size": 5})
             with self.assertRaisesRegex(ValueError, "incompatible block_size"):
                 _load_pretrained_draft_state(
-                    directory, draft_config=incompatible, cache_dir=None,
-                    trust_remote_code=False, strategy="dspark",
+                    directory,
+                    draft_config=incompatible,
+                    cache_dir=None,
+                    trust_remote_code=False,
+                    strategy="dspark",
                 )
 
     def test_published_taichu_tensors_load_with_extra_target_copies(self):
         payload = _nested_taichu_config()
         config = _draft_config_from_dict(payload)
         original = AutoDraftModel.from_config(config)
-        state = {key: value.detach().clone().contiguous()
-                 for key, value in original.state_dict().items()}
+        state = {
+            key: value.detach().clone().contiguous()
+            for key, value in original.state_dict().items()
+        }
         state["embed_tokens.weight"] = torch.zeros(32, 16)
         state["lm_head.weight"] = torch.zeros(32, 16)
         with tempfile.TemporaryDirectory() as directory:
@@ -89,12 +111,17 @@ class OfficialDSparkWarmStartTest(unittest.TestCase):
 
     def test_lfm_alias_preserves_interleaved_rope(self):
         payload = _base_config()
-        payload.update(architectures=["Lfm2DSparkDraftModel"],
-                       rope_is_neox_style=False, rope_theta=5_000_000,
-                       enable_confidence_head=True, markov_rank=4,
-                       markov_head_type="vanilla")
+        payload.update(
+            architectures=["Lfm2DSparkDraftModel"],
+            rope_is_neox_style=False,
+            rope_theta=5_000_000,
+            enable_confidence_head=True,
+            markov_rank=4,
+            markov_head_type="vanilla",
+        )
         payload["dflash_config"] = {
-            "target_layer_ids": [1], "mask_token_id": 31,
+            "target_layer_ids": [1],
+            "mask_token_id": 31,
             "num_target_layers": 4,
         }
         payload.pop("num_target_layers")
@@ -114,8 +141,11 @@ class OfficialDSparkWarmStartTest(unittest.TestCase):
             source_model.save_pretrained(directory)
             destination = AutoDraftModel.from_config(converted)
             report = warm_start_draft_model(
-                destination, directory, draft_config=converted,
-                strategy="dflash2", retrain_anchor_alignment=True,
+                destination,
+                directory,
+                draft_config=converted,
+                strategy="dflash2",
+                retrain_anchor_alignment=True,
             )
             self.assertEqual(report.loaded_keys, 14)
             torch.testing.assert_close(
@@ -128,10 +158,14 @@ class OfficialDSparkWarmStartTest(unittest.TestCase):
         payload["transformer_layer_config"].update(
             num_hidden_layers=2,
             layer_types=["sliding_attention", "full_attention"],
-            sliding_window=16, use_sliding_window=True,
-            rope_parameters={"rope_type": "default", "rope_theta": 10000,
-                             "partial_rotary_factor": 1.0,
-                             "mrope_section": [2, 1, 1]},
+            sliding_window=16,
+            use_sliding_window=True,
+            rope_parameters={
+                "rope_type": "default",
+                "rope_theta": 10000,
+                "partial_rotary_factor": 1.0,
+                "mrope_section": [2, 1, 1],
+            },
         )
         config = _draft_config_from_dict(payload)
         converted = convert_family_draft_config(
@@ -141,21 +175,56 @@ class OfficialDSparkWarmStartTest(unittest.TestCase):
         self.assertEqual(converted.layer_types, ["sliding_attention", "full_attention"])
         self.assertFalse(converted.dflash_config["sample_from_anchor"])
 
+    def test_taichu_dflash2_can_transfer_back_to_dspark(self):
+        payload = _nested_taichu_config()
+        payload["transformer_layer_config"].update(
+            num_hidden_layers=2,
+            layer_types=["sliding_attention", "full_attention"],
+            sliding_window=16,
+            use_sliding_window=True,
+            rope_parameters={
+                "rope_type": "default",
+                "rope_theta": 10000,
+                "partial_rotary_factor": 1.0,
+                "mrope_section": [2, 1, 1],
+            },
+        )
+        source = _draft_config_from_dict(payload)
+        selector = convert_family_draft_config(
+            source, "dflash2", retrain_anchor_alignment=True
+        )
+        returned = convert_family_draft_config(selector, "dspark")
+        self.assertEqual(returned.architectures, ["DSparkDraftModel"])
+        self.assertEqual(returned.layer_types, selector.layer_types)
+        self.assertEqual(returned.rope_parameters, selector.rope_parameters)
+        with tempfile.TemporaryDirectory() as directory:
+            source_model = AutoDraftModel.from_config(selector)
+            source_model.save_pretrained(directory)
+            destination = AutoDraftModel.from_config(returned)
+            report = warm_start_draft_model(
+                destination, directory, draft_config=returned, strategy="dspark"
+            )
+            self.assertGreater(report.loaded_keys, 0)
+            torch.testing.assert_close(
+                destination.layers[0].self_attn.q_proj.weight,
+                source_model.layers[0].self_attn.q_proj.weight,
+            )
+
     def test_interleaved_rotary_pairs_adjacent_features(self):
-        q = torch.tensor([[[[1., 2., 3., 4.]]]])
+        q = torch.tensor([[[[1.0, 2.0, 3.0, 4.0]]]])
         cos = torch.zeros((1, 1, 4))
         sin = torch.ones((1, 1, 4))
-        result, _ = apply_rotary_pos_emb(
-            q, q, cos, sin, is_neox_style=False
-        )
-        self.assertTrue(torch.equal(result, torch.tensor([[[[-2., 1., -4., 3.]]]])))
+        result, _ = apply_rotary_pos_emb(q, q, cos, sin, is_neox_style=False)
+        self.assertTrue(torch.equal(result, torch.tensor([[[[-2.0, 1.0, -4.0, 3.0]]]])))
         frequencies, _ = apply_rotary_pos_emb(
-            torch.ones_like(q), torch.ones_like(q),
-            torch.tensor([[[1., 2., 1., 2.]]]), torch.zeros_like(sin),
+            torch.ones_like(q),
+            torch.ones_like(q),
+            torch.tensor([[[1.0, 2.0, 1.0, 2.0]]]),
+            torch.zeros_like(sin),
             is_neox_style=False,
         )
         self.assertTrue(
-            torch.equal(frequencies, torch.tensor([[[[1., 1., 2., 2.]]]]))
+            torch.equal(frequencies, torch.tensor([[[[1.0, 1.0, 2.0, 2.0]]]]))
         )
 
     def test_taichu_target_copies_must_match(self):
@@ -166,8 +235,10 @@ class OfficialDSparkWarmStartTest(unittest.TestCase):
             lm_head=SimpleNamespace(weight=head.clone()),
         )
         with tempfile.TemporaryDirectory() as directory:
-            save_file({"embed_tokens.weight": embed, "lm_head.weight": head},
-                      str(Path(directory, "model.safetensors")))
+            save_file(
+                {"embed_tokens.weight": embed, "lm_head.weight": head},
+                str(Path(directory, "model.safetensors")),
+            )
             verify_taichu_target_copies(directory, parts)
             parts.lm_head.weight[0, 0] += 1
             with self.assertRaisesRegex(ValueError, "lm_head.weight differs"):
@@ -177,12 +248,15 @@ class OfficialDSparkWarmStartTest(unittest.TestCase):
         payload = _base_config()
         payload.update(
             architectures=["Lfm2DSparkDraftModel"],
-            rope_is_neox_style=False, rope_theta=5_000_000,
-            enable_confidence_head=True, markov_rank=4,
+            rope_is_neox_style=False,
+            rope_theta=5_000_000,
+            enable_confidence_head=True,
+            markov_rank=4,
             markov_head_type="vanilla",
         )
         payload["dflash_config"] = {
-            "target_layer_ids": [1], "mask_token_id": 31,
+            "target_layer_ids": [1],
+            "mask_token_id": 31,
             "num_target_layers": 4,
         }
         payload.pop("num_target_layers")
@@ -190,8 +264,10 @@ class OfficialDSparkWarmStartTest(unittest.TestCase):
         original = AutoDraftModel.from_config(config)
         with tempfile.TemporaryDirectory() as directory:
             Path(directory, "config.json").write_text(json.dumps(payload))
-            state = {key: value.detach().clone().contiguous()
-                     for key, value in original.state_dict().items()}
+            state = {
+                key: value.detach().clone().contiguous()
+                for key, value in original.state_dict().items()
+            }
             save_file(state, str(Path(directory, "model.safetensors")))
             destination = AutoDraftModel.from_config(config)
             report = warm_start_draft_model(

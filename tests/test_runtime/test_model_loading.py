@@ -106,44 +106,108 @@ def _draft_payload(architecture: str, *, layers: int = 1, block_size=None):
 
 
 class DraftConfigResolutionTest(unittest.TestCase):
+    def test_family_identity_conversion_does_not_alias_source(self):
+        from draftfit.training.model_loading import convert_family_draft_config
+        from tests.test_dflash2_integration import tiny_config
+
+        source = tiny_config()
+        converted = convert_family_draft_config(source, "dflash2")
+        converted.dflash_config["mask_token_id"] = 1
+        self.assertEqual(source.dflash_config["mask_token_id"], 63)
+
+    def test_family_conversion_rejects_conflicting_mask_without_mutation(self):
+        from draftfit.training.model_loading import convert_family_draft_config
+        from tests.test_dflash2_integration import tiny_config
+
+        source = tiny_config()
+        with self.assertRaisesRegex(ValueError, "conflicting mask_token_id"):
+            convert_family_draft_config(source, "dflash", mask_token_id=1)
+        self.assertEqual(source.dflash_config["mask_token_id"], 63)
+
+    def test_checkpoint_conversion_uses_explicit_mask(self):
+        from draftfit.training.model_loading import convert_family_draft_config
+        from tests.test_dflash2_integration import tiny_config
+
+        source = convert_family_draft_config(tiny_config(), "dflash")
+        source.dflash_config.pop("mask_token_id")
+        with tempfile.TemporaryDirectory() as directory:
+            source.to_json_file(os.path.join(directory, "config.json"))
+            cfg = _run_config(
+                "dflash2", draft_checkpoint_path=directory, mask_token_id=63
+            )
+            resolved = resolve_draft_config(
+                cfg, provider=_draft_config_provider("dflash2")
+            )
+        self.assertEqual(resolved.dflash_config["mask_token_id"], 63)
+
     def test_dspark_head_only_warm_start_freezes_shared_backbone(self):
         from draftfit.algorithms.dspark.providers import build_draft
         from draftfit.modeling.auto import AutoDraftModel
         from draftfit.training.model_loading import _draft_config_from_dict
 
         payload = _draft_payload("DSparkDraftModel", block_size=4)
-        payload.update(model_type="qwen3", draft_vocab_size=128, head_dim=8,
-                       layer_types=["full_attention"])
+        payload.update(
+            model_type="qwen3",
+            draft_vocab_size=128,
+            head_dim=8,
+            layer_types=["full_attention"],
+        )
         payload["dflash_config"] = {
-            "target_layer_ids": [1, 5], "mask_token_id": 127,
-            "markov_rank": 8, "projector_type": "dspark",
+            "target_layer_ids": [1, 5],
+            "mask_token_id": 127,
+            "markov_rank": 8,
+            "projector_type": "dspark",
             "sample_from_anchor": True,
         }
         config = _draft_config_from_dict(payload)
         with tempfile.TemporaryDirectory() as directory:
             AutoDraftModel.from_config(config).save_pretrained(directory)
             cfg = _run_config("dspark", draft_checkpoint_path=directory)
-            cfg = cfg.model_copy(update={"training": cfg.training.model_copy(
-                update={"dspark_head_only": True})})
+            cfg = cfg.model_copy(
+                update={
+                    "training": cfg.training.model_copy(
+                        update={"dspark_head_only": True}
+                    )
+                }
+            )
             draft = build_draft(cfg, config)
-            trainable = [name for name, param in draft.named_parameters() if param.requires_grad]
-            frozen = [name for name, param in draft.named_parameters() if not param.requires_grad]
+            trainable = [
+                name for name, param in draft.named_parameters() if param.requires_grad
+            ]
+            frozen = [
+                name
+                for name, param in draft.named_parameters()
+                if not param.requires_grad
+            ]
             self.assertTrue(trainable)
             self.assertTrue(frozen)
-            self.assertTrue(all(name.startswith(("markov_head.", "confidence_head."))
-                                for name in trainable))
+            self.assertTrue(
+                all(
+                    name.startswith(("markov_head.", "confidence_head."))
+                    for name in trainable
+                )
+            )
             self.assertTrue(any(name.startswith("fc.") for name in frozen))
 
     def test_anchor_style_dspark_requires_explicit_retraining_for_family_transfer(self):
         from draftfit.modeling.auto import AutoDraftModel
-        from draftfit.training.model_loading import _draft_config_from_dict, convert_family_draft_config
+        from draftfit.training.model_loading import (
+            _draft_config_from_dict,
+            convert_family_draft_config,
+        )
 
         payload = _draft_payload("DSparkDraftModel", block_size=4)
-        payload.update(model_type="qwen3", draft_vocab_size=128, head_dim=8,
-                       layer_types=["full_attention"])
+        payload.update(
+            model_type="qwen3",
+            draft_vocab_size=128,
+            head_dim=8,
+            layer_types=["full_attention"],
+        )
         payload["dflash_config"] = {
-            "target_layer_ids": [1, 5], "mask_token_id": 127,
-            "markov_rank": 8, "projector_type": "dspark",
+            "target_layer_ids": [1, 5],
+            "mask_token_id": 127,
+            "markov_rank": 8,
+            "projector_type": "dspark",
             "sample_from_anchor": True,
         }
         source_config = _draft_config_from_dict(payload)
@@ -156,49 +220,76 @@ class DraftConfigResolutionTest(unittest.TestCase):
                         convert_family_draft_config(source_config, strategy)
                     cfg = _run_config(strategy, draft_checkpoint_path=directory)
                     with self.assertRaisesRegex(ValueError, "sample_from_anchor=false"):
-                        resolve_draft_config(cfg, provider=_draft_config_provider(strategy))
-                    cfg = cfg.model_copy(update={"training": cfg.training.model_copy(
-                        update={"retrain_anchor_alignment": True})})
+                        resolve_draft_config(
+                            cfg, provider=_draft_config_provider(strategy)
+                        )
+                    cfg = cfg.model_copy(
+                        update={
+                            "training": cfg.training.model_copy(
+                                update={"retrain_anchor_alignment": True}
+                            )
+                        }
+                    )
                     target_config = resolve_draft_config(
                         cfg, provider=_draft_config_provider(strategy)
                     )
-                    self.assertIs(target_config.dflash_config["sample_from_anchor"], False)
+                    self.assertIs(
+                        target_config.dflash_config["sample_from_anchor"], False
+                    )
                     target = AutoDraftModel.from_config(target_config)
                     report = warm_start_draft_model(
-                        target, directory, draft_config=target_config,
-                        strategy=strategy, retrain_anchor_alignment=True,
+                        target,
+                        directory,
+                        draft_config=target_config,
+                        strategy=strategy,
+                        retrain_anchor_alignment=True,
                     )
-                    self.assertTrue(report.missing_keys if strategy == "dflash2" else not report.missing_keys)
+                    self.assertTrue(
+                        report.missing_keys
+                        if strategy == "dflash2"
+                        else not report.missing_keys
+                    )
                     for key, value in source.state_dict().items():
                         if key in target.state_dict():
                             torch.testing.assert_close(target.state_dict()[key], value)
                     with self.assertRaisesRegex(ValueError, "sample_from_anchor=false"):
                         warm_start_draft_model(
-                            AutoDraftModel.from_config(target_config), directory,
-                            draft_config=target_config, strategy=strategy,
+                            AutoDraftModel.from_config(target_config),
+                            directory,
+                            draft_config=target_config,
+                            strategy=strategy,
                         )
                     runtime_dir = os.path.join(directory, f"runtime-{strategy}")
                     os.mkdir(runtime_dir)
-                    torch.save({
-                        "strategy": "dspark",
-                        "draft_state_dict": source.state_dict(),
-                        "dspark_block_size": 4,
-                        "dspark_target_layer_ids": (1, 5),
-                        "dspark_mask_token_id": 127,
-                        "dspark_draft_num_hidden_layers": 1,
-                        "dspark_sample_from_anchor": True,
-                    }, os.path.join(runtime_dir, "training_state.pt"))
+                    torch.save(
+                        {
+                            "strategy": "dspark",
+                            "draft_state_dict": source.state_dict(),
+                            "dspark_block_size": 4,
+                            "dspark_target_layer_ids": (1, 5),
+                            "dspark_mask_token_id": 127,
+                            "dspark_draft_num_hidden_layers": 1,
+                            "dspark_sample_from_anchor": True,
+                        },
+                        os.path.join(runtime_dir, "training_state.pt"),
+                    )
                     from_runtime = AutoDraftModel.from_config(target_config)
                     warm_start_draft_model(
-                        from_runtime, runtime_dir, draft_config=target_config,
-                        strategy=strategy, retrain_anchor_alignment=True,
+                        from_runtime,
+                        runtime_dir,
+                        draft_config=target_config,
+                        strategy=strategy,
+                        retrain_anchor_alignment=True,
                     )
                     for key, value in source.state_dict().items():
                         if key in from_runtime.state_dict():
-                            torch.testing.assert_close(from_runtime.state_dict()[key], value)
+                            torch.testing.assert_close(
+                                from_runtime.state_dict()[key], value
+                            )
 
     def test_official_minicpm_dspark_warm_start_preserves_weights(self):
         from pathlib import Path
+
         from draftfit.modeling.draft.dspark import DSparkDraftModel
         from draftfit.training.model_loading import _draft_config_from_dict
 
@@ -307,6 +398,24 @@ assert not torch.cuda.is_initialized()
                     self.assertFalse(resolved.use_sliding_window)
                 else:
                     self.assertEqual(resolved.draft_vocab_size, 32000)
+
+    def test_family_scratch_configs_need_no_draft_source(self):
+        for strategy, architecture in (
+            ("dspark", "DSparkDraftModel"),
+            ("dflash", "DFlashDraftModel"),
+            ("dflash2", "DFlash2DraftModel"),
+        ):
+            with self.subTest(strategy=strategy):
+                cfg = _run_config(strategy)
+                self.assertIsNone(cfg.model.draft_checkpoint_path)
+                self.assertIsNone(cfg.model.draft_model_config)
+                resolved = resolve_draft_config(
+                    cfg,
+                    provider=_draft_config_provider(strategy),
+                    target_config=_target_config(),
+                )
+                self.assertEqual(resolved.architectures, [architecture])
+                self.assertEqual(resolved.vocab_size, 128)
 
     def test_dflash_typed_overrides_rebuild_capture_layers(self):
         with tempfile.TemporaryDirectory() as directory:

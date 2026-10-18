@@ -129,10 +129,15 @@ class OfflineManifestReader:
             expected_keys = sorted(str(name) for name in self.feature_keys)
             family = {"dflash", "dspark", "dflash2"}
             shared_family_capture = (
-                contract["strategy"] in family and strategy in family
+                contract["strategy"] in family
+                and strategy in family
                 and set(expected_keys) <= set(actual_keys)
-                and set(actual_keys) - set(expected_keys) <= {"target_last_hidden_states"}
-                and (set(actual_keys) == set(expected_keys) or contract["strategy"] == "dspark")
+                and set(actual_keys) - set(expected_keys)
+                <= {"target_last_hidden_states"}
+                and (
+                    set(actual_keys) == set(expected_keys)
+                    or contract["strategy"] == "dspark"
+                )
             )
             if contract["strategy"] != strategy and not shared_family_capture:
                 raise ValueError(

@@ -254,18 +254,28 @@ class TestPrepareData(unittest.TestCase):
         from datasets import Dataset
 
         source_rows = {
-            name: Dataset.from_list([{"id": str(i), "conversations": [
-                {"role": "user", "content": f"{name} {i}"},
-                {"role": "assistant", "content": "answer"},
-            ]} for i in range(20)])
+            name: Dataset.from_list(
+                [
+                    {
+                        "id": str(i),
+                        "conversations": [
+                            {"role": "user", "content": f"{name} {i}"},
+                            {"role": "assistant", "content": "answer"},
+                        ],
+                    }
+                    for i in range(20)
+                ]
+            )
             for name in prepare_data.MIX_SOURCES
         }
+
         def load(name, *, streaming=False):
             self.assertTrue(streaming)
             return source_rows[name], lambda row, _: (dict(row), 0)
 
-        with TemporaryDirectory() as temporary_directory, patch.object(
-            prepare_data, "load_dataset_preset", side_effect=load
+        with (
+            TemporaryDirectory() as temporary_directory,
+            patch.object(prepare_data, "load_dataset_preset", side_effect=load),
         ):
             root = Path(temporary_directory)
             path = prepare_data.prepare_mixture(
@@ -273,12 +283,17 @@ class TestPrepareData(unittest.TestCase):
             )
             rows = [json.loads(line) for line in path.read_text().splitlines()]
             self.assertEqual(13, len(rows))
-            self.assertEqual([9, 2, 1, 1], [
-                sum(row["id"].startswith(name + ":") for row in rows)
-                for name in prepare_data.MIX_SOURCES
-            ])
+            self.assertEqual(
+                [9, 2, 1, 1],
+                [
+                    sum(row["id"].startswith(name + ":") for row in rows)
+                    for name in prepare_data.MIX_SOURCES
+                ],
+            )
             self.assertEqual(len(rows), len({row["id"] for row in rows}))
-            self.assertEqual(rows, [json.loads(line) for line in path.read_text().splitlines()])
+            self.assertEqual(
+                rows, [json.loads(line) for line in path.read_text().splitlines()]
+            )
             with self.assertRaises(FileExistsError):
                 prepare_data.prepare_mixture("agent-aware", 13, (70, 10, 10, 10), root)
 
@@ -288,8 +303,14 @@ class TestPrepareData(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "repeated"):
             prepare_data.parse_ratios("perfectblend-dedup=50,perfectblend-dedup=50")
         from datasets import Dataset
-        with TemporaryDirectory() as temporary_directory, patch.object(
-            prepare_data, "load_dataset_preset", return_value=(Dataset.from_list([{"id": "a"}]), None)
+
+        with (
+            TemporaryDirectory() as temporary_directory,
+            patch.object(
+                prepare_data,
+                "load_dataset_preset",
+                return_value=(Dataset.from_list([{"id": "a"}]), None),
+            ),
         ):
             root = Path(temporary_directory)
             with self.assertRaisesRegex(ValueError, "requested 2"):
@@ -300,56 +321,95 @@ class TestPrepareData(unittest.TestCase):
         from datasets import Dataset
 
         def dialogue(row_id, final):
-            return {"id": row_id, "conversations": [
-                {"role": "user", "content": "Question"},
-                {"role": "assistant", "content": "Answer"},
-                final,
-            ]}
+            return {
+                "id": row_id,
+                "conversations": [
+                    {"role": "user", "content": "Question"},
+                    {"role": "assistant", "content": "Answer"},
+                    final,
+                ],
+            }
 
-        dataset = Dataset.from_list([
-            dialogue("tool-ended", {"role": "tool", "content": "Result"}),
-            dialogue("empty", {"role": "assistant", "content": "   "}),
-            {"id": "good-1", "conversations": [
-                {"role": "user", "content": "Q1"},
-                {"role": "assistant", "content": "A1"},
-            ]},
-            {"id": "good-2", "conversations": [
-                {"role": "user", "content": "Q2"},
-                {"role": "assistant", "content": "A2"},
-            ]},
-        ])
-        with TemporaryDirectory() as temporary_directory, patch.object(
-            prepare_data, "load_dataset_preset",
-            return_value=(dataset, lambda row, _: (dict(row), 0)),
+        dataset = Dataset.from_list(
+            [
+                dialogue("tool-ended", {"role": "tool", "content": "Result"}),
+                dialogue("empty", {"role": "assistant", "content": "   "}),
+                {
+                    "id": "good-1",
+                    "conversations": [
+                        {"role": "user", "content": "Q1"},
+                        {"role": "assistant", "content": "A1"},
+                    ],
+                },
+                {
+                    "id": "good-2",
+                    "conversations": [
+                        {"role": "user", "content": "Q2"},
+                        {"role": "assistant", "content": "A2"},
+                    ],
+                },
+            ]
+        )
+        with (
+            TemporaryDirectory() as temporary_directory,
+            patch.object(
+                prepare_data,
+                "load_dataset_preset",
+                return_value=(dataset, lambda row, _: (dict(row), 0)),
+            ),
         ):
             path = prepare_data.prepare_mixture(
                 "mix", 2, (100, 0, 0, 0), Path(temporary_directory), seed=1
             )
             rows = [json.loads(line) for line in path.read_text().splitlines()]
-            self.assertEqual({"perfectblend-dedup:good-1", "perfectblend-dedup:good-2"},
-                             {row["id"] for row in rows})
+            self.assertEqual(
+                {"perfectblend-dedup:good-1", "perfectblend-dedup:good-2"},
+                {row["id"] for row in rows},
+            )
 
     def test_agentic_converters_keep_tool_calls(self):
-        apigen, _ = prepare_data.process_apigen_mt_row({
-            "system": "Use tools", "tools": '[{"name":"lookup"}]',
-            "conversations": [
-                {"from": "human", "value": "Look up x"},
-                {"from": "function_call", "value": '{"name":"lookup","arguments":{"x":1}}'},
-                {"from": "observation", "value": "found"},
-                {"from": "gpt", "value": "Done"},
-            ],
-        })
-        self.assertEqual("lookup", apigen["conversations"][2]["tool_calls"][0]["function"]["name"])
+        apigen, _ = prepare_data.process_apigen_mt_row(
+            {
+                "system": "Use tools",
+                "tools": '[{"name":"lookup"}]',
+                "conversations": [
+                    {"from": "human", "value": "Look up x"},
+                    {
+                        "from": "function_call",
+                        "value": '{"name":"lookup","arguments":{"x":1}}',
+                    },
+                    {"from": "observation", "value": "found"},
+                    {"from": "gpt", "value": "Done"},
+                ],
+            }
+        )
+        self.assertEqual(
+            "lookup", apigen["conversations"][2]["tool_calls"][0]["function"]["name"]
+        )
         self.assertEqual("call_1", apigen["conversations"][3]["tool_call_id"])
         normalize_row(apigen)
-        nemotron, _ = prepare_data.process_nemotron_agentic_row({
-            "uuid": "u1", "tools": [], "messages": [
-                {"role": "user", "content": "Hi"},
-                {"role": "assistant", "content": "", "tool_calls": [{"id": "c1", "type": "function", "function": {"name": "lookup", "arguments": "{}"}}]},
-                {"role": "tool", "content": "ok", "tool_call_id": "c1"},
-                {"role": "assistant", "content": "Done"},
-            ],
-        })
+        nemotron, _ = prepare_data.process_nemotron_agentic_row(
+            {
+                "uuid": "u1",
+                "tools": [],
+                "messages": [
+                    {"role": "user", "content": "Hi"},
+                    {
+                        "role": "assistant",
+                        "content": "",
+                        "tool_calls": [
+                            {
+                                "id": "c1",
+                                "type": "function",
+                                "function": {"name": "lookup", "arguments": "{}"},
+                            }
+                        ],
+                    },
+                    {"role": "tool", "content": "ok", "tool_call_id": "c1"},
+                    {"role": "assistant", "content": "Done"},
+                ],
+            }
+        )
         self.assertEqual("c1", nemotron["conversations"][2]["tool_call_id"])
         normalize_row(nemotron)
 

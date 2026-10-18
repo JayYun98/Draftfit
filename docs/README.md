@@ -17,6 +17,10 @@ Preserve upstream credits when editing inherited material; see
 | Add your target | [Configuration and adapters](TARGET_EXTENSION.md) |
 | Select a backend environment | [Runtime profiles](RUNTIME_PROFILES.md) · [Model environments](MODEL_ENVIRONMENTS.md) |
 | Measure inference performance | [Workload evaluation](PERFORMANCE_GATE.md) |
+| Train compatible families together | [Family modes](DFLASH_FAMILY.md) · [Joint online setup](JOINT_ONLINE.md) |
+| Understand shared capture and milestone verification | [Feature queue](SHARED_TARGET_FEATURE_QUEUE.md) |
+| Run bounded automatic training | [Unattended controller](UNATTENDED_NATIVE.md) · [External campaigns](FAMILY_CAMPAIGN.md) |
+| Inspect metrics and preserve exports | [Monitoring](JOINT_MONITORING.md) · [HF publication](HF_PUBLICATION.md) |
 | Contribute and validate | [Release checks](PUBLIC_RELEASE.md) · [Source tools](../tests/VALIDATION.md) |
 
 ## Documentation languages

@@ -22,6 +22,7 @@ an optimizer, scheduler, controller counters, or RNG state.
 
 from __future__ import annotations
 
+import copy
 import glob
 import json
 import logging
@@ -110,11 +111,18 @@ def _draft_config_from_dict(payload: Dict[str, Any]) -> "PretrainedConfig":
         # Fold them into our registered architecture without touching weights.
         method = dict(payload.get("dflash_config") or {})
         for field in (
-            "target_layer_ids", "mask_token_id", "markov_rank",
-            "markov_head_type", "enable_confidence_head",
-            "confidence_head_with_markov", "confidence_head_alpha",
-            "sample_from_anchor", "shift_label", "pure_draft_prefix_len",
-            "projector_type", "attention_mode",
+            "target_layer_ids",
+            "mask_token_id",
+            "markov_rank",
+            "markov_head_type",
+            "enable_confidence_head",
+            "confidence_head_with_markov",
+            "confidence_head_alpha",
+            "sample_from_anchor",
+            "shift_label",
+            "pure_draft_prefix_len",
+            "projector_type",
+            "attention_mode",
         ):
             if field in payload:
                 if field in method and method[field] != payload[field]:
@@ -157,9 +165,13 @@ def _normalize_published_dspark_config(payload: Dict[str, Any]) -> Dict[str, Any
         method = dict(payload.get("dflash_config") or {})
         method["target_layer_ids"] = payload.pop("aux_hidden_state_layer_ids")
         for field in (
-            "mask_token_id", "markov_rank", "markov_head_type",
-            "enable_confidence_head", "confidence_head_with_markov",
-            "sample_from_anchor", "sliding_window_non_causal",
+            "mask_token_id",
+            "markov_rank",
+            "markov_head_type",
+            "enable_confidence_head",
+            "confidence_head_with_markov",
+            "sample_from_anchor",
+            "sliding_window_non_causal",
         ):
             if field in payload:
                 method[field] = payload.pop(field)
@@ -167,7 +179,8 @@ def _normalize_published_dspark_config(payload: Dict[str, Any]) -> Dict[str, Any
         payload["dflash_config"] = method
         # The released Taichu target has 32 text layers; its final tap is 29.
         payload["num_target_layers"] = (
-            32 if method["target_layer_ids"] == [1, 8, 15, 22, 29]
+            32
+            if method["target_layer_ids"] == [1, 8, 15, 22, 29]
             else max(method["target_layer_ids"]) + 1
         )
         payload["auto_map"] = {"AutoModel": "dspark.DSparkDraftModel"}
@@ -357,49 +370,95 @@ def _apply_draft_overrides(
 
 
 def convert_family_draft_config(
-    draft_config: "PretrainedConfig", strategy: str, *, retrain_anchor_alignment: bool = False
+    draft_config: "PretrainedConfig",
+    strategy: str,
+    *,
+    retrain_anchor_alignment: bool = False,
+    mask_token_id: Optional[int] = None,
 ) -> "PretrainedConfig":
     """Keep shared DFlash weights/layout while changing the objective head."""
+    draft_config = copy.deepcopy(draft_config)
+    if mask_token_id is not None:
+        method = dict(getattr(draft_config, "dflash_config", None) or {})
+        if method.get("mask_token_id") not in (None, mask_token_id):
+            raise ValueError("conflicting mask_token_id in DFlash-family source config")
+        method["mask_token_id"] = mask_token_id
+        draft_config.dflash_config = method
     architecture = draft_config.architectures[0]
+    if architecture in {
+        "DFlashDraftModel",
+        "DSparkDraftModel",
+        "DFlash2DraftModel",
+        "TaichuDFlash2DraftModel",
+    }:
+        if getattr(draft_config, "target_hidden_size", None) is None:
+            draft_config.target_hidden_size = draft_config.hidden_size
+    if architecture in {
+        "DFlashDraftModel",
+        "DFlash2DraftModel",
+        "TaichuDFlash2DraftModel",
+    }:
+        method = dict(getattr(draft_config, "dflash_config", None) or {})
+        method.setdefault("sample_from_anchor", False)
+        draft_config.dflash_config = method
     if strategy == "dflash2" and architecture == "DSparkDraftModel":
         return convert_family_draft_config(
             convert_family_draft_config(
-                draft_config, "dflash", retrain_anchor_alignment=retrain_anchor_alignment
-            ), strategy
+                draft_config,
+                "dflash",
+                retrain_anchor_alignment=retrain_anchor_alignment,
+            ),
+            strategy,
         )
-    if strategy == "dspark" and architecture == "DFlash2DraftModel":
+    if strategy == "dspark" and architecture in {
+        "DFlash2DraftModel",
+        "TaichuDFlash2DraftModel",
+    }:
         return convert_family_draft_config(
             convert_family_draft_config(draft_config, "dflash"), strategy
         )
     if strategy == "dflash2" and architecture == "DFlashDraftModel":
         payload = draft_config.to_dict()
-        if payload.get("draft_vocab_size", payload["vocab_size"]) != payload["vocab_size"]:
+        if (
+            payload.get("draft_vocab_size", payload["vocab_size"])
+            != payload["vocab_size"]
+        ):
             raise ValueError("DFlash2 requires draft_vocab_size equal to vocab_size")
         method = dict(payload.get("dflash_config") or {})
         if method.get("sample_from_anchor", False):
             raise ValueError("DFlash2 transfer requires sample_from_anchor=false")
         if method.get("mask_token_id") is None:
-            raise ValueError("DFlash2 transfer requires a mask_token_id in the source config")
+            raise ValueError(
+                "DFlash2 transfer requires a mask_token_id in the source config"
+            )
         taichu_text = (
-            (payload.get("official_dspark_format") == "taichu_speculators")
-            or ("mrope_section" in (payload.get("rope_parameters") or {})
-                and len(set(payload.get("layer_types") or [])) > 1)
+            payload.get("official_dspark_format") == "taichu_speculators"
+        ) or (
+            "mrope_section" in (payload.get("rope_parameters") or {})
+            and len(set(payload.get("layer_types") or [])) > 1
         )
         payload["architectures"] = [
             "TaichuDFlash2DraftModel" if taichu_text else "DFlash2DraftModel"
         ]
         payload["model_type"] = "qwen3_dflash2"
         payload["auto_map"] = {"AutoModel": "dflash2.DFlash2DraftModel"}
-        payload["target_num_hidden_layers"] = payload.get("target_num_hidden_layers") or payload.get("num_target_layers")
+        payload["target_num_hidden_layers"] = payload.get(
+            "target_num_hidden_layers"
+        ) or payload.get("num_target_layers")
         method["sample_from_anchor"] = False
         payload["dflash_config"] = method
         return _draft_config_from_dict(payload)
-    if strategy == "dflash" and architecture in {"DFlash2DraftModel", "TaichuDFlash2DraftModel"}:
+    if strategy == "dflash" and architecture in {
+        "DFlash2DraftModel",
+        "TaichuDFlash2DraftModel",
+    }:
         payload = draft_config.to_dict()
         payload["architectures"] = ["DFlashDraftModel"]
         payload["model_type"] = "qwen3"
         payload["auto_map"] = {"AutoModel": "dflash.DFlashDraftModel"}
-        payload["num_target_layers"] = payload.get("target_num_hidden_layers") or payload.get("num_target_layers")
+        payload["num_target_layers"] = payload.get(
+            "target_num_hidden_layers"
+        ) or payload.get("num_target_layers")
         method = dict(payload.get("dflash_config") or {})
         method["sample_from_anchor"] = False
         payload["dflash_config"] = method
@@ -410,33 +469,48 @@ def convert_family_draft_config(
         payload["auto_map"] = {"AutoModel": "dspark.DSparkDraftModel"}
         payload["dflash_config"] = {
             **dict(payload.get("dflash_config") or {}),
-            "projector_type": "dspark", "markov_rank": 256,
-            "markov_head_type": "vanilla", "enable_confidence_head": True,
+            "projector_type": "dspark",
+            "markov_rank": 256,
+            "markov_head_type": "vanilla",
+            "enable_confidence_head": True,
             "confidence_head_with_markov": True,
-            "confidence_head_alpha": 1.0, "sample_from_anchor": False,
+            "confidence_head_alpha": 1.0,
+            "sample_from_anchor": False,
         }
         return _draft_config_from_dict(payload)
     if strategy == "dflash" and architecture == "DSparkDraftModel":
         payload = draft_config.to_dict()
-        if (payload.get("dflash_config") or {}).get("sample_from_anchor", True) and not retrain_anchor_alignment:
-            raise ValueError("DSpark-to-DFlash warm start requires sample_from_anchor=false")
+        if (payload.get("dflash_config") or {}).get(
+            "sample_from_anchor", True
+        ) and not retrain_anchor_alignment:
+            raise ValueError(
+                "DSpark-to-DFlash warm start requires sample_from_anchor=false"
+            )
         payload["architectures"] = ["DFlashDraftModel"]
         payload["auto_map"] = {"AutoModel": "dflash.DFlashDraftModel"}
         method = dict(payload.get("dflash_config") or {})
         for field in (
-            "projector_type", "markov_rank", "markov_head_type",
-            "enable_confidence_head", "confidence_head_with_markov",
+            "projector_type",
+            "markov_rank",
+            "markov_head_type",
+            "enable_confidence_head",
+            "confidence_head_with_markov",
             "confidence_head_alpha",
         ):
             method.pop(field, None)
         method["sample_from_anchor"] = False
         payload["dflash_config"] = method
         return _draft_config_from_dict(payload)
-    expected = {"dflash": {"DFlashDraftModel"}, "dspark": {"DSparkDraftModel"},
-                "dflash2": {"DFlash2DraftModel", "TaichuDFlash2DraftModel"}}.get(strategy, set())
+    expected = {
+        "dflash": {"DFlashDraftModel"},
+        "dspark": {"DSparkDraftModel"},
+        "dflash2": {"DFlash2DraftModel", "TaichuDFlash2DraftModel"},
+    }.get(strategy, set())
     if architecture in expected:
         return draft_config
-    raise ValueError(f"unsupported DFlash-family transfer: {architecture} -> {strategy}")
+    raise ValueError(
+        f"unsupported DFlash-family transfer: {architecture} -> {strategy}"
+    )
 
 
 def resolve_draft_config(
@@ -453,13 +527,21 @@ def resolve_draft_config(
             cache_dir=cfg.model.cache_dir,
             trust_remote_code=cfg.model.trust_remote_code,
         )
-        if not cfg.model.draft_model_config and cfg.training.strategy in ("dflash", "dspark", "dflash2"):
+        if not cfg.model.draft_model_config and cfg.training.strategy in (
+            "dflash",
+            "dspark",
+            "dflash2",
+        ):
             draft_config = convert_family_draft_config(
-                draft_config, cfg.training.strategy,
+                draft_config,
+                cfg.training.strategy,
                 retrain_anchor_alignment=cfg.training.retrain_anchor_alignment,
+                mask_token_id=cfg.model.mask_token_id,
             )
     else:
-        draft_config = _generate_draft_config(cfg, provider, target_config=target_config)
+        draft_config = _generate_draft_config(
+            cfg, provider, target_config=target_config
+        )
 
     expected = provider.architecture
     compatible = provider.compatible_architectures or frozenset({expected})
@@ -517,7 +599,10 @@ def _runtime_state_file(source: str) -> Optional[str]:
 
 
 def _load_specforge_draft_state(
-    state_path: str, *, expected_strategy: str, draft_config: "PretrainedConfig",
+    state_path: str,
+    *,
+    expected_strategy: str,
+    draft_config: "PretrainedConfig",
     retrain_anchor_alignment: bool = False,
 ) -> Tuple[Dict[str, Any], bool]:
     import torch
@@ -538,8 +623,16 @@ def _load_specforge_draft_state(
         )
     saved_strategy = state.get("strategy")
     family = {"dflash", "dspark", "dflash2"}
-    cross_family = saved_strategy in family and expected_strategy in family and saved_strategy != expected_strategy
-    if saved_strategy is not None and saved_strategy != expected_strategy and not cross_family:
+    cross_family = (
+        saved_strategy in family
+        and expected_strategy in family
+        and saved_strategy != expected_strategy
+    )
+    if (
+        saved_strategy is not None
+        and saved_strategy != expected_strategy
+        and not cross_family
+    ):
         raise ValueError(
             f"warm-start checkpoint {state_path} was written by strategy "
             f"{saved_strategy!r}; this run trains {expected_strategy!r}"
@@ -568,7 +661,8 @@ def _load_specforge_draft_state(
     weights = state["draft_state_dict"]
     if cross_family:
         weights = {
-            key: value for key, value in weights.items()
+            key: value
+            for key, value in weights.items()
             if not _source_only_family_key(key, expected_strategy)
         }
     return weights, cross_family
@@ -578,8 +672,9 @@ def _source_only_family_key(key: str, strategy: str) -> bool:
     if strategy != "dspark" and key.startswith(("markov_head.", "confidence_head.")):
         return True
     return strategy != "dflash2" and (
-        key.startswith("candidate_selector.") or
-        ".attention_conv." in key or ".mlp_conv." in key
+        key.startswith("candidate_selector.")
+        or ".attention_conv." in key
+        or ".mlp_conv." in key
     )
 
 
@@ -597,37 +692,63 @@ def _load_pretrained_draft_state(
     source_config = load_draft_config_source(
         source, cache_dir=cache_dir, trust_remote_code=trust_remote_code
     )
-    family = {"DFlashDraftModel", "DSparkDraftModel", "DFlash2DraftModel", "TaichuDFlash2DraftModel"}
-    cross_family = (source_config.architectures != draft_config.architectures
-                    and source_config.architectures[0] in family
-                    and draft_config.architectures[0] in family)
+    family = {
+        "DFlashDraftModel",
+        "DSparkDraftModel",
+        "DFlash2DraftModel",
+        "TaichuDFlash2DraftModel",
+    }
+    cross_family = (
+        source_config.architectures != draft_config.architectures
+        and source_config.architectures[0] in family
+        and draft_config.architectures[0] in family
+    )
     if source_config.architectures != draft_config.architectures and not cross_family:
         raise ValueError(
             f"warm-start checkpoint {source!r} has draft architecture "
             f"{source_config.architectures!r}, expected {draft_config.architectures!r}"
         )
     if getattr(source_config, "official_dspark_format", None) in (
-        "taichu_speculators", "lfm2"
+        "taichu_speculators",
+        "lfm2",
     ):
         # A shape-compatible scratch config can still change the anchor,
         # attention or RoPE semantics of published weights.
         for field in (
-            "block_size", "vocab_size", "draft_vocab_size", "hidden_size",
-            "intermediate_size", "num_hidden_layers", "num_attention_heads",
-            "num_key_value_heads", "head_dim", "layer_types", "sliding_window",
-            "max_position_embeddings", "rms_norm_eps", "hidden_act",
-            "attention_bias", "attention_dropout",
-            "rope_is_neox_style", "rope_parameters",
+            "block_size",
+            "vocab_size",
+            "draft_vocab_size",
+            "hidden_size",
+            "intermediate_size",
+            "num_hidden_layers",
+            "num_attention_heads",
+            "num_key_value_heads",
+            "head_dim",
+            "layer_types",
+            "sliding_window",
+            "max_position_embeddings",
+            "rms_norm_eps",
+            "hidden_act",
+            "attention_bias",
+            "attention_dropout",
+            "rope_is_neox_style",
+            "rope_parameters",
         ):
-            if getattr(source_config, field, None) != getattr(draft_config, field, None):
+            if getattr(source_config, field, None) != getattr(
+                draft_config, field, None
+            ):
                 raise ValueError(f"official DSpark warm start has incompatible {field}")
         source_method = dict(getattr(source_config, "dflash_config", None) or {})
         target_method = dict(getattr(draft_config, "dflash_config", None) or {})
         for field in ("target_layer_ids", "mask_token_id", "sliding_window_non_causal"):
             if source_method.get(field) != target_method.get(field):
                 raise ValueError(f"official DSpark warm start has incompatible {field}")
-        if not cross_family and source_method.get("sample_from_anchor") != target_method.get("sample_from_anchor"):
-            raise ValueError("official DSpark warm start has incompatible sample_from_anchor")
+        if not cross_family and source_method.get(
+            "sample_from_anchor"
+        ) != target_method.get("sample_from_anchor"):
+            raise ValueError(
+                "official DSpark warm start has incompatible sample_from_anchor"
+            )
     if cross_family:
         source_method = dict(getattr(source_config, "dflash_config", None) or {})
         target_method = getattr(draft_config, "dflash_config", None)
@@ -635,24 +756,47 @@ def _load_pretrained_draft_state(
             raise ValueError("DFlash-family draft architecture requires dflash_config")
         if target_method.get("sample_from_anchor", False) is not False:
             raise ValueError("DFlash-family transfer requires sample_from_anchor=false")
-        source_anchor = source_method.get("sample_from_anchor", source_config.architectures == ["DSparkDraftModel"])
-        if source_anchor and not (retrain_anchor_alignment and source_config.architectures == ["DSparkDraftModel"]):
+        source_anchor = source_method.get(
+            "sample_from_anchor", source_config.architectures == ["DSparkDraftModel"]
+        )
+        if source_anchor and not (
+            retrain_anchor_alignment
+            and source_config.architectures == ["DSparkDraftModel"]
+        ):
             raise ValueError("DFlash-family source must use sample_from_anchor=false")
         for field in (
-            "block_size", "vocab_size", "hidden_size", "num_hidden_layers",
-            "num_attention_heads", "num_key_value_heads", "sliding_window",
+            "block_size",
+            "vocab_size",
+            "hidden_size",
+            "num_hidden_layers",
+            "num_attention_heads",
+            "num_key_value_heads",
+            "sliding_window",
         ):
-            if getattr(source_config, field, None) != getattr(draft_config, field, None):
+            if getattr(source_config, field, None) != getattr(
+                draft_config, field, None
+            ):
                 raise ValueError(f"DFlash-family warm start has incompatible {field}")
-        if strategy == "dflash2" and getattr(source_config, "draft_vocab_size", source_config.vocab_size) != source_config.vocab_size:
+        if (
+            strategy == "dflash2"
+            and getattr(source_config, "draft_vocab_size", source_config.vocab_size)
+            != source_config.vocab_size
+        ):
             raise ValueError("DFlash2 transfer requires full draft vocabulary")
         from draftfit.modeling.draft.dflash import resolve_dflash_attention_layout
 
-        if resolve_dflash_attention_layout(source_config) != resolve_dflash_attention_layout(draft_config):
-            raise ValueError("DFlash-family warm start has incompatible attention layout")
+        if resolve_dflash_attention_layout(
+            source_config
+        ) != resolve_dflash_attention_layout(draft_config):
+            raise ValueError(
+                "DFlash-family warm start has incompatible attention layout"
+            )
         for field in (
-            "target_layer_ids", "mask_token_id", "shift_label",
-            "pure_draft_prefix_len", "sliding_window_non_causal",
+            "target_layer_ids",
+            "mask_token_id",
+            "shift_label",
+            "pure_draft_prefix_len",
+            "sliding_window_non_causal",
         ):
             if source_method.get(field) != target_method.get(field):
                 raise ValueError(f"DFlash-family warm start has incompatible {field}")
@@ -712,7 +856,9 @@ def warm_start_draft_model(
     if runtime_state is not None:
         checkpoint_format: Literal["specforge", "pretrained"] = "specforge"
         state, cross_family = _load_specforge_draft_state(
-            runtime_state, expected_strategy=strategy, draft_config=draft_config,
+            runtime_state,
+            expected_strategy=strategy,
+            draft_config=draft_config,
             retrain_anchor_alignment=retrain_anchor_alignment,
         )
     else:
@@ -744,13 +890,25 @@ def warm_start_draft_model(
         )
     allowed_missing = set()
     if allow_missing_embedding:
-        allowed_missing = {key for key in result.missing_keys if key == "embed_tokens.weight"}
+        allowed_missing = {
+            key for key in result.missing_keys if key == "embed_tokens.weight"
+        }
     if cross_family:
         allowed_missing.update(
-            key for key in result.missing_keys
-            if (strategy == "dspark" and key.startswith(("markov_head.", "confidence_head.")))
-            or (strategy == "dflash2" and
-                (key.startswith("candidate_selector.") or ".attention_conv." in key or ".mlp_conv." in key))
+            key
+            for key in result.missing_keys
+            if (
+                strategy == "dspark"
+                and key.startswith(("markov_head.", "confidence_head."))
+            )
+            or (
+                strategy == "dflash2"
+                and (
+                    key.startswith("candidate_selector.")
+                    or ".attention_conv." in key
+                    or ".mlp_conv." in key
+                )
+            )
         )
     required_missing = sorted(set(result.missing_keys) - allowed_missing)
     if required_missing:

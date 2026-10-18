@@ -1,0 +1,10 @@
+flowchart TD
+    A["Reviewed train and held-out conversations"] --> B["GPU 0: frozen target feature capture"]
+    B --> C[(Separate train and held-out feature files)]
+    C --> D["GPU 0: train one draft arm at a time"]
+    D --> E{Evaluation interval?}
+    E -->|Yes| F["Held-out pass and checkpoint"]
+    E -->|No| D
+    F --> D
+    F --> G["Export and reload exact checkpoint"]
+    G --> H["Sequential target-only and draft serving checks"]
