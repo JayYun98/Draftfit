@@ -12,6 +12,21 @@ from draftfit.inference.capture_manifest import (
 
 
 class TestCaptureManifest(unittest.TestCase):
+    def test_nested_draft_config_round_trip_allows_capture_resume(self):
+        manifest = build_capture_manifest(
+            strategy="dspark", capture_method="dspark",
+            capture_layers=[1, 8], feature_names=["hidden_states"],
+            target_model="target", target_revision="sha",
+            draft_config={"layer_types": ("sliding_attention", "full_attention"),
+                          "rope_parameters": {"mrope_section": (44, 44, 40)},
+                          "id2label": {0: "label"}},
+            capture_backend="transformers", capture_settings={"shape": (1, 512)},
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "capture_manifest.json")
+            write_capture_manifest(path, manifest)
+            self.assertEqual(load_capture_manifest(path), manifest)
+
     def test_backend_provenance_does_not_change_tensor_contract(self):
         options = dict(
             strategy="dspark",

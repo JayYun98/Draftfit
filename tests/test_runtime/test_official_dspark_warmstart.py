@@ -141,6 +141,37 @@ class OfficialDSparkWarmStartTest(unittest.TestCase):
         self.assertEqual(converted.layer_types, ["sliding_attention", "full_attention"])
         self.assertFalse(converted.dflash_config["sample_from_anchor"])
 
+    def test_taichu_dflash2_can_transfer_back_to_dspark(self):
+        payload = _nested_taichu_config()
+        payload["transformer_layer_config"].update(
+            num_hidden_layers=2,
+            layer_types=["sliding_attention", "full_attention"],
+            sliding_window=16, use_sliding_window=True,
+            rope_parameters={"rope_type": "default", "rope_theta": 10000,
+                             "partial_rotary_factor": 1.0,
+                             "mrope_section": [2, 1, 1]},
+        )
+        source = _draft_config_from_dict(payload)
+        selector = convert_family_draft_config(
+            source, "dflash2", retrain_anchor_alignment=True
+        )
+        returned = convert_family_draft_config(selector, "dspark")
+        self.assertEqual(returned.architectures, ["DSparkDraftModel"])
+        self.assertEqual(returned.layer_types, selector.layer_types)
+        self.assertEqual(returned.rope_parameters, selector.rope_parameters)
+        with tempfile.TemporaryDirectory() as directory:
+            source_model = AutoDraftModel.from_config(selector)
+            source_model.save_pretrained(directory)
+            destination = AutoDraftModel.from_config(returned)
+            report = warm_start_draft_model(
+                destination, directory, draft_config=returned, strategy="dspark"
+            )
+            self.assertGreater(report.loaded_keys, 0)
+            torch.testing.assert_close(
+                destination.layers[0].self_attn.q_proj.weight,
+                source_model.layers[0].self_attn.q_proj.weight,
+            )
+
     def test_interleaved_rotary_pairs_adjacent_features(self):
         q = torch.tensor([[[[1., 2., 3., 4.]]]])
         cos = torch.zeros((1, 1, 4))

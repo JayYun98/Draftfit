@@ -231,10 +231,24 @@ class OnlineDFlashModel(nn.Module):
         # with explicit ``is_causal`` and ``sliding_window`` options.
         return {}
 
+    def _sliding_block_mask_options(self) -> Dict[str, object]:
+        return {k: v for k, v in self._block_mask_options().items() if k != "sliding_window"}
+
     def _compute_logits(self, hidden: torch.Tensor) -> torch.Tensor:
         """Project draft hidden states through the frozen target LM head."""
 
-        return self.lm_head(hidden)
+        config = self.draft_model.config
+        nested = getattr(config, "dflash_config", None) or {}
+        multiplier = float(nested.get("output_multiplier", getattr(config, "output_multiplier", 1.0)))
+        softcap = nested.get("final_logit_softcapping", getattr(config, "final_logit_softcapping", None))
+        if callable(getattr(self.lm_head, "project_logits", None)):
+            return self.lm_head.project_logits(hidden, multiplier=multiplier, softcap=softcap)
+        logits = self.lm_head(hidden)
+        if multiplier != 1.0:
+            logits = logits * multiplier
+        if softcap is not None and softcap > 0:
+            logits = torch.tanh(logits / softcap) * softcap
+        return logits
 
     def _extra_training_loss(
         self,
@@ -432,7 +446,7 @@ class OnlineDFlashModel(nn.Module):
                 "sliding_attention": mask_builder(
                     **mask_args,
                     sliding_window=sliding_window,
-                    **{k: v for k, v in mask_options.items() if k != "sliding_window"},
+                    **self._sliding_block_mask_options(),
                 ),
             }
 
@@ -624,7 +638,7 @@ class OnlineDFlashModel(nn.Module):
 class OnlineDFlash2Model(OnlineDFlashModel):
     """DFlash2 objective: DFlash CE plus candidate-selector CE."""
 
-    supports_mixed_attention = False
+    supports_mixed_attention = True
     extra_loss_name = "selector_loss"
 
     def __init__(
@@ -703,18 +717,18 @@ class OnlineDFlash2Model(OnlineDFlashModel):
             )
 
     def _block_mask_options(self) -> Dict[str, object]:
+        if len(set(self.draft_model.layer_types)) > 1:
+            # None gives each layer its published default; the sliding
+            # options below separately enforce causality and the window.
+            explicit = getattr(self.draft_model.config, "is_causal", None)
+            return {"is_causal": False if explicit is None else bool(explicit)}
         return {
             "is_causal": self.attention_is_causal,
             "sliding_window": self.sliding_window,
         }
 
-    def _compute_logits(self, hidden: torch.Tensor) -> torch.Tensor:
-        logits = super()._compute_logits(hidden)
-        logits = logits * float(self.draft_model.config.output_multiplier)
-        softcap = self.draft_model.config.final_logit_softcapping
-        if softcap is not None and softcap > 0:
-            logits = torch.tanh(logits / softcap) * softcap
-        return logits
+    def _sliding_block_mask_options(self) -> Dict[str, object]:
+        return {"is_causal": self.attention_is_causal}
 
     def _extra_training_loss(
         self,

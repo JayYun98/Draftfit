@@ -1,0 +1,70 @@
+{
+  "kind": "draftfit-experiment-preflight",
+  "executable": false,
+  "target": {
+    "repo": "jialinyyzz/humanizer",
+    "revision": "7232532cb8466bd393544e97826e12e6b5e471ac"
+  },
+  "seed": {
+    "repo": "z-lab/gemma4-12B-it-DFlash",
+    "revision": "541d351de6dc9cd698fc348612bd5cdf03c636d0",
+    "format": "safetensors",
+    "method": "dflash"
+  },
+  "capture": {
+    "backend": "transformers",
+    "layers": [
+      1,
+      10,
+      19,
+      27,
+      36,
+      45
+    ],
+    "boundary": "decoder-block-output-before-final-norm"
+  },
+  "prompt": {
+    "source": "prompt_format.json",
+    "chat": false,
+    "render": "instr + '\n\n' + draft.strip() + sep",
+    "probe": "X",
+    "sha256_prefix16": "cc51d66b4c593fbe"
+  },
+  "data_plan": {
+    "train": 5000,
+    "validation": 500,
+    "test": 500,
+    "domains": [
+      "email",
+      "blog",
+      "report",
+      "essay",
+      "forum"
+    ],
+    "split_by": "source-document-before-rewrite"
+  },
+  "training_plan": {
+    "initialization": "weights-only-continual",
+    "milestones": [
+      1000,
+      3000,
+      10000,
+      20000,
+      30000
+    ],
+    "baseline": [
+      "target-only",
+      "original-dflash"
+    ]
+  },
+  "blocking_gates": [
+    "data-generation-and-split-digests",
+    "actual-12B-capture",
+    "GPU-smoke-and-resource-measurement",
+    "real-export-serving-parity",
+    "rental-budget-watchdog-backup-cleanup"
+  ],
+  "joint_family_gate": "Mixed layout implemented and tested on tiny CPU joint continuation; actual 12B GPU/MLX verification pending",
+  "authorized_total_usd_exclusive": 3,
+  "execution_status": "local_prework_verified"
+}

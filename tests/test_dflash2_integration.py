@@ -43,6 +43,7 @@ class DFlash2IntegrationTest(unittest.TestCase):
         from transformers.models.qwen3_5.modeling_qwen3_5 import Qwen3_5TextRotaryEmbedding
         from draftfit.modeling.auto import AutoDraftModel
         from draftfit.training.model_loading import load_draft_config_source
+        from draftfit.export.to_hf import export_to_hf
         from draftfit.export.to_sglang import export_to_sglang
 
         rope = {"rope_type": "default", "rope_theta": 10_000_000,
@@ -96,6 +97,13 @@ class DFlash2IntegrationTest(unittest.TestCase):
             self.assertIsInstance(restored, TaichuDFlash2DraftModel)
             checkpoint = Path(directory) / "training_state.pt"
             torch.save({"strategy": "dflash2", "draft_state_dict": draft.state_dict()}, checkpoint)
+            hf_export = Path(directory) / "hf"
+            export_to_hf(str(checkpoint), str(Path(directory) / "config.json"), str(hf_export))
+            automatic = AutoDraftModel.from_pretrained(hf_export)
+            self.assertIsInstance(automatic, TaichuDFlash2DraftModel)
+            for key, value in draft.state_dict().items():
+                actual = automatic.state_dict()[key]
+                self.assertTrue(torch.equal(actual, value.to(dtype=actual.dtype)), key)
             serving = Path(directory) / "serving"
             export_to_sglang(str(checkpoint), str(Path(directory) / "config.json"), str(serving))
             self.assertEqual(json.loads((serving / "config.json").read_text())["architectures"],

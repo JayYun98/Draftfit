@@ -65,6 +65,47 @@ def _load_embedding_tensor(source: str, key: str) -> torch.Tensor:
     return state[key]
 
 
+def _add_dspark_sglang_config(output_dir: str) -> bool:
+    """Mirror DSpark runtime fields into the config namespace SGLang reads.
+
+    Draftfit keeps family-specific training settings under ``dflash_config``.
+    SGLang's DSpark loader reads Markov settings from ``dspark_config`` instead,
+    so an otherwise valid HF export would silently resolve ``markov_rank`` to 0.
+    """
+    config_path = os.path.join(output_dir, "config.json")
+    with open(config_path, encoding="utf-8") as handle:
+        config = json.load(handle)
+    method = config.get("dflash_config") or {}
+    if method.get("projector_type") != "dspark":
+        return False
+
+    dspark_config = config.get("dspark_config") or {}
+    if not isinstance(dspark_config, dict):
+        raise ValueError("exported dspark_config must be an object")
+    dspark_config = dict(dspark_config)
+    dspark_config["markov_rank"] = int(method.get("markov_rank", 0) or 0)
+    dspark_config["markov_head_type"] = str(
+        method.get("markov_head_type") or "vanilla"
+    ).lower()
+    # SGLang 0.5.19's DSpark model constructor parses the nested namespace
+    # above for validation, then builds the Markov head from these top-level
+    # attributes on the Transformers config. Keep both representations in
+    # sync so a valid rank is not reduced to the default zero at load time.
+    config["markov_rank"] = dspark_config["markov_rank"]
+    config["markov_head_type"] = dspark_config["markov_head_type"]
+    if method.get("mask_token_id") is not None:
+        dspark_config["mask_token_id"] = int(method["mask_token_id"])
+    config["dspark_config"] = dspark_config
+
+    temporary = config_path + ".tmp"
+    with open(temporary, "w", encoding="utf-8") as handle:
+        json.dump(config, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    os.replace(temporary, config_path)
+    return True
+
+
+
 def export_to_hf(
     checkpoint_path: str,
     draft_config_path: str,
@@ -115,6 +156,7 @@ def export_to_hf(
     full_state.update(state["draft_state_dict"])  # trained keys win
     model.save_pretrained(output_dir, state_dict=full_state)
     apply_legacy_rope_scaling(output_dir)
+    _add_dspark_sglang_config(output_dir)
     return output_dir
 
 

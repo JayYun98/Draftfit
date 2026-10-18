@@ -1,0 +1,23 @@
+diff --git a/src/mlx_dspark/lookup.py b/src/mlx_dspark/lookup.py
+index f2b9ede..fb63573 100644
+--- a/src/mlx_dspark/lookup.py
++++ b/src/mlx_dspark/lookup.py
+@@ -207,7 +207,7 @@ def lookup_generate(
+         # clamp to the remaining budget: no verify width wasted past max_new_tokens
+         draft = index.propose(
+             long_draft=long_draft_tokens if gate.allowed else None,
+-        )[:max_new_tokens - len(out_ids)]
++        )[:max_new_tokens - len(out_ids) - 1]
+ 
+         if not draft:
+             # no confident match -> plain 1-token step (zero miss cost; verify() with no
+@@ -237,6 +237,9 @@ def lookup_generate(
+             n = int(n_arr.item())
+             tt = tt_arr.tolist()
+             committed = draft[:n] + [tt[n]]
++        if any(tok in eos_ids for tok in committed):
++            committed = committed[:next(i for i, tok in enumerate(committed) if tok in eos_ids) + 1]
++            n = min(n, len(committed) - 1)
+         target_forwards += 1
+         accept_lengths.append(len(committed))
+         if draft:

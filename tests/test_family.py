@@ -18,6 +18,146 @@ from tests.test_dflash2_integration import tiny_config
 
 
 class FamilyWorkflowTest(unittest.TestCase):
+    def test_common_scratch_config_converts_per_family_and_rejects_joint_job_conflict(self):
+        from tests.test_family_joint_cpu import fixture
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root, seeded=False)
+            path = str(root / "family.json")
+            _, stages = build_family_plan(path)
+            self.assertEqual([s.draft_config.architectures[0] for s in stages],
+                             ["DSparkDraftModel", "DFlashDraftModel", "DFlash2DraftModel"])
+            self.assertTrue(all(s.config.model.draft_checkpoint_path is None for s in stages))
+            with self.assertRaisesRegex(ValueError, "do not combine"):
+                run_family(path, joint=True, jobs=2)
+            with self.assertRaisesRegex(ValueError, "requires --joint"):
+                run_family(path, resume_from="checkpoint.pt")
+            self.assertFalse((root / "outputs").exists())
+            from draftfit.modeling.draft.taichu_dflash2 import TaichuDFlash2Config
+            special = tiny_config(config_class=TaichuDFlash2Config,
+                                  architectures=["TaichuDFlash2DraftModel"])
+            special.to_json_file(str(root / "taichu.json"))
+            manifest = json.loads(Path(path).read_text())
+            manifest["runs"][2]["draft_config"] = "./taichu.json"
+            Path(path).write_text(json.dumps(manifest))
+            _, stages = build_family_plan(path)
+            self.assertEqual(stages[2].draft_config.architectures, ["TaichuDFlash2DraftModel"])
+
+    def test_scratch_conversion_uses_run_mask_before_dflash2_validation(self):
+        from tests.test_family_joint_cpu import fixture
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root, seeded=False)
+            source = json.loads((root / "draft.json").read_text())
+            source["dflash_config"].pop("mask_token_id")
+            (root / "draft.json").write_text(json.dumps(source))
+            _, stages = build_family_plan(str(root / "family.json"))
+            self.assertEqual(stages[2].draft_config.dflash_config["mask_token_id"], 63)
+
+    def test_explicit_and_parent_configs_apply_overrides_during_plan(self):
+        from tests.test_family_joint_cpu import fixture
+        for use_parent in (False, True):
+            with self.subTest(use_parent=use_parent), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                manifest = fixture(root, seeded=False)
+                manifest["runs"] = [
+                    {"name": "source", "strategy": "dspark"},
+                    {"name": "changed", "strategy": "dspark",
+                     **({"from": "source"} if use_parent else {"draft_config": "./draft.json"}),
+                     "overrides": ["model.target_layer_ids=[0, 4]"]},
+                ]
+                (root / "family.json").write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(ValueError, "target layers differ from capture manifest"):
+                    build_family_plan(str(root / "family.json"))
+
+    def test_planned_overrides_match_reload_without_mutating_parent(self):
+        from draftfit.algorithms.builtin import builtin_algorithm_registry
+        from draftfit.training.model_loading import resolve_draft_config
+        from tests.test_family_joint_cpu import fixture
+        for use_parent in (False, True):
+            with self.subTest(use_parent=use_parent), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                manifest = fixture(root, seeded=False)
+                manifest["runs"] = [
+                    {"name": "source", "strategy": "dspark"},
+                    {"name": "changed", "strategy": "dspark",
+                     **({"from": "source"} if use_parent else {"draft_config": "./draft.json"}),
+                     "overrides": ["model.draft_block_size=8"]},
+                ]
+                (root / "family.json").write_text(json.dumps(manifest))
+                _, stages = build_family_plan(str(root / "family.json"))
+                self.assertEqual(stages[0].draft_config.block_size, 4)
+                self.assertEqual(stages[1].draft_config.block_size, 8)
+                output = Path(stages[1].config.model.draft_model_config)
+                output.parent.mkdir(parents=True)
+                stages[1].draft_config.to_json_file(str(output))
+                provider = builtin_algorithm_registry().resolve("dspark").providers.model.draft_config
+                reloaded = resolve_draft_config(stages[1].config, provider=provider)
+                self.assertEqual(reloaded.block_size, stages[1].draft_config.block_size)
+                self.assertEqual(reloaded.dflash_config, stages[1].draft_config.dflash_config)
+
+    def _capture_fixture(self, root, **changes):
+        from tests.test_family_joint_cpu import fixture
+        fixture(root, seeded=False)
+        base_path = root / "base.json"
+        base = json.loads(base_path.read_text())
+        base["model"]["target_revision"] = None
+        base_path.write_text(json.dumps(base))
+        fields = dict(
+            strategy="dspark", capture_method="dspark", capture_layers=(1, 5),
+            feature_names=("input_ids", "loss_mask", "hidden_states", "target_last_hidden_states"),
+            target_model=base["model"]["target_model_path"],
+            target_revision="a" * 40, tokenizer_version="same-tokenizer",
+            target_feature="target_last_hidden_states", target_repr="hidden_state",
+        )
+        fields.update(changes)
+        for split in ("train", "holdout"):
+            write_capture_manifest(str(root / split / "capture_manifest.json"),
+                                   build_capture_manifest(**fields))
+        return fields
+
+    def test_capture_revisions_must_match_without_config_pin(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fields = self._capture_fixture(root)
+            fields["target_revision"] = "b" * 40
+            write_capture_manifest(str(root / "holdout" / "capture_manifest.json"),
+                                   build_capture_manifest(**fields))
+            with self.assertRaisesRegex(ValueError, "train/holdout target revisions differ"):
+                build_family_plan(str(root / "family.json"))
+
+    def test_capture_rejects_validly_hashed_unsupported_contracts(self):
+        for change in ({"target_repr": "logits"}, {"target_repr": None},
+                       {"target_feature": "logits"}, {"target_feature": None},
+                       {"capture_method": "eagle3"}, {"capture_method": "dflash"}):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self._capture_fixture(root, **change)
+                with self.assertRaisesRegex(ValueError, "unsupported capture"):
+                    build_family_plan(str(root / "family.json"))
+
+    def test_capture_accepts_native_legacy_and_absent_manifests(self):
+        for method in ("dspark", "target_hidden", "absent", "one_absent", "dflash"):
+            with self.subTest(method=method), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                changes = {"capture_method": method if method in ("dspark", "target_hidden") else "dspark"}
+                if method == "dflash":
+                    changes.update(strategy="dflash", capture_method="dflash",
+                                   feature_names=("input_ids", "loss_mask", "hidden_states"),
+                                   target_repr=None, target_feature=None)
+                self._capture_fixture(root, **changes)
+                if method in ("absent", "one_absent"):
+                    (root / "holdout" / "capture_manifest.json").unlink()
+                    if method == "absent":
+                        (root / "train" / "capture_manifest.json").unlink()
+                if method == "dflash":
+                    path = root / "family.json"
+                    manifest = json.loads(path.read_text())
+                    manifest["runs"] = manifest["runs"][1:]
+                    path.write_text(json.dumps(manifest))
+                _, stages = build_family_plan(str(root / "family.json"))
+                self.assertEqual(len(stages), 2 if method == "dflash" else 3)
+
     def test_official_anchor_dspark_plan_covers_continual_ablation_and_retraining(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

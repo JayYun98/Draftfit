@@ -22,6 +22,7 @@ an optimizer, scheduler, controller counters, or RNG state.
 
 from __future__ import annotations
 
+import copy
 import glob
 import json
 import logging
@@ -357,17 +358,32 @@ def _apply_draft_overrides(
 
 
 def convert_family_draft_config(
-    draft_config: "PretrainedConfig", strategy: str, *, retrain_anchor_alignment: bool = False
+    draft_config: "PretrainedConfig", strategy: str, *, retrain_anchor_alignment: bool = False,
+    mask_token_id: Optional[int] = None,
 ) -> "PretrainedConfig":
     """Keep shared DFlash weights/layout while changing the objective head."""
+    draft_config = copy.deepcopy(draft_config)
+    if mask_token_id is not None:
+        method = dict(getattr(draft_config, "dflash_config", None) or {})
+        if method.get("mask_token_id") not in (None, mask_token_id):
+            raise ValueError("conflicting mask_token_id in DFlash-family source config")
+        method["mask_token_id"] = mask_token_id
+        draft_config.dflash_config = method
     architecture = draft_config.architectures[0]
+    if architecture in {"DFlashDraftModel", "DSparkDraftModel", "DFlash2DraftModel", "TaichuDFlash2DraftModel"}:
+        if getattr(draft_config, "target_hidden_size", None) is None:
+            draft_config.target_hidden_size = draft_config.hidden_size
+    if architecture in {"DFlashDraftModel", "DFlash2DraftModel", "TaichuDFlash2DraftModel"}:
+        method = dict(getattr(draft_config, "dflash_config", None) or {})
+        method.setdefault("sample_from_anchor", False)
+        draft_config.dflash_config = method
     if strategy == "dflash2" and architecture == "DSparkDraftModel":
         return convert_family_draft_config(
             convert_family_draft_config(
                 draft_config, "dflash", retrain_anchor_alignment=retrain_anchor_alignment
             ), strategy
         )
-    if strategy == "dspark" and architecture == "DFlash2DraftModel":
+    if strategy == "dspark" and architecture in {"DFlash2DraftModel", "TaichuDFlash2DraftModel"}:
         return convert_family_draft_config(
             convert_family_draft_config(draft_config, "dflash"), strategy
         )
@@ -457,6 +473,7 @@ def resolve_draft_config(
             draft_config = convert_family_draft_config(
                 draft_config, cfg.training.strategy,
                 retrain_anchor_alignment=cfg.training.retrain_anchor_alignment,
+                mask_token_id=cfg.model.mask_token_id,
             )
     else:
         draft_config = _generate_draft_config(cfg, provider, target_config=target_config)

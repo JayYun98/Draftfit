@@ -33,6 +33,8 @@ class ResolvedOfflineCapture:
 def bind_run(cfg: Config, algorithm: AlgorithmRegistration) -> ResolvedRun:
     """Validate a role-projected config against an existing registration."""
 
+    if cfg.training.joint_online_capture:
+        raise ValueError("joint_online_capture requires family --joint, not the single-run launcher")
     from draftfit.application.planning import validate_resolved_run
 
     validate_resolved_run(cfg, algorithm)

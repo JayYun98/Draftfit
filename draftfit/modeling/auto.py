@@ -59,7 +59,14 @@ class AutoDraftModel(AutoModelForCausalLMBase):
         try:
             config = kwargs.get("config")
             if config is None:
-                config = AutoConfig.from_pretrained(pretrained_model_name_or_path)
+                if os.path.isdir(pretrained_model_name_or_path):
+                    from draftfit.training.model_loading import load_draft_config_source
+
+                    config = load_draft_config_source(
+                        os.fspath(pretrained_model_name_or_path)
+                    )
+                else:
+                    config = AutoConfig.from_pretrained(pretrained_model_name_or_path)
             model_cls = cls._model_cls_from_config(config)
             kwargs = {**kwargs, "config": config}
             model = model_cls.from_pretrained(
