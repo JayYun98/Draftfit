@@ -221,9 +221,20 @@ def main(argv: Optional[List[str]] = None) -> int:
     sub.add_parser(
         "algorithms", help="list registered draft methods and feature requirements"
     )
+    unattended = sub.add_parser("unattended", help="bounded native joint training with durable policy/export/publication")
+    unattended.add_argument("--config", required=True)
+    unattended.add_argument("--plan", action="store_true")
+    unattended.add_argument("--resume", action="store_true")
     family = sub.add_parser("family", help="train DFlash-family variants from one feature cache")
     family.add_argument("--manifest", required=True, help="JSON run matrix")
     family.add_argument("--plan", action="store_true", help="validate and show stages without training")
+    family.add_argument("--jobs", type=int, default=1,
+                        help="maximum concurrent independent training workers (default: 1)")
+    family.add_argument("--joint", action="store_true",
+                        help="read each batch once and jointly update a shared family backbone")
+    family.add_argument("--resume-from", help="joint training checkpoint to resume into a new output directory")
+    family.add_argument("--stop-at-step", type=int,
+                        help="joint operational milestone; preserve full scheduler horizon")
     pretrain = sub.add_parser("pretrain", help="raw-text warm start for a DFlash-family draft")
     pretrain.add_argument("--target", required=True)
     pretrain.add_argument("--target-revision")
@@ -507,15 +518,32 @@ def main(argv: Optional[List[str]] = None) -> int:
             parser.error(str(exc))
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
+    if args.command == "unattended":
+        from draftfit.unattended import run
+        try:
+            with _worker_signal_unwind():
+                result = run(args.config, plan=args.plan, resume=args.resume)
+        except _WorkerTermination as received:
+            return 128 + received.signum
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
     if args.command == "family":
         from draftfit.family import run_family
 
         try:
-            result = run_family(args.manifest, plan=args.plan)
+            with _worker_signal_unwind():
+                result = run_family(args.manifest, plan=args.plan, jobs=args.jobs,
+                                    joint=args.joint, resume_from=args.resume_from,
+                                    stop_at_step=args.stop_at_step)
+        except _WorkerTermination as received:
+            return 128 + received.signum
         except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
             parser.error(str(exc))
         print(json.dumps(result, indent=2, ensure_ascii=False))
-        return 0 if args.plan or all(run["status"] == "complete" for run in result["runs"]) else 1
+        return 0 if (args.plan or all(run["status"] == "complete" for run in result["runs"])
+                     or result.get("reason") == "policy_boundary") else 1
     if args.command == "data":
         from draftfit.data.prepare import prepare_dataset
 

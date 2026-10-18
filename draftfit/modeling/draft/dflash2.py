@@ -120,7 +120,7 @@ class DFlash2Config(Qwen3Config):
 
     model_type = "qwen3_dflash2"
     supports_text_mrope = False
-    supports_mixed_attention = False
+    supports_mixed_attention = True
 
     def __init__(
         self,
@@ -408,6 +408,7 @@ class DFlash2Config(Qwen3Config):
         kwargs["rope_parameters"] = rope_parameters
         kwargs["layer_types"] = layer_types
         kwargs["sliding_window"] = sliding_window
+        kwargs["use_sliding_window"] = "sliding_attention" in attention_types
         super().__init__(architectures=architectures, **kwargs)
         self.model_type = type(self).model_type
         self.target_num_hidden_layers = target_depth

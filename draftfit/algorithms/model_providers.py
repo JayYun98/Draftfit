@@ -46,7 +46,7 @@ def dflash_needs_input_tools(cfg: Config, draft_model: Any) -> bool:
     needs_mask_fallback = (
         cfg.model.mask_token_id is None and method_config.get("mask_token_id") is None
     )
-    return cfg.mode == "online" or needs_mask_fallback
+    return (cfg.mode == "online" and not cfg.training.joint_online_capture) or needs_mask_fallback
 
 
 def _torch_dtype(cfg: Config):

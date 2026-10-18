@@ -1,6 +1,7 @@
 import gc
 import glob
 import json
+import math
 import os
 from typing import Optional
 
@@ -79,6 +80,37 @@ def target_vocab_size(config) -> int:
     )
 
 
+class ScaledTargetEmbedding(nn.Embedding):
+    """Keep checkpoint weights raw, including when tied to the LM head."""
+
+    def __init__(self, *args, scale=1.0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.register_buffer("embed_scale", torch.tensor(float(scale)), persistent=False)
+
+    def forward(self, ids):
+        return super().forward(ids) * self.embed_scale.to(self.weight.dtype)
+
+
+class TargetLogitHead(nn.Linear):
+    """Frozen raw projection with a single, explicit output transform."""
+
+    def __init__(self, *args, softcap=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.softcap = softcap
+
+    def project_logits(self, hidden, *, multiplier=1.0, softcap=None):
+        cap = self.softcap if softcap is None else softcap
+        logits = super().forward(hidden)
+        if multiplier != 1.0:
+            logits = logits * multiplier
+        if cap is not None and cap > 0:
+            logits = torch.tanh(logits / cap) * cap
+        return logits
+
+    def forward(self, hidden):
+        return self.project_logits(hidden)
+
+
 class TargetEmbeddingsAndHead(nn.Module):
     """
     Efficiently loads only the embedding layer and lm_head from a pretrained model.
@@ -91,12 +123,16 @@ class TargetEmbeddingsAndHead(nn.Module):
         text_config = target_text_config(config)
         vocab_size = target_vocab_size(text_config)
         hidden_size = int(text_config.hidden_size)
-        self.embed_tokens = nn.Embedding(
-            vocab_size,
-            hidden_size,
+        gemma = getattr(text_config, "model_type", "") == "gemma4_unified_text"
+        self.embed_tokens = (ScaledTargetEmbedding if gemma else nn.Embedding)(
+            vocab_size, hidden_size,
             padding_idx=getattr(text_config, "pad_token_id", None),
+            **({"scale": math.sqrt(hidden_size)} if gemma else {}),
         )
-        self.lm_head = nn.Linear(hidden_size, vocab_size, bias=False)
+        self.lm_head = (TargetLogitHead if gemma else nn.Linear)(
+            hidden_size, vocab_size, bias=False,
+            **({"softcap": getattr(text_config, "final_logit_softcapping", None)} if gemma else {}),
+        )
 
     @classmethod
     def from_pretrained(
@@ -122,6 +158,9 @@ class TargetEmbeddingsAndHead(nn.Module):
 
         if embed_key is None:
             embed_key = "model.embed_tokens.weight"
+        if (getattr(config, "model_type", "") == "gemma4_unified"
+                and embed_key == "model.embed_tokens.weight"):
+            embed_key = "model.language_model.embed_tokens.weight"
         if lm_head_key is None:
             lm_head_key = "lm_head.weight"
 

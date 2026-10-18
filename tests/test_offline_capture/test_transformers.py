@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import torch
@@ -22,6 +23,39 @@ from draftfit.offline_capture.transformers import OfflineTransformersCapture
 
 
 class TransformersCaptureTest(unittest.TestCase):
+    def test_cached_hub_snapshot_uses_pinned_repo_for_remote_code(self):
+        revision = "a" * 40
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = (
+                Path(directory) / "models--TaichuAI--ZDTaichu5.0-9B"
+                / "snapshots" / revision
+            )
+            snapshot.mkdir(parents=True)
+            (snapshot / "config.json").write_text("{}")
+            with patch("transformers.AutoModel.from_pretrained", return_value=self.model()) as load:
+                OfflineTransformersCapture.from_pretrained(
+                    str(snapshot), revision=revision, trust_remote_code=True,
+                    torch_dtype=torch.float32, device="cpu",
+                )
+            load.assert_called_once_with(
+                "TaichuAI/ZDTaichu5.0-9B", revision=revision,
+                trust_remote_code=True, torch_dtype=torch.float32,
+                cache_dir=directory, attn_implementation="sdpa",
+                local_files_only=True,
+            )
+
+    def test_cached_hub_snapshot_rejects_mismatched_revision(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = (
+                Path(directory) / "models--TaichuAI--ZDTaichu5.0-9B"
+                / "snapshots" / ("a" * 40)
+            )
+            snapshot.mkdir(parents=True)
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                OfflineTransformersCapture.from_pretrained(
+                    str(snapshot), revision="b" * 40, trust_remote_code=True,
+                )
+
     def test_taichu_text_model_capture(self):
         from types import SimpleNamespace
 

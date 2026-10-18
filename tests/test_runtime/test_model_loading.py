@@ -106,6 +106,33 @@ def _draft_payload(architecture: str, *, layers: int = 1, block_size=None):
 
 
 class DraftConfigResolutionTest(unittest.TestCase):
+    def test_family_identity_conversion_does_not_alias_source(self):
+        from draftfit.training.model_loading import convert_family_draft_config
+        from tests.test_dflash2_integration import tiny_config
+        source = tiny_config()
+        converted = convert_family_draft_config(source, "dflash2")
+        converted.dflash_config["mask_token_id"] = 1
+        self.assertEqual(source.dflash_config["mask_token_id"], 63)
+
+    def test_family_conversion_rejects_conflicting_mask_without_mutation(self):
+        from draftfit.training.model_loading import convert_family_draft_config
+        from tests.test_dflash2_integration import tiny_config
+        source = tiny_config()
+        with self.assertRaisesRegex(ValueError, "conflicting mask_token_id"):
+            convert_family_draft_config(source, "dflash", mask_token_id=1)
+        self.assertEqual(source.dflash_config["mask_token_id"], 63)
+
+    def test_checkpoint_conversion_uses_explicit_mask(self):
+        from draftfit.training.model_loading import convert_family_draft_config
+        from tests.test_dflash2_integration import tiny_config
+        source = convert_family_draft_config(tiny_config(), "dflash")
+        source.dflash_config.pop("mask_token_id")
+        with tempfile.TemporaryDirectory() as directory:
+            source.to_json_file(os.path.join(directory, "config.json"))
+            cfg = _run_config("dflash2", draft_checkpoint_path=directory, mask_token_id=63)
+            resolved = resolve_draft_config(cfg, provider=_draft_config_provider("dflash2"))
+        self.assertEqual(resolved.dflash_config["mask_token_id"], 63)
+
     def test_dspark_head_only_warm_start_freezes_shared_backbone(self):
         from draftfit.algorithms.dspark.providers import build_draft
         from draftfit.modeling.auto import AutoDraftModel
@@ -307,6 +334,23 @@ assert not torch.cuda.is_initialized()
                     self.assertFalse(resolved.use_sliding_window)
                 else:
                     self.assertEqual(resolved.draft_vocab_size, 32000)
+
+    def test_family_scratch_configs_need_no_draft_source(self):
+        for strategy, architecture in (
+            ("dspark", "DSparkDraftModel"),
+            ("dflash", "DFlashDraftModel"),
+            ("dflash2", "DFlash2DraftModel"),
+        ):
+            with self.subTest(strategy=strategy):
+                cfg = _run_config(strategy)
+                self.assertIsNone(cfg.model.draft_checkpoint_path)
+                self.assertIsNone(cfg.model.draft_model_config)
+                resolved = resolve_draft_config(
+                    cfg, provider=_draft_config_provider(strategy),
+                    target_config=_target_config(),
+                )
+                self.assertEqual(resolved.architectures, [architecture])
+                self.assertEqual(resolved.vocab_size, 128)
 
     def test_dflash_typed_overrides_rebuild_capture_layers(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -1,0 +1,721 @@
+diff --git a/src/mlx_dspark/config.py b/src/mlx_dspark/config.py
+index f3ea4cb..4bddbf2 100644
+--- a/src/mlx_dspark/config.py
++++ b/src/mlx_dspark/config.py
+@@ -109,6 +109,7 @@ def _translate_speculators(c: dict, path) -> dict:
+     lt = tlc.get("layer_types") or []
+     if "sliding_attention" in lt and tlc.get("use_sliding_window") and tlc.get("sliding_window"):
+         out["sliding_window"] = int(tlc["sliding_window"])
++        out["layer_types"] = list(lt)
+         # sliding_window_non_causal=False => the window is causal (DFlash query-causal). Absent
+         # defaults to causal, the DFlash norm for a sliding backbone.
+         out["dflash_query_causal"] = not bool(c.get("sliding_window_non_causal", False))
+@@ -209,6 +210,7 @@ class DSparkConfig:
+     # heads (bidirectional full-attention block), so they default off and change nothing there.
+     causal_block: bool = False
+     sliding_window: int | None = None
++    layer_types: tuple[str, ...] = ()
+     attention_sink: bool = False
+     # has_lm_head=false drafters ship only embed_tokens and reuse the TARGET's lm_head (like
+     # DFlash's bind); generate binds it once at run time. True = the drafter has its own head.
+@@ -306,7 +308,7 @@ class DSparkConfig:
+         # `dflash_config` dict tagged `projector_type: "dspark"` — the discriminator (absent
+         # from every other packaging; the fork-labelled heads carry a dflash_config too, but
+         # never that tag). Three things follow from the reference code these repos ship:
+-        # (1) target_layer_ids / mask_token_id live only inside dflash_config — hoist them;
++        # (1) target taps and head options can live only inside dflash_config — hoist them;
+         # (2) the DSpark flavor samples the ANCHOR slot (anchor-as-pos0, the DeepSpec
+         #     convention its markov/confidence code is adapted from): a block_size-7 head
+         #     proposes 7 tokens, and the card's own "verify width 8 including the bonus" is
+@@ -324,10 +326,12 @@ class DSparkConfig:
+         _sf = (c.get("dflash_config") or {})
+         specforge = _sf.get("projector_type") == "dspark"
+         if specforge:
+-            for k in ("target_layer_ids", "mask_token_id"):
++            for k in ("target_layer_ids", "mask_token_id", "markov_rank", "markov_head_type",
++                      "enable_confidence_head", "confidence_head_with_markov",
++                      "sample_from_anchor", "sliding_window_non_causal"):
+                 if k not in c and _sf.get(k) is not None:
+                     c[k] = _sf[k]
+-            c.setdefault("logits_start", 0)
++            c.setdefault("logits_start", 0 if c.get("sample_from_anchor", True) else 1)
+ 
+         # LiquidAI LFM2.5-DSpark packaging (the fifth). A plain qwen3-backbone DSpark head
+         # (architectures ["Lfm2DSparkDraftModel"]) for an LFM2 conv+attention target. Like
+@@ -375,6 +379,16 @@ class DSparkConfig:
+                 f"does not look like a DeepSpec-format DSpark drafter checkpoint."
+             )
+ 
++        layer_types = tuple(c.get("layer_types") or ())
++        if layer_types and (len(layer_types) != c["num_hidden_layers"] or
++                            set(layer_types) - {"sliding_attention", "full_attention"}):
++            raise ValueError(f"{path}: layer_types must name each draft layer as sliding or full")
++
++        # An explicitly declared full vocabulary uses identity token ids, not a d2t table.
++        draft_vocab_size = c.get("draft_vocab_size")
++        if draft_vocab_size == c["vocab_size"]:
++            draft_vocab_size = None
++
+         if family == "qwen3":
+             rp = c.get("rope_parameters") or {}
+             head_dim = c.get("head_dim", c["hidden_size"] // c["num_attention_heads"])
+@@ -410,13 +424,17 @@ class DSparkConfig:
+             # the DFlash spelling of logits_start (false -> slot 0 is a pure anchor, predict
+             # from slot 1), the same convention the speculators path derives.
+             dflc = c.get("dflash_config") or {}
+-            causal_block = bool(c.get("dflash_query_causal", False) or dflc.get("causal", False))
++            causal_block = bool(c.get("dflash_query_causal", False) or dflc.get("causal", False)
++                                or ("sliding_attention" in layer_types and not dflc.get(
++                                    "sliding_window_non_causal", c.get("sliding_window_non_causal", False))))
+             attn_sink = bool(c.get("attention_sink_bias", False))
+             swa = None
+             if causal_block or attn_sink or dflc:
+                 w = c.get("sliding_window") or (
+                     dflc.get("swa_window_size") if dflc.get("use_swa", False) else None)
+                 swa = int(w) if w else None
++            if "sliding_attention" in layer_types and not swa:
++                raise ValueError(f"{path}: sliding_attention requires a sliding_window")
+             has_own_lm = bool(c.get("has_lm_head", True))
+             # YaRN rope — honored ONLY for the SpecForge packaging, where the reference builds
+             # transformers' Qwen3RotaryEmbedding from the head's own config and that class
+@@ -456,7 +474,7 @@ class DSparkConfig:
+             return cls(
+                 family="qwen3",
+                 hidden_size=c["hidden_size"], vocab_size=c["vocab_size"],
+-                draft_vocab_size=c.get("draft_vocab_size"),
++                draft_vocab_size=draft_vocab_size,
+                 num_hidden_layers=c["num_hidden_layers"],
+                 intermediate_size=c["intermediate_size"],
+                 rms_norm_eps=c.get("rms_norm_eps", 1e-6),
+@@ -471,7 +489,7 @@ class DSparkConfig:
+                 rope_traditional=rope_trad,
+                 gated_q_proj=gated_q,
+                 offset_rms_norm=offset_norms,
+-                causal_block=causal_block, sliding_window=swa,
++                causal_block=causal_block, sliding_window=swa, layer_types=layer_types,
+                 attention_sink=attn_sink, has_own_lm_head=has_own_lm,
+                 block_size=c["block_size"], mask_token_id=c["mask_token_id"],
+                 logits_start=logits_start,
+@@ -493,7 +511,7 @@ class DSparkConfig:
+         return cls(
+             family="gemma4",
+             hidden_size=c["hidden_size"], vocab_size=c["vocab_size"],
+-            draft_vocab_size=c.get("draft_vocab_size"),
++            draft_vocab_size=draft_vocab_size,
+             num_hidden_layers=c["num_hidden_layers"],
+             intermediate_size=c["intermediate_size"],
+             rms_norm_eps=c.get("rms_norm_eps", 1e-6),
+diff --git a/src/mlx_dspark/dflash_model.py b/src/mlx_dspark/dflash_model.py
+index a45ea26..b99627a 100644
+--- a/src/mlx_dspark/dflash_model.py
++++ b/src/mlx_dspark/dflash_model.py
+@@ -87,6 +87,7 @@ class DFlashConfig:
+     num_target_layers: int
+     mask_token_id: int = 0
+     rope_scaling: dict[str, Any] | None = None
++    rope_traditional: bool = False
+     layer_types: tuple[str, ...] = field(default_factory=tuple)
+     sliding_window: int | None = None
+     final_logit_softcapping: float | None = None
+@@ -100,11 +101,11 @@ class DFlashConfig:
+     # reuse-head rule (raw lm_head only) the multiplier/softcap must be applied here.
+ 
+ 
+-def _build_rope(head_dim, rope_theta, max_position_embeddings, rope_scaling):
++def _build_rope(head_dim, rope_theta, max_position_embeddings, rope_scaling, traditional):
+     return initialize_rope(
+         dims=head_dim,
+         base=rope_theta,
+-        traditional=False,
++        traditional=traditional,
+         scaling_config=rope_scaling,
+         max_position_embeddings=max_position_embeddings,
+     )
+@@ -320,7 +321,8 @@ class DFlashDraftModel(nn.Module):
+         self.layers = [DFlashDecoderLayer(config, i) for i in range(config.num_hidden_layers)]
+         self.norm = nn.RMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+         self.rope = _build_rope(
+-            config.head_dim, config.rope_theta, config.max_position_embeddings, config.rope_scaling
++            config.head_dim, config.rope_theta, config.max_position_embeddings,
++            config.rope_scaling, config.rope_traditional,
+         )
+         self.candidate_selector = (
+             CandidateSelector(config.hidden_size, config.vocab_size,
+diff --git a/src/mlx_dspark/generate.py b/src/mlx_dspark/generate.py
+index c0aae6a..acd6fdd 100644
+--- a/src/mlx_dspark/generate.py
++++ b/src/mlx_dspark/generate.py
+@@ -769,6 +769,18 @@ def dflash_generate(
+ 
+     st.update(out_ids)
+     while len(out_ids) < max_new_tokens and pending not in eos_ids and not st.stopped:
++        remaining = max_new_tokens - len(out_ids)
++        if remaining == 1:
++            v_logits, _ = target_model.verify(mx.array([[pending]]), cache, tap)
++            nxt = _pick(v_logits[0, -1], temperature, top_p, top_k)
++            target_forwards += 1
++            accept_lengths.append(1)
++            if on_round is not None:
++                on_round(drafted=0, accepted=0, committed=1, cap=0, source="plain")
++            out_ids.append(nxt)
++            pending = nxt
++            st.update(out_ids)
++            break
+         # ---- free copy draft (a 4-gram+ suffix match extends an earlier occurrence): verify
+         # that continuation instead of running the DFlash drafter this round. DFlash caches
+         # ctx KV only (advanced inside the draft call from pending_ctx), so a copy round —
+@@ -778,7 +790,7 @@ def dflash_generate(
+         # the target verifies every copied token; a bad copy just costs acceptance.
+         lk_draft = index.propose(
+             long_draft=lookup_long_draft if lk_gate.allowed else None,
+-        )[: max_new_tokens - len(out_ids)] if index is not None else []
++        )[: remaining - 1] if index is not None else []
+         if lk_draft:
+             lookup_rounds += 1
+             if temperature > 0.0:
+@@ -804,6 +816,9 @@ def dflash_generate(
+                 n = int(n_arr.item())
+                 tt = tt_arr.tolist()
+                 committed = lk_draft[:n] + [tt[n]]
++            if any(tok in eos_ids for tok in committed):
++                committed = committed[:next(i for i, tok in enumerate(committed) if tok in eos_ids) + 1]
++                n = min(n, len(committed) - 1)
+             lk_gate.update(len(lk_draft), n, max(1, lookup_max_draft))
+             target_forwards += 1
+             accept_lengths.append(len(committed))
+@@ -831,6 +846,7 @@ def dflash_generate(
+             # any depth and ratchets up — measured 1.04x vs cap 3's 1.48x at 32k)
+             cap_controller.set_depth(len(ids) + len(out_ids))
+             cap = max(1, min(cap_controller.cap, cap_ceiling))
++        cap = min(cap, remaining - 1)
+         block = mx.array([[pending] + [mask_id] * (bs - 1)])
+         sel = getattr(drafter, "candidate_selector", None)   # DFlash 2 path when present
+         if temperature > 0.0:
+@@ -882,6 +898,9 @@ def dflash_generate(
+             drafted = draft_arr.tolist()
+             tt = tt_arr.tolist()
+             committed = drafted[:n] + [tt[n]]            # accepted prefix + bonus
++        if any(tok in eos_ids for tok in committed):
++            committed = committed[:next(i for i, tok in enumerate(committed) if tok in eos_ids) + 1]
++            n = min(n, len(committed) - 1)
+         target_forwards += 1
+         accept_lengths.append(len(committed))
+         if cap_controller is not None:
+@@ -1223,12 +1242,30 @@ def speculative_generate(
+ 
+     st.update(out_ids)
+     while len(out_ids) < max_new_tokens and pending not in eos_ids and not st.stopped:
++        remaining = max_new_tokens - len(out_ids)
+         lk_draft = []
+         if index is not None:
+-            # clamp to the remaining budget: no verify width wasted past max_new_tokens
++            # Reserve one position for the verifier's residual/bonus token.
+             lk_draft = index.propose(
+                 long_draft=lookup_long_draft if lk_gate.allowed else None,
+-            )[:max_new_tokens - len(out_ids)]
++            )[:remaining - 1]
++        if remaining == 1:
++            # Consume the pending token through the tapped target path; its next token is
++            # the sole remaining output, with the target cache still one pending behind.
++            v_logits, v_fused = target_model.verify(mx.array([[pending]]), cache, tap)
++            nxt = _pick(pen.apply(v_logits[0], [])[0], temperature, top_p, top_k)
++            drafter.update_context(v_fused, ctx_offset=n_cached, ctx_caches=ctx_caches)
++            target_forwards += 1
++            accept_lengths.append(1)
++            if on_round is not None:
++                on_round(drafted=0, accepted=0, committed=1, cap=0, source="plain")
++            out_ids.append(nxt)
++            pen.add([nxt])
++            if lp_list is not None:
++                lp_list.extend(_logprobs_for_block(v_logits[0][:1], [nxt], logprobs))
++            pending = nxt
++            st.update(out_ids)
++            break
+         use_conf = confidence_threshold > 0.0 and drafter.confidence_head is not None
+         if cap_controller is not None and not lk_draft:
+             # live context depth -> the controller's verify pricing (see dflash_generate)
+@@ -1236,6 +1273,7 @@ def speculative_generate(
+             # cap 0 = the controller parked speculation (live acceptance too low for this
+             # machine's verify slope): run a plain committed step; probe rounds re-enter.
+             cap = max(0, min(cap_controller.cap, cap_ceiling))
++        cap = min(cap, remaining - 1)
+         if not lk_draft and cap == 0 and not (temperature > 0.0 or pen.active
+                                               or lp_list is not None):
+             # ---- parked sprint ----
+@@ -1406,6 +1444,9 @@ def speculative_generate(
+                 draft = draft_arr.tolist()
+                 tt = tt_arr.tolist()
+                 committed = draft[:n] + [tt[n]]                # accepted prefix + bonus
++        if any(tok in eos_ids for tok in committed):
++            committed = committed[:next(i for i, tok in enumerate(committed) if tok in eos_ids) + 1]
++            n = min(n, len(committed) - 1)
+         target_forwards += 1
+         accept_lengths.append(len(committed))
+         if lk_draft:
+diff --git a/src/mlx_dspark/load.py b/src/mlx_dspark/load.py
+index eded611..376a05e 100644
+--- a/src/mlx_dspark/load.py
++++ b/src/mlx_dspark/load.py
+@@ -607,6 +607,7 @@ def load_dflash(repo_or_path: str, *, quantize: bool = True, bits: int = 4, grou
+         num_target_layers=cfg["num_target_layers"],
+         mask_token_id=dfc.get("mask_token_id", cfg.get("mask_token_id", 0)),
+         rope_scaling=cfg.get("rope_scaling"), layer_types=layer_types,
++        rope_traditional=not bool(cfg["rope_is_neox_style"]) if "rope_is_neox_style" in cfg else False,
+         sliding_window=cfg.get("sliding_window"),
+         # DFlash 2 nests these in dflash_config (muse); DFlash 1 gemma had softcap top-level
+         final_logit_softcapping=dfc.get("final_logit_softcapping",
+diff --git a/src/mlx_dspark/model.py b/src/mlx_dspark/model.py
+index d293661..dcdb9ef 100644
+--- a/src/mlx_dspark/model.py
++++ b/src/mlx_dspark/model.py
+@@ -86,7 +86,7 @@ class CtxCache:
+ class DSparkAttention(nn.Module):
+     """Cross-attention: Q from the draft block, K/V from [target_context, block]."""
+ 
+-    def __init__(self, config: DSparkConfig):
++    def __init__(self, config: DSparkConfig, layer_idx: int | None = None):
+         super().__init__()
+         self.n_heads = config.num_attention_heads
+         self.head_dim = config.attn_head_dim
+@@ -100,6 +100,10 @@ class DSparkAttention(nn.Module):
+         # (getattr defaults keep minimal config-like doubles working).
+         self.causal_block = getattr(config, "causal_block", False)
+         self.sliding_window = getattr(config, "sliding_window", None)
++        if layer_idx is not None and "sliding_attention" in getattr(config, "layer_types", ()):
++            if config.layer_types[layer_idx] == "full_attention":
++                self.causal_block = False
++                self.sliding_window = None
+         self.sink = getattr(config, "attention_sink", False)
+ 
+         h = config.hidden_size
+@@ -164,10 +168,12 @@ class DSparkAttention(nn.Module):
+         # DFlash-lineage heads mask the block attention (causal within the block, sliding window
+         # over the context) and add a per-head sink logit. The default DSpark head does neither:
+         # mask stays None (full bidirectional block over the whole context) and sinks stays None,
+-        # so this is byte-identical there. The mask is only built for the single-sequence path
+-        # (int offset); the batched drafter path already supplies its own [B,1,k,L] mask.
+-        if mask is None and (self.causal_block or self.sliding_window) and isinstance(block_offset, int):
+-            mask = self._block_mask(block_offset, ctx_len=k.shape[2] - q_len, q_len=q_len)
++        # so this is byte-identical there. In a batch, combine the layer's attention
++        # constraint with the caller's context-padding mask.
++        if self.causal_block or self.sliding_window:
++            local_mask = self._block_mask(block_offset, ctx_len=k.shape[2] - q_len, q_len=q_len)
++            if local_mask is not None:
++                mask = local_mask if mask is None else mask & local_mask
+         sinks = self.attention_sink_bias if self.sink else None
+ 
+         # SDPA does GQA/MQA head broadcast internally — pass the n_kv-head K/V straight through.
+@@ -197,22 +203,28 @@ class DSparkAttention(nn.Module):
+         W = self.sliding_window
+         if not self.causal_block and (W is None or total <= W):
+             return None
+-        qpos = block_offset + mx.arange(q_len)[:, None]        # [q_len, 1]
+-        kpos = mx.arange(total)[None, :]                       # [1, total]
++        if isinstance(block_offset, int):
++            qpos = block_offset + mx.arange(q_len)[:, None]
++            kpos = mx.arange(total)[None, :]
++        else:
++            lengths = block_offset[:, None, None, None]
++            qpos = lengths + mx.arange(q_len)[None, None, :, None]
++            keys = mx.arange(total)[None, None, None, :]
++            kpos = mx.where(keys < ctx_len, keys, lengths + keys - ctx_len)
+         allowed = mx.ones((q_len, total), dtype=mx.bool_)
+         if self.causal_block:
+             allowed = allowed & (kpos <= qpos)
+         if W is not None:
+             allowed = allowed & (kpos > qpos - W)
+-        return allowed[None, None]
++        return allowed[None, None] if isinstance(block_offset, int) else allowed
+ 
+ 
+ class DSparkDecoderLayer(nn.Module):
+-    def __init__(self, config: DSparkConfig):
++    def __init__(self, config: DSparkConfig, layer_idx: int | None = None):
+         super().__init__()
+         eps = config.rms_norm_eps
+         self.norm_style = config.norm_style
+-        self.self_attn = DSparkAttention(config)
++        self.self_attn = DSparkAttention(config, layer_idx)
+         self.mlp = MLP(config)
+         self.input_layernorm = nn.RMSNorm(config.hidden_size, eps=eps)
+         self.post_attention_layernorm = nn.RMSNorm(config.hidden_size, eps=eps)
+@@ -314,7 +326,9 @@ class DSparkDrafter(nn.Module):
+         self.block_size = config.block_size
+         self.mask_token_id = config.mask_token_id
+         self.logits_start = config.logits_start
+-        self.causal_block = getattr(config, "causal_block", False)
++        layer_types = getattr(config, "layer_types", ())
++        mixed_attention = "sliding_attention" in layer_types and "full_attention" in layer_types
++        self.causal_block = getattr(config, "causal_block", False) and not mixed_attention
+         self.embed_scale = (float(config.hidden_size) ** 0.5) if config.family == "gemma4" else 1.0
+         self.softcap = config.final_logit_softcapping
+ 
+@@ -328,7 +342,7 @@ class DSparkDrafter(nn.Module):
+             len(config.target_layer_ids) * config.hidden_size, config.hidden_size, bias=False
+         )
+         self.hidden_norm = nn.RMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+-        self.layers = [DSparkDecoderLayer(config) for _ in range(config.num_hidden_layers)]
++        self.layers = [DSparkDecoderLayer(config, i) for i in range(config.num_hidden_layers)]
+         self.norm = nn.RMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+         # A has_lm_head=false drafter (Nemotron DSpark head) reuses the TARGET's lm_head — it
+         # ships no lm_head weight, so we don't build one; bind_lm_head() supplies it at run time.
+@@ -381,15 +395,6 @@ class DSparkDrafter(nn.Module):
+ 
+     def backbone(self, noise_embedding, block_offset, ctx_caches, mask=None) -> mx.array:
+         h = noise_embedding
+-        if mask is None and isinstance(block_offset, int) and self.layers:
+-            # Every layer shares one attention config, so the block mask (a function of
+-            # block_offset / ctx_len / q_len only) is identical across them — build it once
+-            # here instead of 5x per round. attend() keeps its own fallback for direct
+-            # callers; None stays None for the default bidirectional DSpark head.
+-            attn = self.layers[0].self_attn
+-            if attn.causal_block or attn.sliding_window:
+-                mask = attn._block_mask(
+-                    block_offset, ctx_len=ctx_caches[0].length, q_len=h.shape[1])
+         for layer, cache in zip(self.layers, ctx_caches):
+             h = layer(h, block_offset, cache, mask)
+         return self.norm(h)
+diff --git a/tests/test_dflash2.py b/tests/test_dflash2.py
+index 8b5b3d9..7d3bb9b 100644
+--- a/tests/test_dflash2.py
++++ b/tests/test_dflash2.py
+@@ -327,6 +327,18 @@ def test_load_dflash2_roundtrip_and_config_fields(tmp_path):
+     assert (cfg.selector_rank, cfg.selector_top_k) == (8, 4)
+     assert (cfg.conv_kernel_size, cfg.conv_group_size) == (2, 16)
+     assert cfg.output_multiplier == 1.0 and cfg.final_logit_softcapping is None
++    assert cfg.rope_traditional is False
++
++
++def test_lfm_dflash_interleaved_rope_matches_reference(tmp_path):
++    cfg_dict = {**DFLASH2_MIN, "rope_is_neox_style": False}
++    drafter, cfg = load_dflash(_write_dflash2_ckpt(tmp_path, cfg_dict), quantize=False)
++    assert cfg.rope_traditional is True
++    x = mx.arange(16, dtype=mx.float32).reshape(1, 1, 1, 16) / 16
++    expected = nn.RoPE(16, traditional=True, base=1e7)(x, offset=2)
++    assert mx.allclose(drafter.rope(x, offset=2), expected, atol=1e-6).item()
++    neox = nn.RoPE(16, traditional=False, base=1e7)(x, offset=2)
++    assert not mx.allclose(drafter.rope(x, offset=2), neox).item()
+ 
+ 
+ def test_load_dflash2_reads_muse_transform_fields_nested(tmp_path):
+diff --git a/tests/test_formats.py b/tests/test_formats.py
+index 33f206b..3fcbfb9 100644
+--- a/tests/test_formats.py
++++ b/tests/test_formats.py
+@@ -417,6 +417,15 @@ def test_speculators_dflash_lineage_causal_sliding_window(tmp_path):
+     assert base.causal_block is False and base.sliding_window is None
+ 
+ 
++def test_taichu_mixed_attention_config(tmp_path):
++    config = {**QWEN3_MIN, "num_hidden_layers": 2,
++              "layer_types": ["sliding_attention", "full_attention"],
++              "use_sliding_window": True, "sliding_window": 4,
++              "dflash_config": {"causal": True}}
++    parsed = DSparkConfig.from_json(_cfg_path(tmp_path, config))
++    assert parsed.layer_types == ("sliding_attention", "full_attention")
++
++
+ def test_specforge_dspark_config_parses(tmp_path):
+     """SpecForge packaging: nested taps hoisted, anchor slot reserved, yarn rope carried."""
+     cfg = DSparkConfig.from_json(_cfg_path(tmp_path, RADIXARK_SPECFORGE))
+@@ -546,6 +555,16 @@ def test_lfm2_dspark_reuse_both_roundtrips(tmp_path):
+     assert drafter.draft_width(2) == cfg.block_size  # bidirectional: backbone stays full-width
+ 
+ 
++def test_lfm2_full_vocab_explicit_size_needs_no_mapping(tmp_path):
++    config = {**LFM2_DSPARK, "draft_vocab_size": LFM2_DSPARK["vocab_size"]}
++    weights = _reference_weights(config)
++    path = _write_drafter_ckpt(tmp_path, weights, config)
++    drafter, cfg = load_drafter(path, quantize=False)
++    assert cfg.draft_vocab_size is None
++    assert cfg.rope_traditional is True
++    assert drafter.to_target_ids(mx.array([0, 7, 31])).tolist() == [0, 7, 31]
++
++
+ def test_plain_qwen3_keeps_neox_rope_without_the_flag(tmp_path):
+     """A config without rope_is_neox_style keeps the family default (neox / traditional=False),
+     so every existing head is untouched by the new interleaved-rope knob."""
+@@ -660,6 +679,27 @@ def test_load_drafter_matching_checkpoint_loads(tmp_path):
+     assert cfg.family == "qwen3" and drafter.block_size == 4
+ 
+ 
++def test_specforge_nested_head_flags_strict_checkpoint(tmp_path):
++    # The trained Taichu export keeps these head flags only under dflash_config.
++    # Its checkpoint has Markov weights and no confidence tensors.
++    nested = {**RADIXARK_SPECFORGE["dflash_config"],
++              "markov_rank": 3, "enable_confidence_head": False,
++              "sample_from_anchor": False}
++    config = {k: v for k, v in RADIXARK_SPECFORGE.items()
++              if k not in ("markov_rank", "markov_head_type", "enable_confidence_head",
++                           "confidence_head_with_markov", "sample_from_anchor")}
++    config["dflash_config"] = nested
++    weights = _reference_weights({**config, "markov_rank": 3,
++                                  "enable_confidence_head": False})
++    path = _write_drafter_ckpt(tmp_path, weights, cfg=config)
++    drafter, parsed = load_drafter(path, quantize=False)
++    assert parsed.markov_rank == 3 and parsed.enable_confidence_head is False
++    assert parsed.logits_start == 1 and drafter.confidence_head is None
++    assert parsed.confidence_head_with_markov is True
++    assert DSparkConfig.from_json(_cfg_path(tmp_path, {
++        **config, "enable_confidence_head": True})).enable_confidence_head is True
++
++
+ def test_load_drafter_mismatch_raises_by_default(tmp_path):
+     weights = _reference_weights()
+     weights["bogus.weight"] = weights.pop("lm_head.weight")
+diff --git a/tests/test_model.py b/tests/test_model.py
+index 63b1dab..f7d4811 100644
+--- a/tests/test_model.py
++++ b/tests/test_model.py
+@@ -140,6 +140,18 @@ def test_draft_width_full_for_bidirectional_truncated_for_causal():
+     assert [d.draft_width(c) for c in (1, 4, 99)] == [2, 5, 8]
+ 
+ 
++def test_mixed_sliding_full_layers_keep_distinct_masks():
++    d = _tiny_drafter(layer_types=("sliding_attention", "full_attention"),
++                      sliding_window=4, causal_block=True)
++    sliding, full = (layer.self_attn for layer in d.layers)
++    assert sliding.causal_block and sliding.sliding_window == 4
++    assert not full.causal_block and full.sliding_window is None
++    assert sliding._block_mask(6, ctx_len=6, q_len=2).tolist() == [[[[False, False, False,
++        True, True, True, True, False], [False, False, False, False, True, True, True, True]]]]
++    assert full._block_mask(6, ctx_len=6, q_len=2) is None
++    assert d.draft_width(2) == 8  # the final bidirectional layer reads the whole block
++
++
+ def test_causal_backbone_truncation_matches_full_width_rows():
+     """The load-bearing invariant behind draft_width: with a causal block mask, position i
+     attends only positions <= i, so running the backbone at a truncated width must reproduce
+@@ -165,3 +177,13 @@ def test_causal_backbone_truncation_matches_full_width_rows():
+     full = d.backbone(noise, 10, ctx)
+     trunc = d.backbone(noise[:, :3, :], 10, ctx)
+     assert not mx.allclose(full[:, :3, :], trunc, atol=1e-5).item()
++
++
++def test_full_attention_keeps_explicit_causal_block():
++    d = _tiny_drafter(layer_types=('full_attention', 'full_attention'), causal_block=True)
++    assert d.causal_block
++    assert d.draft_width(2) == 2
++    for layer in d.layers:
++        mask = layer.self_attn._block_mask(4, ctx_len=4, q_len=2)
++        assert mask[0, 0, 0, -1].item() is False
++        assert mask[0, 0, 1, -1].item() is True
+diff --git a/tests/test_output_budget.py b/tests/test_output_budget.py
+new file mode 100644
+index 0000000..5b8566d
+--- /dev/null
++++ b/tests/test_output_budget.py
+@@ -0,0 +1,213 @@
++"""Small end-to-end decode loops: the verifier's bonus must fit the output budget."""
++
++from types import SimpleNamespace
++
++import mlx.core as mx
++import pytest
++
++from mlx_dspark import generate as g
++
++
++VOCAB = 64
++PROMPT = [7, 8, 9, 10, 11, 12]
++
++
++def _logits(ids):
++    rows = []
++    for token in ids:
++        row = [-100.0] * VOCAB
++        row[(int(token) + 1) % VOCAB] = 100.0
++        rows.append(row)
++    return mx.array([rows])
++
++
++class _Cache:
++    def __init__(self):
++        self.offset = 0
++        self.k = mx.zeros((1,))
++
++
++class _Target:
++    def make_cache(self):
++        return [_Cache()]
++
++    def reset_spec(self):
++        pass
++
++    def prefill(self, ids, cache, tap=None, **kwargs):
++        cache[0].offset += ids.shape[1]
++        return _logits(ids[0].tolist()), mx.zeros((1, ids.shape[1], 1))
++
++    def plain(self, ids, cache):
++        cache[0].offset += ids.shape[1]
++        return _logits(ids[0].tolist())
++
++    def verify(self, ids, cache, tap):
++        cache[0].offset += ids.shape[1]
++        return _logits(ids[0].tolist()), mx.zeros((1, ids.shape[1], 1))
++
++    def rollback(self, cache, n_rejected, accepted):
++        cache[0].offset -= n_rejected
++
++
++class _Tok:
++    eos_token_id = 999
++
++    def decode(self, ids):
++        return " ".join(map(str, ids))
++
++    def convert_tokens_to_ids(self, token):
++        return None
++
++
++class _DSpark:
++    max_draft = 4
++    confidence_head = None
++
++    def __init__(self, wrong=False):
++        self.config = SimpleNamespace(target_layer_ids=(0,), mask_token_id=0)
++        self.wrong = wrong
++
++    def make_ctx_cache(self):
++        return [_Cache()]
++
++    def update_context(self, fused, ctx_offset, ctx_caches):
++        ctx_caches[0].offset = ctx_offset + fused.shape[1]
++
++    def draft_width(self, cap):
++        return cap
++
++    def embed(self, ids):
++        return ids
++
++    def backbone(self, noise, n_cached, ctx_caches):
++        return noise
++
++    def head_slice(self, hidden, cap):
++        return hidden[:, :cap]
++
++    def compute_logits(self, hidden):
++        return mx.zeros((1, hidden.shape[1], VOCAB))
++
++    def sample_block(self, logits, first_prev_token):
++        return mx.array([(first_prev_token + i + 1 + self.wrong) % VOCAB
++                         for i in range(logits.shape[0])])
++
++
++class _DFlash:
++    embed_tokens = object()
++    candidate_selector = None
++
++    def __init__(self, selector=False, wrong=False):
++        self.config = SimpleNamespace(target_layer_ids=(0,), block_size=5,
++                                      mask_token_id=0, layer_types=(), sliding_window=None)
++        if selector:
++            self.candidate_selector = object()
++        self.wrong = wrong
++
++    def make_cache(self):
++        return [_Cache()]
++
++    def project_ctx(self, fused):
++        return fused
++
++    def append_ctx(self, rows, cache):
++        cache[0].offset += rows.shape[1]
++
++    def __call__(self, block, pending_ctx, dcache, logits_start):
++        anchor = int(block[0, 0].item())
++        return _logits([anchor + i + self.wrong - 1 for i in range(1, 5)])
++
++    def select_block(self, block, pending_ctx, dcache, *, cap, anchor_id, **kwargs):
++        return (mx.array([(anchor_id + i + 1 + self.wrong) % VOCAB
++                          for i in range(cap)]),)
++
++
++@pytest.mark.parametrize("budget", [1, 2, 3, 5, 32])
++@pytest.mark.parametrize("mode", ["dspark", "dflash", "dflash2", "dspark_lookup", "dflash_lookup"])
++@pytest.mark.parametrize("wrong", [False, True])
++def test_speculative_budget_and_cache_match_baseline(monkeypatch, budget, mode, wrong):
++    if mode.endswith("lookup"):
++        from mlx_dspark import lookup
++
++        class _Index:
++            def __init__(self, **kwargs):
++                self.last = None
++
++            def extend(self, ids):
++                self.last = ids[-1]
++
++            def propose(self, **kwargs):
++                return [(self.last + i + 1) % VOCAB for i in range(8)]
++
++        monkeypatch.setattr(lookup, "NGramIndex", _Index)
++
++    target, tok = _Target(), _Tok()
++    baseline = g.greedy_generate(target, tok, prompt_ids=PROMPT,
++                                 max_new_tokens=budget)
++    cache = target.make_cache()
++    rounds = []
++    common = dict(prompt_ids=PROMPT, cache=cache, max_new_tokens=budget,
++                  lookup_drafts=mode.endswith("lookup"), on_round=lambda **r: rounds.append(r))
++    if mode.startswith("dspark"):
++        result = g.speculative_generate(target, tok, _DSpark(wrong),
++                                        ctx_caches=[_Cache()], max_draft_tokens=4, **common)
++    else:
++        result = g.dflash_generate(target, tok, _DFlash(mode == "dflash2", wrong), **common)
++
++    assert result.token_ids == baseline.token_ids
++    assert result.num_tokens == budget
++    assert result.finish_reason == "length"
++    assert sum(result.accept_lengths) == budget - 1
++    assert sum(r["committed"] for r in rounds) == budget - 1
++    assert all(r["committed"] <= r["drafted"] + 1 for r in rounds)
++    if mode.endswith("lookup") and budget >= 3:
++        assert result.lookup_rounds > 0
++    # The last emitted token is pending; the target cache holds all earlier IDs.
++    assert cache[0].offset == len(PROMPT) + budget - 1
++
++
++@pytest.mark.parametrize("mode", ["dspark", "dflash", "dflash2"])
++def test_eos_inside_accepted_block_trims_cache(mode):
++    target, tok = _Target(), _Tok()
++    tok.eos_token_id = 15
++    cache = target.make_cache()
++    common = dict(prompt_ids=PROMPT, cache=cache, max_new_tokens=5, lookup_drafts=False)
++    if mode == "dspark":
++        result = g.speculative_generate(target, tok, _DSpark(),
++                                        ctx_caches=[_Cache()], max_draft_tokens=4, **common)
++    else:
++        result = g.dflash_generate(target, tok, _DFlash(mode == "dflash2"), **common)
++    assert result.token_ids == [13, 14, 15]
++    assert result.finish_reason == "stop"
++    assert result.accept_lengths == [2]
++    assert cache[0].offset == len(PROMPT) + 2
++
++
++def test_dflash_final_plain_step_preserves_prompt_checkpoint_for_next_request():
++    from mlx_dspark.dflash_model import DFlashCtxWindow
++
++    target, tok, drafter = _Target(), _Tok(), _DFlash()
++    cache, window = target.make_cache(), DFlashCtxWindow()
++    saved = {}
++
++    def checkpoint(c, x, pos):
++        saved["cache"] = target.make_cache()
++        saved["cache"][0].offset = c[0].offset
++        saved["window"] = DFlashCtxWindow()
++        saved["window"].set(x[0].k, end=x[0].end)
++
++    first = g.dflash_generate(target, tok, drafter, prompt_ids=PROMPT,
++                              cache=cache, ctx_caches=[window], max_new_tokens=2,
++                              on_prefill=checkpoint)
++    assert first.token_ids == [13, 14]
++    assert cache[0].offset == len(PROMPT) + 1
++    assert window.end == saved["window"].end == len(PROMPT)
++    assert saved["cache"][0].offset == len(PROMPT)
++
++    next_prompt = PROMPT + [13]
++    second = g.dflash_generate(target, tok, drafter, prompt_ids=next_prompt,
++                               cache=saved["cache"], ctx_caches=[saved["window"]],
++                               reuse_len=len(PROMPT), max_new_tokens=2)
++    assert second.token_ids == [14, 15]
++    assert saved["cache"][0].offset == len(next_prompt) + 1

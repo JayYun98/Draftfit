@@ -13,6 +13,16 @@ os.environ["WANDB_MODE"] = "disabled"
 def load_tests(loader, tests, pattern):
     modules = [
         "tests.test_family",
+        "tests.test_family_concurrency",
+        "tests.test_family_process_cleanup",
+        "tests.test_joint_family_core",
+        "tests.test_joint_family_audit",
+        "tests.test_feature_queue",
+        "tests.test_joint_online_source",
+        "tests.test_shared_target_queue.SharedTargetQueueCPU",
+        "tests.test_joint_verification",
+        "tests.test_joint_policy",
+        "tests.test_family_joint_cpu",
         "tests.test_pretraining",
         "tests.test_scripts.test_prepare_data",
         "tests.test_target_project",
