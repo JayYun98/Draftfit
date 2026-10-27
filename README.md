@@ -66,6 +66,11 @@ follow the [complete workflow](docs/PUBLIC_WORKFLOW.md).
 | PEagle | No | Yes | Flex attention and method-specific feature layout |
 | Domino | Yes | Yes | Explicit compatible draft configuration |
 
+Optional [research methods](docs/specs/research-methods.md) add ALR/IRA rollout
+distillation, Osprey backbone conversion, CAST reference tree decoding and Redline
+configuration selection. Each has its own input and runtime limits; these are
+explicit experimental workflows.
+
 Three main paths are available: train a family from scratch, initialize compatible
 families from an existing draft, or continue a saved run. Weight transfer between
 families requires compatible layouts and, where applicable, explicit anchor
@@ -110,6 +115,13 @@ remains an open gate. See [joint setup](docs/JOINT_ONLINE.md),
 [queue and verification](docs/SHARED_TARGET_FEATURE_QUEUE.md) and
 [monitoring](docs/JOINT_MONITORING.md).
 
+Before a longer run, use [batch calibration and runtime forecasts](docs/CALIBRATION.md)
+to measure capture plus joint updates, preserve effective batch size and account
+for checkpoint, evaluation and verification costs. An optional forecast admission
+check stops at a saved boundary when the next interval cannot fit. The
+[local web workspace](docs/WEB_WORKSPACE.md) displays current engine plans, jobs
+and saved evidence from a source checkout.
+
 ## Backends
 
 All teachers feed the same **PyTorch draft trainer**. These levels describe
@@ -121,7 +133,8 @@ implementation and retained evidence—not universal production certification.
 | SGLang | Offline / online teacher | Maintained, validated configurations | Real Ling capture, training and bounded pinned serving/state checks |
 | Hugging Face Transformers | Offline / online teacher | Native, bounded GPU validation | Qwen3-0.6B BF16 feature parity; DSpark/DFlash2 train/resume/export |
 | vLLM | Offline / online teacher | Native, experimental | Qwen3-0.6B FP32 parity and train/resume/export; **BF16 parity failed** |
-| MLX | Optional external evaluation | Adapter integration | Compatible Apple Silicon runtime and export required; not a training backend |
+| MLX | Optional offline teacher / external evaluation | Experimental capture adapter | Input and readout contracts checked; actual MLX capture requires separate Apple Silicon validation; not a draft trainer |
+| Prism GGUF | Explicit local joint teacher | Experimental native adapter | Pinned extended runtime, immutable source hashes and bounded context required; full native target execution remains a separate gate |
 | TensorRT-LLM / TokenSpeed | Teacher | Not implemented | No integration in this release |
 
 Native vLLM capture targets single-device Llama/Qwen2/Qwen3 text decoders.
@@ -163,6 +176,10 @@ configuration alone cannot add an unsupported capture or serving backend.
 | Develop or reproduce validation | [Documentation index](docs/README.md) · [Source tools](tests/VALIDATION.md) |
 | Share features and train a family backbone | [Joint online](docs/JOINT_ONLINE.md) · [Queue and verification](docs/SHARED_TARGET_FEATURE_QUEUE.md) |
 | Run automatic bounded experiments | [Unattended controller](docs/UNATTENDED_NATIVE.md) · [External campaigns](docs/FAMILY_CAMPAIGN.md) |
+| Measure initial batch size and forecast time/cost | [Calibration](docs/CALIBRATION.md) |
+| Capture an explicitly supported packed teacher | [Quantized capture](docs/specs/quantized-capture.md) |
+| Try rollout distillation, conversion or tree decoding | [Research methods](docs/specs/research-methods.md) |
+| Inspect plans and jobs in a local browser | [Web workspace](docs/WEB_WORKSPACE.md) |
 | Inspect decisions or upload selected exports | [Monitoring](docs/JOINT_MONITORING.md) · [HF publication](docs/HF_PUBLICATION.md) |
 | Compare recent-target draft families | [Family workflow](docs/DFLASH_FAMILY.md) · [MiniCPM5 results](docs/RECENT_TARGET_BRANCH_SUMMARY.md) |
 

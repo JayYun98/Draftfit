@@ -41,6 +41,11 @@ class BuildWithAssets(build_py):
             "docs/CODE_OWNERSHIP.md",
             "docs/ENVIRONMENT.md",
             "docs/OWNED_GPU_ENVIRONMENT.md",
+            "docs/CALIBRATION.md",
+            "docs/WEB_WORKSPACE.md",
+            "docs/specs/training-feature-integration.md",
+            "docs/specs/quantized-capture.md",
+            "docs/specs/research-methods.md",
         ):
             target = Path(self.build_lib) / "draftfit/assets/_data" / name
             target.parent.mkdir(parents=True, exist_ok=True)

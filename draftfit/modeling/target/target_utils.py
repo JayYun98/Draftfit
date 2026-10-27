@@ -36,7 +36,29 @@ def load_target_config(
     trust_remote_code: bool = False,
     revision: Optional[str] = None,
 ):
-    """Load a target config, falling back to its public raw ``config.json``."""
+    """Load target geometry; local Prism GGUF never goes through HF JSON loading."""
+
+    if os.path.isfile(model_path) and str(model_path).lower().endswith(".gguf"):
+        from .gguf_parts import _validate_bonsai, read_gguf_metadata
+
+        header = read_gguf_metadata(model_path)
+        _validate_bonsai(header)
+        meta = header.metadata
+        # This is a geometry descriptor, not an HF-loadable target architecture.
+        # The native producer separately checks the exact GGUF SHA and revision.
+        return _RawConfigShim(
+            {
+                "model_type": "prism_gguf_qwen35",
+                "hidden_size": meta["qwen35.embedding_length"],
+                "vocab_size": meta["tokenizer.ggml.tokens"],
+                "num_hidden_layers": meta["qwen35.block_count"],
+                "tie_word_embeddings": False,
+                "eos_token_id": meta.get("tokenizer.ggml.eos_token_id"),
+                "bos_token_id": meta.get("tokenizer.ggml.bos_token_id"),
+                "pad_token_id": meta.get("tokenizer.ggml.padding_token_id"),
+                "prism_hadamard_version": meta["prism.hadamard.version"],
+            }
+        )
 
     try:
         return AutoConfig.from_pretrained(

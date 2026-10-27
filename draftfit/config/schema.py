@@ -53,7 +53,18 @@ class ModelConfig(StrictConfigModel):
     #: Optional DFlash block-size override (auto-generated default: 16).
     draft_block_size: Optional[int] = Field(default=None, gt=0)
     #: Teacher implementation; all backends share the feature transport schema.
-    target_backend: Literal["sglang", "transformers", "vllm"] = "sglang"
+    target_backend: Literal["sglang", "transformers", "vllm", "prism_gguf"] = "sglang"
+    #: Exact local GGUF capture for the in-process joint family runner only.
+    prism_capture_bridge: Optional[str] = None
+    target_gguf_sha256: Optional[str] = Field(
+        default=None,
+        strict=True,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    gguf_context_size: int = Field(default=1024, strict=True, ge=64, le=8192)
+    gguf_chunk_size: int = Field(default=32, strict=True, gt=0, le=512)
     hf_attn_implementation: Literal["eager", "sdpa"] = "sdpa"
     vllm_gpu_memory_utilization: float = Field(default=0.8, gt=0.0, le=1.0)
     #: Retained for offline/config migration only. The server-only online path
@@ -131,6 +142,49 @@ class ModelConfig(StrictConfigModel):
         gt=0.0,
         le=1.0,
     )
+
+    @model_validator(mode="after")
+    def _validate_prism_capture(self):
+        fields = (
+            "prism_capture_bridge",
+            "target_gguf_sha256",
+            "gguf_context_size",
+            "gguf_chunk_size",
+        )
+        if self.target_backend != "prism_gguf":
+            changed = [
+                name
+                for name in fields
+                if getattr(self, name) != type(self).model_fields[name].default
+            ]
+            if changed:
+                raise ValueError(
+                    f"model.{changed} requires model.target_backend=prism_gguf"
+                )
+            return self
+        target = Path(self.target_model_path).expanduser()
+        if not target.is_file() or target.suffix.lower() != ".gguf":
+            raise ValueError(
+                "prism_gguf requires an explicit local .gguf target_model_path"
+            )
+        if (
+            not self.prism_capture_bridge
+            or not Path(self.prism_capture_bridge).expanduser().is_file()
+        ):
+            raise ValueError("prism_gguf requires a local prism_capture_bridge file")
+        if self.target_gguf_sha256 is None:
+            raise ValueError("prism_gguf requires target_gguf_sha256")
+        if (
+            self.input_modality != "text"
+            or not self.draft_model_config
+            or not self.draft_model_config.strip()
+        ):
+            raise ValueError(
+                "prism_gguf requires text and an explicit draft_model_config"
+            )
+        if self.trust_remote_code:
+            raise ValueError("prism_gguf requires trust_remote_code=false")
+        return self
 
     @model_validator(mode="after")
     def _validate_input_modality(self):
@@ -704,6 +758,10 @@ class TrainingConfig(StrictConfigModel):
     dspark_head_only: bool = False
     #: Explicitly re-align an anchor-sampling DSpark backbone for DFlash/DFlash2.
     retrain_anchor_alignment: bool = False
+    #: Sparse target KD on prepared target rollouts; ordinary DFlash is unchanged.
+    alr_topk: int = Field(default=8, gt=0)
+    alr_hard_label_mix: float = Field(default=0.0, ge=0.0, le=1.0, allow_inf_nan=False)
+    alr_tail_bucket: bool = True
     dflash2_selector_loss_alpha: float = Field(default=1.0, gt=0.0)
     #: P-EAGLE COD sampling/model knobs.
     num_depths: int = Field(default=8, gt=0)
@@ -872,6 +930,21 @@ class Config(StrictConfigModel):
 
         joint_online = self.training.joint_online_capture
         target_device = self.training.joint_target_device
+        if self.model.target_backend == "prism_gguf":
+            if not joint_online:
+                raise ValueError(
+                    "prism_gguf requires training.joint_online_capture=true"
+                )
+            if target_device not in (None, "cuda:0"):
+                raise ValueError("Prism capture supports CPU or cuda:0 only")
+            verification = self.training.joint_verification
+            required_context = self.data.max_length + (
+                verification.max_new_tokens if verification else 0
+            )
+            if self.model.gguf_context_size < required_context:
+                raise ValueError(
+                    "model.gguf_context_size must cover data.max_length + joint verification max_new_tokens"
+                )
         if target_device is not None and (
             not joint_online
             or not isinstance(target_device, str)
@@ -902,7 +975,7 @@ class Config(StrictConfigModel):
         if joint_online and (
             mode != "online"
             or deployment != "local_colocated"
-            or self.model.target_backend != "transformers"
+            or self.model.target_backend not in {"transformers", "prism_gguf"}
             or self.model.input_modality != "text"
             or not self.data.prompts_path
             or not self.data.eval_data_path
@@ -910,7 +983,7 @@ class Config(StrictConfigModel):
             or self.training.strategy not in {"dspark", "dflash", "dflash2"}
         ):
             raise ValueError(
-                "joint_online_capture requires colocated Transformers family training with tokenized prompts_path and eval_data_path"
+                "joint_online_capture requires colocated Transformers or Prism GGUF family training with tokenized prompts_path and eval_data_path"
             )
         if mode == "online" and deployment != "disaggregated" and not joint_online:
             raise ValueError(

@@ -319,6 +319,7 @@ def build_eagle3_model(
             revision=cfg.model.target_revision,
             cache_dir=cfg.model.cache_dir,
             trust_remote_code=cfg.model.trust_remote_code,
+            dtype=_torch_dtype(cfg),
         )
     return AlgorithmModelParts(
         model=model,
@@ -371,7 +372,7 @@ def _build_dflash_family_model(
     tokenizer: Any,
     model_factory: Callable[[Dict[str, Any]], Any],
 ) -> AlgorithmModelParts:
-    from draftfit.modeling.target.target_utils import TargetEmbeddingsAndHead
+    from draftfit.modeling.target.quantized_parts import load_target_parts
 
     _validate_dflash_block_size(draft_model)
     mask_token_id = _resolve_mask_token_id(cfg, draft_model, tokenizer)
@@ -383,7 +384,7 @@ def _build_dflash_family_model(
     method_config["mask_token_id"] = mask_token_id
     method_config["target_layer_ids"] = list(draft_model.target_layer_ids)
 
-    target_parts = TargetEmbeddingsAndHead.from_pretrained(
+    target_parts = load_target_parts(
         cfg.model.target_model_path,
         embed_key=cfg.model.embedding_key,
         lm_head_key=cfg.model.lm_head_key,

@@ -40,6 +40,10 @@ exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
 
 [project.optional-dependencies]
 data = ["openai"]
+web = [
+    "fastapi==0.143.0", "uvicorn==0.54.0", "python-multipart==0.0.32",
+    "python-dotenv==1.2.4", "pydantic==2.14.1", "pyyaml==6.0.3", "requests==2.34.2",
+]
 # Stock backend only. Custom capture images must preserve their own build.
 sglang = ["sglang==0.5.14; sys_platform == 'linux'"]
 dev = [
@@ -50,6 +54,10 @@ liger = ["liger-kernel"]
 
 [tool.setuptools.dynamic]
 version = {file = "version.txt"}
+
+[tool.setuptools.package-data]
+"draftfit.offline_capture" = ["PRISM_RUNTIME_LICENSE"]
+"draftfit.research" = ["NOTICE.md"]
 
 [tool.uv]
 required-version = ">=0.9.18"

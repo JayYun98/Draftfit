@@ -21,6 +21,9 @@ from types import SimpleNamespace
 import numpy as np
 import torch
 
+from draftfit.modeling.target.quantized_parts import FrozenPacked
+from draftfit.offline_capture.prism_gguf import OfflinePrismGGUFCapture
+
 
 def _tensor_leaves(value):
     if isinstance(value, torch.Tensor):
@@ -49,11 +52,14 @@ def suspend_training_state(bundles, optimizer, teacher=None, *, cpu_offload=True
         for bundle in bundles
         if isinstance(getattr(bundle, "target_head", None), torch.nn.Module)
     ]
-    if teacher is not None:
+    # A Prism teacher is a frozen native context, not a Torch module tree.
+    if teacher is not None and not isinstance(teacher, OfflinePrismGGUFCapture):
         roots.append(teacher._model)
     modules = {id(module): module for root in roots for module in root.modules()}
     modes = [(module, module.training) for module in modules.values()]
-    # Rotary implementations can replace even nonpersistent buffers on forward.
+    # Packed readouts only read their direct weight/sign buffers. Snapshotting
+    # those multi-GB tensors is unnecessary. Ordinary frozen modules still need
+    # snapshots: rotary forwards can replace even nonpersistent buffers.
     buffers = [
         (
             module,
@@ -62,6 +68,7 @@ def suspend_training_state(bundles, optimizer, teacher=None, *, cpu_offload=True
             value.detach().cpu().clone() if value is not None else None,
         )
         for module in modules.values()
+        if not isinstance(module, FrozenPacked)
         for name, value in module._buffers.items()
     ]
     rotary_state = [
@@ -390,11 +397,53 @@ def _clock(*devices):
 
 def _capture(teacher, ids, config):
     _check_deadline(config)
+    if isinstance(teacher, OfflinePrismGGUFCapture):
+        if ids.shape[1] > teacher.context_size:
+            raise ValueError(
+                "generation verification workload exceeds native target context limit"
+            )
+        captured = teacher.capture(
+            input_ids=ids.cpu(),
+            attention_mask=torch.ones_like(ids).cpu(),
+            loss_mask=torch.zeros_like(ids).cpu(),
+            return_logits=True,
+        )
+        logits = getattr(captured, "native_logits", None)
+        if (
+            not isinstance(logits, torch.Tensor)
+            or logits.dtype != torch.float32
+            or logits.shape != (*ids.shape, teacher.vocab_size)
+            or not torch.isfinite(logits).all()
+        ):
+            raise ValueError(
+                "generation verification requires finite F32 native logits aligned with input IDs"
+            )
+        return captured
     return teacher.capture(
         input_ids=ids,
         attention_mask=torch.ones_like(ids),
         loss_mask=torch.zeros_like(ids),
     )
+
+
+def _target_logits(teacher, bundle, captured, positions):
+    if isinstance(teacher, OfflinePrismGGUFCapture):
+        # Training readouts have different rounding/basis contracts. They are
+        # used for draft proposals only, never as the exact GGUF verifier.
+        return captured.native_logits[:, positions]
+    return _project(bundle, captured.last_hidden_states[:, positions])
+
+
+def _target_device(teacher):
+    if isinstance(teacher, OfflinePrismGGUFCapture):
+        return torch.device("cpu")  # Native capture owns the physical device.
+    return teacher._model.get_input_embeddings().weight.device
+
+
+def _context_limit(teacher):
+    if isinstance(teacher, OfflinePrismGGUFCapture):
+        return teacher.context_size
+    return getattr(teacher._model.config, "max_position_embeddings", None)
 
 
 def _project(bundle, hidden):
@@ -474,7 +523,7 @@ def _propose(bundle, features, anchor, count):
 
 
 def _generate(teacher, bundle, prompt, config, *, speculative):
-    device = teacher._model.get_input_embeddings().weight.device
+    device = _target_device(teacher)
     bundle_device = next(bundle.model.parameters()).device
     prefix = prompt.to(device).unsqueeze(0)
     initial_length = prefix.shape[1]
@@ -494,7 +543,9 @@ def _generate(teacher, bundle, prompt, config, *, speculative):
     while len(generated) < config["max_new_tokens"]:
         _check_deadline(config)
         features = _capture(teacher, prefix, config)
-        anchor = _project(bundle, features.last_hidden_states[:, -1:]).argmax(-1)[:, 0]
+        anchor = _target_logits(teacher, bundle, features, slice(-1, None)).argmax(-1)[
+            :, 0
+        ]
         rounds += 1
         if not speculative:
             if append(anchor.item()):
@@ -507,6 +558,13 @@ def _generate(teacher, bundle, prompt, config, *, speculative):
             append(anchor.item())
             break
         tick = _clock(device, bundle_device)
+        if isinstance(teacher, OfflinePrismGGUFCapture):
+            features = replace(
+                features,
+                hidden_states=features.hidden_states.to(
+                    dtype=next(bundle.draft_model.parameters()).dtype
+                ),
+            )
         proposal = _propose(bundle, features, anchor, count)
         proposal_seconds += _clock(device, bundle_device) - tick
         del features
@@ -517,8 +575,8 @@ def _generate(teacher, bundle, prompt, config, *, speculative):
         )
         tick = _clock(device, bundle_device)
         verified = _capture(teacher, verify_ids, config)
-        posterior = _project(
-            bundle, verified.last_hidden_states[:, prefix.shape[1] :]
+        posterior = _target_logits(
+            teacher, bundle, verified, slice(prefix.shape[1], None)
         ).argmax(-1)[0]
         verification_seconds += _clock(device, bundle_device) - tick
         del verified, verify_ids
@@ -572,22 +630,28 @@ def _preflight(stages, bundles, source, config):
     from draftfit.offline_capture.transformers import OfflineTransformersCapture
 
     teacher = getattr(source, "_teacher", None)
-    if not isinstance(teacher, OfflineTransformersCapture):
+    native = isinstance(teacher, OfflinePrismGGUFCapture)
+    if not native:
+        if not isinstance(teacher, OfflineTransformersCapture):
+            raise ValueError(
+                "generation verification requires the already-loaded online Transformers or Prism GGUF teacher"
+            )
+        family = teacher._model.config.model_type
+        if family not in {"llama", "qwen2", "qwen3", "gemma4_unified_text"}:
+            raise ValueError(
+                f"unsupported generation verification target: {family}; "
+                "only Llama/Qwen2/Qwen3/Gemma4Unified reference decoding is supported"
+            )
+        if (
+            family != "gemma4_unified_text"
+            and getattr(teacher._model.config, "sliding_window", None) is not None
+        ):
+            raise ValueError(
+                "generation verification requires a dense full-attention target"
+            )
+    elif type(teacher.context_size) is not int or teacher.context_size < 1:
         raise ValueError(
-            "generation verification requires the already-loaded online Transformers teacher"
-        )
-    family = teacher._model.config.model_type
-    if family not in {"llama", "qwen2", "qwen3", "gemma4_unified_text"}:
-        raise ValueError(
-            f"unsupported generation verification target: {family}; "
-            "only Llama/Qwen2/Qwen3/Gemma4Unified reference decoding is supported"
-        )
-    if (
-        family != "gemma4_unified_text"
-        and getattr(teacher._model.config, "sliding_window", None) is not None
-    ):
-        raise ValueError(
-            "generation verification requires a dense full-attention target"
+            "generation verification requires a positive native context limit"
         )
     if torch.distributed.is_initialized() and torch.distributed.get_world_size() != 1:
         raise ValueError("generation verification requires a single process")
@@ -604,7 +668,9 @@ def _preflight(stages, bundles, source, config):
         "dspark": DSparkDraftModel,
         "dflash2": DFlash2DraftModel,
     }
-    if any(parameter.requires_grad for parameter in teacher._model.parameters()):
+    if not native and any(
+        parameter.requires_grad for parameter in teacher._model.parameters()
+    ):
         raise ValueError("generation verification teacher must be frozen")
     if teacher.capture_layers is None:
         raise ValueError("generation verification teacher capture layers are unset")
@@ -625,6 +691,10 @@ def _preflight(stages, bundles, source, config):
         if any(token >= bundle.target_vocab_size for token in config["stop_token_ids"]):
             raise ValueError(
                 "generation verification stop token is outside the target vocabulary"
+            )
+        if native and bundle.target_vocab_size != teacher.vocab_size:
+            raise ValueError(
+                "generation verification native target vocabulary differs from bundle"
             )
         bundle_device = next(bundle.model.parameters()).device
         if any(p.device != bundle_device for p in bundle.model.parameters()):
@@ -703,19 +773,48 @@ def evaluate_generation(stages, bundles, online_source, optimizer, step, config)
     if type(step) is not int or step < 0:
         raise ValueError("generation verification step must be nonnegative")
     teacher = _preflight(stages, bundles, online_source, config)
-    family = teacher._model.config.model_type
-    embedding = teacher._model.get_input_embeddings().weight
-    runtime = dict(
-        torch=torch.__version__,
-        cuda=torch.version.cuda,
-        device=str(embedding.device),
-        dtype=str(embedding.dtype),
-    )
+    if isinstance(teacher, OfflinePrismGGUFCapture):
+        from draftfit.modeling.target.gguf_parts import read_gguf_metadata
+
+        metadata = read_gguf_metadata(teacher.path).metadata
+        family = metadata.get("general.architecture")
+        if family != "qwen35":
+            raise ValueError(
+                f"unsupported native generation verification target: {family}"
+            )
+        eos = metadata.get("tokenizer.ggml.eos_token_id")
+        if type(eos) is not int or not 0 <= eos < teacher.vocab_size:
+            raise ValueError(
+                "generation verification requires an in-vocabulary EOS from exact GGUF metadata"
+            )
+        if eos not in config["stop_token_ids"]:
+            config["stop_token_ids"].append(eos)
+        runtime = dict(
+            torch=torch.__version__,
+            cuda=torch.version.cuda,
+            device=teacher.native_device,
+            native_device=teacher.native_device,
+            input_device="cpu",
+            dtype=str(torch.float32),
+            capture_dtype=str(teacher.dtype),
+            context_size=teacher.context_size,
+            chunk_size=teacher.chunk_size,
+            decode_state="native_full_reset_replay",
+        )
+    else:
+        family = teacher._model.config.model_type
+        embedding = teacher._model.get_input_embeddings().weight
+        runtime = dict(
+            torch=torch.__version__,
+            cuda=torch.version.cuda,
+            device=str(embedding.device),
+            dtype=str(embedding.dtype),
+        )
     rows = online_source._rows[True][: config["max_prompts"]]
     if not rows:
         raise ValueError("generation verification requires held-out token rows")
     prompts, bindings, domains = [], [], []
-    limit = getattr(teacher._model.config, "max_position_embeddings", None)
+    limit = _context_limit(teacher)
     for index, row in enumerate(rows):
         ids, mask = row["input_ids"], row["loss_mask"]
         if ids.ndim != 1 or ids.numel() == 0 or mask.shape != ids.shape:
@@ -842,7 +941,11 @@ def evaluate_generation(stages, bundles, online_source, optimizer, step, config)
             prompts=bindings,
             runtime=runtime,
             target_model_type=family,
-            target_model_path=stages[0].config.model.target_model_path,
+            target_model_path=(
+                str(teacher.path)
+                if isinstance(teacher, OfflinePrismGGUFCapture)
+                else stages[0].config.model.target_model_path
+            ),
             target_revision=stages[0].config.model.target_revision,
             capture_layers=list(teacher.capture_layers),
         ),

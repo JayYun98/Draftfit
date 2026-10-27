@@ -11,6 +11,11 @@ runtime modules do not replace or erase the authorship of adapted source.
 | [AngelSpec](https://github.com/Tencent/AngelSpec) | `d3412be` | packing/objective design reference |
 | [SGLang](https://github.com/sgl-project/sglang) | `8ba213f` | pinned target serving and capture backend |
 | [mlx-dspark](https://github.com/ARahim3/mlx-dspark) | `4143092` | MLX inference reference, not a trainer dependency |
+| [ALR-IRA](https://github.com/js-lee-AI/ALR-IRA) | `fa473642d48ea2667675d706ca8f16a74111183e` | Rollout/IRA preparation and sparse distillation |
+| [Osprey](https://github.com/LeanModels/Osprey) | `f62cd48844b03f3cb929543da25c15756e1f1095` | Draft backbone conversion and aligned embeddings |
+| [CAST](https://github.com/js-lee-AI/CAST) | `2eed73f38f9210f1d5ddf01de8059cf3ffb43c19` | Reference tree construction and corrected speculative sampling |
+| [Redline](https://github.com/js-lee-AI/Redline) | `d78ede9b035420f3c8c8c63c185ed55be5ea038f` | Paired correctness-risk calibration |
+| Prism extended runtime | `e3de715222b2667c54a267441159a5729f11155e` | Explicit external native capture API; runtime is not bundled |
 
 ## Borrowed boundaries
 
@@ -34,6 +39,14 @@ runtime modules do not replace or erase the authorship of adapted source.
 - mlx-dspark `src/mlx_dspark/config.py` and `src/mlx_dspark/server.py` were
   reviewed at `4143092` for serving-state separation only. No MLX code is
   imported by this platform.
+- ALR/IRA, Osprey, CAST and Redline adaptations retain source headers and full
+  MIT notices in `draftfit/research/NOTICE.md`. The local recipes reuse the
+  maintained trainer and do not import external training launchers. Redline's
+  binomial/Holm calculation uses log probabilities to avoid underflow.
+- The optional packed MLX target adapter retains the Apple MIT notice in
+  `draftfit/offline_capture/PRISM_RUNTIME_LICENSE`. The external Prism runtime,
+  target weights and native build must be provisioned and reviewed separately;
+  a bridge revision string does not authenticate a linked native library.
 
 ## Sync policy
 

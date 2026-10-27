@@ -119,6 +119,8 @@ def main():
             "eagle3",
             "peagle",
             "domino",
+            "alr_ira",
+            "osprey",
         }
         cli("target", "inspect", target, "--local-only")
         for strategy in ("dspark", "dflash", "dflash2"):

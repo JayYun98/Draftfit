@@ -628,10 +628,15 @@ def _load_specforge_draft_state(
         and expected_strategy in family
         and saved_strategy != expected_strategy
     )
+    dflash_objective_change = {saved_strategy, expected_strategy} <= {
+        "dflash",
+        "alr_ira",
+    } and getattr(draft_config, "architectures", None) == ["DFlashDraftModel"]
     if (
         saved_strategy is not None
         and saved_strategy != expected_strategy
         and not cross_family
+        and not dflash_objective_change
     ):
         raise ValueError(
             f"warm-start checkpoint {state_path} was written by strategy "
