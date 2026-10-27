@@ -56,6 +56,8 @@ def _nested_taichu_config():
     return {
         "architectures": ["DSparkDraftModel"],
         "transformer_layer_config": transformer,
+        "official_dspark_format": "taichu_speculators",
+        "num_target_layers": base["num_target_layers"],
         "aux_hidden_state_layer_ids": [1],
         "block_size": 4,
         "mask_token_id": 31,

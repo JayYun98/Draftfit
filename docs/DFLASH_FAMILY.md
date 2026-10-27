@@ -100,6 +100,30 @@ match the chosen method; changing `training.strategy` alone does not convert a
 draft. Refer to [the workflow guide](PUBLIC_WORKFLOW.md#fine-tune-weights-versus-resume-a-run)
 for the individual-run commands.
 
+### Published `speculators` checkpoints
+
+Recognized nested Qwen3-compatible DSpark and DFlash configurations can be used
+as warm starts. The loader resolves the target depth from the actual target
+configuration, preserves the source taps, label alignment and attention layout,
+and requires compatible tensor shapes. If the published artifact also contains
+frozen target embedding or LM-head copies, every present copy must match the
+selected target exactly after dtype promotion. Reduced-vocabulary or unknown
+layouts and unexplained checkpoint keys remain errors.
+
+The recognized anchor-relative sliding-window format uses the published context
+rule, rather than silently substituting query-relative local attention. Its
+semantics come from the pinned [Speculators attention implementation](https://github.com/vllm-project/speculators/blob/47eee66a19cb5f967b215575d866934250522ad1/src/speculators/models/dflash/attention.py).
+`pure_draft_prefix_len` affects the upstream Domino branch; it does not shift
+plain DFlash labels. Support for this format does not imply support for every
+Speculators model or its serving runtime.
+
+DSpark generation follows its stored `sample_from_anchor` alignment. When true,
+hidden slot zero predicts the first token after the committed anchor. When
+false, slot zero predicts the anchor and generation starts at slot one. Both
+paths emit the same number of speculative proposals and retain the Markov head.
+Verify the exact exported weights with the intended serving implementation;
+correct training loss alone cannot establish proposal alignment or speed.
+
 ## Training and validation by GPU count
 
 ### One GPU: independent offline capture, train, then serve

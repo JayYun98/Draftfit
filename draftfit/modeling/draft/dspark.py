@@ -331,7 +331,13 @@ class DSparkDraftModel(DFlashDraftModel):
     ) -> torch.LongTensor:
         """Generate a block with the same Markov correction used in training."""
 
-        proposal_hidden = draft_hidden[:, -self.block_size + 1 :, :]
+        method = getattr(self.config, "dflash_config", None) or {}
+        if method.get("sample_from_anchor", True):
+            # Slot zero predicts the first token after the committed anchor.
+            proposal_hidden = draft_hidden[:, -self.block_size : -1, :]
+        else:
+            # DFlash alignment supervises slot zero on the anchor itself.
+            proposal_hidden = draft_hidden[:, -self.block_size + 1 :, :]
         base_logits = target.lm_head(proposal_hidden)
         if self.markov_head is None:
             return _sample(base_logits)

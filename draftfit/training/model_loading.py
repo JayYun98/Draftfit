@@ -92,14 +92,16 @@ def _looks_like_local_path(source: str) -> bool:
     )
 
 
-def _draft_config_from_dict(payload: Dict[str, Any]) -> "PretrainedConfig":
+def _draft_config_from_dict(
+    payload: Dict[str, Any], *, target_config: Any = None
+) -> "PretrainedConfig":
     # Importing the draft package registers every built-in architecture before
     # consulting the registry. Model modules keep accelerator-only dependencies
     # behind execution boundaries, so this remains safe in a CPU producer.
     import draftfit.modeling.draft  # noqa: F401
     from draftfit.modeling.draft.registry import DRAFT_REGISTRY, available_drafts
 
-    payload = _normalize_published_dspark_config(payload)
+    payload = _normalize_published_dspark_config(payload, target_config=target_config)
     architectures = payload.get("architectures") or []
     if not isinstance(architectures, (list, tuple)) or len(architectures) != 1:
         raise ValueError(
@@ -149,44 +151,120 @@ def _draft_config_from_dict(payload: Dict[str, Any]) -> "PretrainedConfig":
     return DRAFT_REGISTRY[architecture].config_class.from_dict(payload)
 
 
-def _normalize_published_dspark_config(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Translate published DSpark metadata while retaining its tensor geometry."""
-    payload = dict(payload)
+def _normalize_published_dspark_config(
+    payload: Dict[str, Any], *, target_config: Any = None
+) -> Dict[str, Any]:
+    """Flatten registered speculators configs without guessing target geometry."""
+    from draftfit.training.official_dspark import is_taichu_config
+
+    payload = copy.deepcopy(payload)
     architecture = (payload.get("architectures") or [None])[0]
-    if architecture == "DSparkDraftModel" and "transformer_layer_config" in payload:
-        # Taichu's speculator config wraps the Qwen3 transformer config.
-        transformer = dict(payload.pop("transformer_layer_config"))
+    if (
+        architecture in {"DSparkDraftModel", "DFlashDraftModel"}
+        and "transformer_layer_config" in payload
+    ):
+        taichu = is_taichu_config(payload)
+        transformer = payload.pop("transformer_layer_config")
         if transformer.get("model_type") != "qwen3":
-            raise ValueError("unsupported nested DSpark transformer model_type")
+            raise ValueError("unsupported nested speculators transformer model_type")
         for field, value in transformer.items():
             if field in payload and payload[field] != value:
-                raise ValueError(f"conflicting nested DSpark field {field}")
+                raise ValueError(f"conflicting nested speculators field {field}")
             payload[field] = value
+        if payload.get("draft_vocab_size") not in (None, payload["vocab_size"]):
+            raise ValueError(
+                "nested speculators reduced draft vocabulary is unsupported"
+            )
         method = dict(payload.get("dflash_config") or {})
-        method["target_layer_ids"] = payload.pop("aux_hidden_state_layer_ids")
+
+        def put(field, value):
+            if field in method and method[field] != value:
+                raise ValueError(f"conflicting speculators config field {field}")
+            method[field] = value
+
+        taps = payload.pop("aux_hidden_state_layer_ids")
+        if "target_layer_ids" in payload and payload.pop("target_layer_ids") != taps:
+            raise ValueError("conflicting speculators config field target_layer_ids")
+        put("target_layer_ids", taps)
         for field in (
             "mask_token_id",
             "markov_rank",
             "markov_head_type",
             "enable_confidence_head",
             "confidence_head_with_markov",
+            "confidence_head_alpha",
             "sample_from_anchor",
+            "shift_label",
+            "pure_draft_prefix_len",
+            "projector_type",
             "sliding_window_non_causal",
+            "domino_auf",
+            "lambda_base_start",
+            "lambda_base_decay_ratio",
+            "emb_dim",
+            "gru_hidden_dim",
         ):
             if field in payload:
-                method[field] = payload.pop(field)
-        method["projector_type"] = "dspark"
+                put(field, payload.pop(field))
+        family = "dspark" if architecture == "DSparkDraftModel" else "dflash"
+        method.setdefault("projector_type", family)
+        method.setdefault("sample_from_anchor", family == "dspark")
+        if method["projector_type"] != family or method.get("domino_auf", False):
+            raise ValueError("unsupported nested speculators projector semantics")
+        if family == "dflash" and (
+            method.get("sample_from_anchor") or method.get("shift_label", False)
+        ):
+            raise ValueError("unsupported nested DFlash anchor/label semantics")
+        depth = payload.get("num_target_layers")
+        if target_config is not None:
+            from draftfit.modeling.target.target_utils import target_text_config
+
+            text = target_text_config(target_config)
+            actual_depth = (
+                text.get("num_hidden_layers")
+                if isinstance(text, dict)
+                else getattr(text, "num_hidden_layers", None)
+            )
+            if depth is not None and depth != actual_depth:
+                raise ValueError(
+                    "speculators num_target_layers differs from target metadata"
+                )
+            depth = actual_depth
+            for field in ("hidden_size", "vocab_size"):
+                actual = (
+                    text.get(field)
+                    if isinstance(text, dict)
+                    else getattr(text, field, None)
+                )
+                if actual is not None and actual != payload[field]:
+                    raise ValueError(
+                        f"speculators {field} differs from target metadata"
+                    )
+        if not isinstance(depth, int) or isinstance(depth, bool) or depth <= 0:
+            raise ValueError(
+                "nested speculators requires target depth metadata; last auxiliary tap is not target depth"
+            )
+        if not taps or any(
+            not isinstance(tap, int) or isinstance(tap, bool) or tap < 0 or tap >= depth
+            for tap in taps
+        ):
+            raise ValueError(
+                "speculators auxiliary taps are outside target depth metadata"
+            )
+        payload["num_target_layers"] = depth
         payload["dflash_config"] = method
-        # The released Taichu target has 32 text layers; its final tap is 29.
-        payload["num_target_layers"] = (
-            32
-            if method["target_layer_ids"] == [1, 8, 15, 22, 29]
-            else max(method["target_layer_ids"]) + 1
-        )
-        payload["auto_map"] = {"AutoModel": "dspark.DSparkDraftModel"}
-        payload["official_dspark_format"] = "taichu_speculators"
-        payload.pop("speculators_config", None)
-        payload.pop("speculators_model_type", None)
+        payload["auto_map"] = {"AutoModel": f"{family}.{architecture}"}
+        if taichu:
+            payload["official_dspark_format"] = "taichu_speculators"
+        else:
+            payload["published_speculators_format"] = True
+            if (
+                payload.get("speculators_attention_semantics", "anchor_relative")
+                != "anchor_relative"
+            ):
+                raise ValueError("conflicting speculators attention semantics")
+            payload["speculators_attention_semantics"] = "anchor_relative"
+        # Preserve verifier provenance; the loading path binds it to the actual target.
     elif architecture == "Lfm2DSparkDraftModel":
         # The published LFM speculator is a Qwen3-shaped draft with a
         # different rotary pairing, not the LFM target's conv/MoE network.
@@ -212,6 +290,9 @@ def load_draft_config_source(
     *,
     cache_dir: Optional[str] = None,
     trust_remote_code: bool = False,
+    target_config: Any = None,
+    target_model_path: Optional[str] = None,
+    target_revision: Optional[str] = None,
 ) -> "PretrainedConfig":
     """Load a registered draft config from JSON, a directory, or an HF repo."""
 
@@ -229,7 +310,14 @@ def load_draft_config_source(
     else:
         if _looks_like_local_path(str(source)):
             raise FileNotFoundError(f"draft model config does not exist: {source}")
-        if source.startswith(("TaichuAI/ZDTaichu5.0-9B-DSpark", "LiquidAI/LFM2.5-")):
+        if source.startswith(
+            (
+                "TaichuAI/ZDTaichu5.0-9B-DSpark",
+                "LiquidAI/LFM2.5-",
+                "wkk66d/Qwen3-0.6B-DSpark",
+                "orestis-z/dflash-qwen3-0.6b-microcycle-dflash",
+            )
+        ):
             from huggingface_hub import hf_hub_download
 
             config_path = hf_hub_download(
@@ -248,7 +336,44 @@ def load_draft_config_source(
             payload = json.load(stream)
     except json.JSONDecodeError as exc:
         raise ValueError(f"invalid draft config JSON {config_path}: {exc}") from exc
-    return _draft_config_from_dict(payload)
+    if "transformer_layer_config" in payload:
+        from draftfit.training.official_dspark import is_taichu_config
+
+        verifier = (payload.get("speculators_config") or {}).get("verifier") or {}
+        target_model_path = target_model_path or verifier.get("name_or_path")
+        if (
+            not target_model_path
+            and is_taichu_config(payload)
+            and payload.get("num_target_layers") is None
+        ):
+            target_model_path = "TaichuAI/ZDTaichu5.0-9B"
+        if target_config is None and target_model_path:
+            from draftfit.modeling.target.target_utils import load_target_config
+
+            target_config = load_target_config(
+                target_model_path,
+                cache_dir=cache_dir,
+                trust_remote_code=False,
+                revision=target_revision,
+            )
+    config = _draft_config_from_dict(payload, target_config=target_config)
+    if target_model_path:
+        config.speculators_target_model_path = target_model_path
+        config.speculators_target_revision = target_revision
+    return config
+
+
+def _validate_published_speculators_semantics(config) -> None:
+    if getattr(config, "published_speculators_format", False) is not True:
+        return
+    if getattr(config, "speculators_attention_semantics", None) != "anchor_relative":
+        raise ValueError(
+            "published speculators requires anchor_relative attention metadata"
+        )
+    if config.architectures not in (["DFlashDraftModel"], ["DSparkDraftModel"]):
+        raise ValueError(
+            "published speculators attention is supported only by native DFlash/DSpark"
+        )
 
 
 def _checkpoint_config_source(checkpoint_source: Optional[str]) -> Optional[str]:
@@ -526,7 +651,11 @@ def resolve_draft_config(
             source,
             cache_dir=cfg.model.cache_dir,
             trust_remote_code=cfg.model.trust_remote_code,
+            target_config=target_config,
+            target_model_path=cfg.model.target_model_path,
+            target_revision=cfg.model.target_revision,
         )
+        _validate_published_speculators_semantics(draft_config)
         if not cfg.model.draft_model_config and cfg.training.strategy in (
             "dflash",
             "dspark",
@@ -695,8 +824,14 @@ def _load_pretrained_draft_state(
     from draftfit.modeling.auto import AutoDraftModel
 
     source_config = load_draft_config_source(
-        source, cache_dir=cache_dir, trust_remote_code=trust_remote_code
+        source,
+        cache_dir=cache_dir,
+        trust_remote_code=trust_remote_code,
+        target_model_path=getattr(draft_config, "speculators_target_model_path", None),
+        target_revision=getattr(draft_config, "speculators_target_revision", None),
     )
+    _validate_published_speculators_semantics(source_config)
+    _validate_published_speculators_semantics(draft_config)
     family = {
         "DFlashDraftModel",
         "DSparkDraftModel",
@@ -713,10 +848,9 @@ def _load_pretrained_draft_state(
             f"warm-start checkpoint {source!r} has draft architecture "
             f"{source_config.architectures!r}, expected {draft_config.architectures!r}"
         )
-    if getattr(source_config, "official_dspark_format", None) in (
-        "taichu_speculators",
-        "lfm2",
-    ):
+    if getattr(source_config, "published_speculators_format", False) is True or getattr(
+        source_config, "official_dspark_format", None
+    ) in ("taichu_speculators", "lfm2"):
         # A shape-compatible scratch config can still change the anchor,
         # attention or RoPE semantics of published weights.
         for field in (
@@ -738,16 +872,42 @@ def _load_pretrained_draft_state(
             "attention_dropout",
             "rope_is_neox_style",
             "rope_parameters",
+            "speculators_attention_semantics",
         ):
             if getattr(source_config, field, None) != getattr(
                 draft_config, field, None
             ):
-                raise ValueError(f"official DSpark warm start has incompatible {field}")
+                raise ValueError(f"published warm start has incompatible {field}")
+        source_depth = getattr(
+            source_config, "target_num_hidden_layers", None
+        ) or getattr(source_config, "num_target_layers", None)
+        destination_depth = getattr(
+            draft_config, "target_num_hidden_layers", None
+        ) or getattr(draft_config, "num_target_layers", None)
+        if source_depth != destination_depth:
+            raise ValueError(
+                "published warm start has incompatible target depth metadata"
+            )
         source_method = dict(getattr(source_config, "dflash_config", None) or {})
         target_method = dict(getattr(draft_config, "dflash_config", None) or {})
-        for field in ("target_layer_ids", "mask_token_id", "sliding_window_non_causal"):
+        for field in (
+            "target_layer_ids",
+            "mask_token_id",
+            "sliding_window_non_causal",
+            "pure_draft_prefix_len",
+            "shift_label",
+        ):
             if source_method.get(field) != target_method.get(field):
                 raise ValueError(f"official DSpark warm start has incompatible {field}")
+        if (
+            not cross_family
+            and getattr(source_config, "published_speculators_format", False) is True
+        ):
+            for field in ("projector_type", "domino_auf"):
+                if source_method.get(field) != target_method.get(field):
+                    raise ValueError(
+                        f"published speculators warm start has incompatible {field}"
+                    )
         if not cross_family and source_method.get(
             "sample_from_anchor"
         ) != target_method.get("sample_from_anchor"):
@@ -819,7 +979,9 @@ def _load_pretrained_draft_state(
     extra_keys = set(loading_info.get("unexpected_keys") or [])
     allowed_extra = (
         {"embed_tokens.weight", "lm_head.weight"}
-        if source_config.architectures == ["DSparkDraftModel"]
+        if getattr(source_config, "published_speculators_format", False) is True
+        or getattr(source_config, "official_dspark_format", None)
+        == "taichu_speculators"
         else set()
     )
     if extra_keys - allowed_extra:
@@ -827,6 +989,30 @@ def _load_pretrained_draft_state(
             f"warm-start checkpoint {source!r} has incompatible unexpected_keys: "
             f"{sorted(extra_keys)}"
         )
+    if (
+        extra_keys
+        and getattr(source_config, "published_speculators_format", False) is True
+    ):
+        import torch
+
+        from draftfit.modeling.target.quantized_parts import load_target_parts
+        from draftfit.training.official_dspark import verify_target_copies
+
+        target_path = getattr(draft_config, "speculators_target_model_path", None)
+        if not target_path:
+            raise ValueError(
+                "published target copies require the actual target model path"
+            )
+        target_parts = load_target_parts(
+            target_path,
+            cache_dir=cache_dir,
+            device="cpu",
+            dtype=torch.float32,
+            trust_remote_code=False,
+            revision=getattr(draft_config, "speculators_target_revision", None),
+        )
+        verify_target_copies(source, target_parts, cache_dir=cache_dir)
+        del target_parts
     for field in ("mismatched_keys", "error_msgs"):
         if loading_info.get(field):
             raise ValueError(
