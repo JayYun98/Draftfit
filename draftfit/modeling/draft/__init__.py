@@ -22,6 +22,8 @@ from .domino import DominoDraftModel
 from .dspark import DSparkDraftModel
 from .llama3_eagle import LlamaForCausalLMEagle3
 from .peagle import PEagleDraftModel
+from .osprey_qwen3 import OspreyQwen3DraftModel
+from .osprey_llama import OspreyLlamaDraftModel
 from .registry import DRAFT_REGISTRY, available_drafts, register_draft, resolve_draft
 from .taichu_dflash2 import TaichuDFlash2Config, TaichuDFlash2DraftModel
 
@@ -43,6 +45,8 @@ __all__ = [
     "DSparkDraftModel",
     "LlamaForCausalLMEagle3",
     "PEagleDraftModel",
+    "OspreyQwen3DraftModel",
+    "OspreyLlamaDraftModel",
     "build_target_layer_ids",
     "extract_context_feature",
     "sample",

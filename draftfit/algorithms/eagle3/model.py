@@ -35,9 +35,20 @@ from draftfit.core.compact_teacher import (
 )
 from draftfit.core.eagle3_adapters import BackendAdapter, SdpaLikeAdapter, UspAdapter
 from draftfit.core.lk_loss import compute_acceptance_rate, compute_lk_loss
-from draftfit.core.loss import LogSoftmaxLoss
 from draftfit.modeling.draft import Eagle3DraftModel
 from draftfit.utils import padding
+
+
+def _teacher_cross_entropy(logits, target_p, position_mask):
+    """Use the existing fused CUDA loss and its differentiable CPU reference."""
+    if logits.is_cuda:
+        from draftfit.core.loss import LogSoftmaxLoss
+
+        return LogSoftmaxLoss.apply(logits, target_p, position_mask)
+    if position_mask.ndim == logits.ndim - 1:
+        position_mask = position_mask.unsqueeze(-1)
+    log_p = F.log_softmax(logits.float(), dim=-1)
+    return -(position_mask * target_p * log_p).sum(dim=-1).mean()
 
 
 class Eagle3Model(nn.Module):
@@ -71,7 +82,7 @@ def _compute_loss_and_acceptance_rate(
         reduce_metrics_fn: Optional distributed reducer for metric numer/denom.
         reduce_loss_fn: Optional distributed reducer for KL loss.
     """
-    kl_loss = LogSoftmaxLoss.apply(logits, target_p, position_mask)
+    kl_loss = _teacher_cross_entropy(logits, target_p, position_mask)
     if reduce_loss_fn is not None:
         kl_loss = reduce_loss_fn(kl_loss)
 
