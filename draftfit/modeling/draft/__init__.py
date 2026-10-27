@@ -1,3 +1,7 @@
+# AutoDraftModel uses AutoConfig when reopening an HF export. DFlash2's own
+# model_type is not built into Transformers, so register its local config.
+from transformers import AutoConfig
+
 from .base import Eagle3DraftModel
 from .dflash import (
     DFlashDraftModel,
@@ -20,10 +24,6 @@ from .llama3_eagle import LlamaForCausalLMEagle3
 from .peagle import PEagleDraftModel
 from .registry import DRAFT_REGISTRY, available_drafts, register_draft, resolve_draft
 from .taichu_dflash2 import TaichuDFlash2Config, TaichuDFlash2DraftModel
-
-# AutoDraftModel uses AutoConfig when reopening an HF export. DFlash2's own
-# model_type is not built into Transformers, so register its local config.
-from transformers import AutoConfig
 
 AutoConfig.register(DFlash2Config.model_type, DFlash2Config)
 

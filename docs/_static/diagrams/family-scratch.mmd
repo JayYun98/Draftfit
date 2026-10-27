@@ -1,0 +1,16 @@
+flowchart LR
+    T["Frozen target + reviewed text data"] --> C["Capture train and held-out features<br/>same target revision, tokenizer and taps"]
+    C --> P{"Choose draft method"}
+    P -->|DSpark| S["New DSpark draft<br/>auxiliary taps + final hidden state"]
+    P -->|DFlash| F["New DFlash draft<br/>auxiliary taps + mask token"]
+    P -->|DFlash2| F2["New DFlash2 draft<br/>full vocabulary + selector"]
+    S --> O["Independent training run<br/>checkpoint + held-out metrics"]
+    F --> O
+    F2 --> O
+    O --> V["Export, then validate exact serving artifact<br/>token/state correctness + workload speed"]
+    classDef input fill:#e8f2ff,stroke:#4477aa,color:#16283c
+    classDef train fill:#ecf8ef,stroke:#408456,color:#173923
+    classDef gate fill:#fff2dd,stroke:#b7771d,color:#4b310d
+    class T,C input
+    class S,F,F2,O train
+    class P,V gate

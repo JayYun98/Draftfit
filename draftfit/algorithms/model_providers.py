@@ -46,7 +46,9 @@ def dflash_needs_input_tools(cfg: Config, draft_model: Any) -> bool:
     needs_mask_fallback = (
         cfg.model.mask_token_id is None and method_config.get("mask_token_id") is None
     )
-    return cfg.mode == "online" or needs_mask_fallback
+    return (
+        cfg.mode == "online" and not cfg.training.joint_online_capture
+    ) or needs_mask_fallback
 
 
 def _torch_dtype(cfg: Config):
@@ -399,7 +401,8 @@ def _build_dflash_family_model(
         from draftfit.training.official_dspark import verify_taichu_target_copies
 
         verify_taichu_target_copies(
-            cfg.model.draft_checkpoint_path, target_parts,
+            cfg.model.draft_checkpoint_path,
+            target_parts,
             cache_dir=cfg.model.cache_dir,
         )
     common = {

@@ -2,9 +2,27 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import torch
 
 from draftfit.inference.capture import TeacherCaptureBatch as OfflineCaptureBatch
+
+
+def _cached_hub_snapshot(path, revision):
+    """Use the Hub cache identity so Transformers copies transitive remote imports."""
+    snapshot = Path(path).expanduser()
+    if not snapshot.is_dir() or snapshot.parent.name != "snapshots":
+        return None
+    match = re.fullmatch(
+        r"models--([^-][^/]*)--([^-][^/]*)", snapshot.parent.parent.name
+    )
+    if not match or not re.fullmatch(r"[0-9a-f]{40}", snapshot.name):
+        return None
+    if revision is not None and revision != snapshot.name:
+        raise ValueError("target revision does not match the cached Hub snapshot")
+    return f"{match[1]}/{match[2]}", snapshot.name, str(snapshot.parent.parent.parent)
 
 
 class OfflineTransformersCapture:
@@ -22,15 +40,18 @@ class OfflineTransformersCapture:
         if family == "zdtaichu5_0":
             language_model = self._model.language_model
             self._model = getattr(
-                language_model, "base_model", getattr(language_model, "model", language_model)
+                language_model,
+                "base_model",
+                getattr(language_model, "model", language_model),
             )
-        elif family in {"agnes", "qwen3_5"}:
+        elif family in {"agnes", "qwen3_5", "gemma4_unified"}:
             self._model = self._model.language_model
         if self._model.config.model_type not in {
             "llama",
             "qwen2",
             "qwen3",
             "qwen3_5_text",
+            "gemma4_unified_text",
             "agnes_text",
             "xing4_0",
             "lfm2",
@@ -75,13 +96,19 @@ class OfflineTransformersCapture:
     ):
         from transformers import AutoModel
 
+        source = pretrained_model_name_or_path
+        load_kwargs = {}
+        if trust_remote_code and (cached := _cached_hub_snapshot(source, revision)):
+            source, revision, cache_dir = cached
+            load_kwargs["local_files_only"] = True
         model = AutoModel.from_pretrained(
-            pretrained_model_name_or_path,
+            source,
             revision=revision,
             trust_remote_code=trust_remote_code,
             torch_dtype=torch_dtype,
             cache_dir=cache_dir,
             attn_implementation=attn_implementation,
+            **load_kwargs,
         )
         return cls(model.to(device))
 

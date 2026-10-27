@@ -409,7 +409,9 @@ def _run_sglang(args) -> BenchmarkResult:
             "median_latency_seconds": statistics.median(
                 row["latency_seconds"] for row in rows
             ),
-            "average_acceptance_length": statistics.fmean(accepted) if accepted else None,
+            "average_acceptance_length": (
+                statistics.fmean(accepted) if accepted else None
+            ),
         }
     return BenchmarkResult(
         backend="sglang",

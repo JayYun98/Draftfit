@@ -1,0 +1,21 @@
+flowchart TB
+    CKPT["Milestone: save checkpoint + consumed cursor"] --> MODE{"Verification path"}
+    MODE -->|Native reference| N1["Offload optimizer / training state to CPU<br/>Keep frozen target on GPU"]
+    MODE -->|Optional SGLang smoke| S1["Offload Torch models + optimizer to CPU<br/>Start isolated serving process"]
+    N1 --> N2["Target-only / existing drafts / new drafts<br/>Same resident target; full-prefix decoding"]
+    S1 --> S2["Reload target in serving engine<br/>Target-only / new family drafts"]
+    N2 --> N3["Exactness + acceptance + domain timings<br/>Reference timing; no speed-based policy"]
+    S2 --> S3["Validate report and artifact identity<br/>Short smoke; no speed-based policy"]
+    N3 --> RESTORE["Restore training state / RNG / modes"]
+    S3 --> CLEAN{"Serving cleanup<br/>confirmed?"}
+    CLEAN -->|Yes| RESTORE
+    CLEAN -->|No| FAIL["Fail-stop<br/>Do not restore onto occupied GPU"]
+    RESTORE --> POLICY["Policy: continue / registered phase / stop<br/>Preserve best + latest verified exports"]
+    classDef native fill:#eaf2ff,stroke:#4477aa,color:#172c46
+    classDef serving fill:#edf7f0,stroke:#44835d,color:#173923
+    classDef gate fill:#fff3df,stroke:#ad7932,color:#493311
+    classDef error fill:#fff0f0,stroke:#b65555,color:#6b2222
+    class N1,N2,N3 native
+    class S1,S2,S3 serving
+    class CKPT,MODE,CLEAN,RESTORE,POLICY gate
+    class FAIL error

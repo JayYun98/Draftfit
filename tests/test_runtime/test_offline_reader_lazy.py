@@ -209,21 +209,31 @@ class TestEagerValidationIsOptIn(unittest.TestCase):
     def test_dspark_capture_can_feed_dflash_family_subset(self):
         directory = _features(compress=False)
         manifest = build_capture_manifest(
-            strategy="dspark", capture_method="target_hidden", capture_layers=(1,),
+            strategy="dspark",
+            capture_method="target_hidden",
+            capture_layers=(1,),
             feature_names=(*_KEYS, "target_last_hidden_states"),
             target_model="example/target",
             target_revision="0123456789abcdef0123456789abcdef01234567",
-            target_feature="target_last_hidden_states", target_repr="hidden_state",
+            target_feature="target_last_hidden_states",
+            target_repr="hidden_state",
         )
-        write_capture_manifest(os.path.join(directory, "capture_manifest.json"), manifest)
+        write_capture_manifest(
+            os.path.join(directory, "capture_manifest.json"), manifest
+        )
         for strategy in ("dflash", "dflash2"):
             reader = OfflineManifestReader(
-                directory, strategy=strategy, feature_keys=_KEYS, target_repr=None,
+                directory,
+                strategy=strategy,
+                feature_keys=_KEYS,
+                target_repr=None,
             )
             self.assertEqual(set(reader.read(limit=1)[0].feature_keys), set(_KEYS))
         with self.assertRaisesRegex(ValueError, "features"):
             OfflineManifestReader(
-                directory, strategy="dspark", feature_keys=(*_KEYS, "missing"),
+                directory,
+                strategy="dspark",
+                feature_keys=(*_KEYS, "missing"),
             )
 
 

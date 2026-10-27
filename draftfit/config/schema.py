@@ -20,6 +20,7 @@ import copy
 import json
 import math
 import os
+from pathlib import Path
 from typing import List, Literal, Optional
 from urllib.parse import urlparse
 
@@ -168,7 +169,7 @@ class DataConfig(StrictConfigModel):
     prompts_path: str = ""
     #: offline mode — directory of precomputed hidden-state .ckpt files.
     hidden_states_path: str = ""
-    #: Reserved migration field. Online evaluation is unsupported; keep empty.
+    #: Tokenized held-out JSONL for joint_online_capture; unsupported by server training.
     eval_data_path: str = ""
     #: offline evaluation — directory of precomputed hidden-state .ckpt files.
     eval_hidden_states_path: str = ""
@@ -554,7 +555,96 @@ class DeploymentConfig(StrictConfigModel):
         return self
 
 
+class JointControlConfig(StrictConfigModel):
+    policy: dict
+    budget_path: str = Field(min_length=1)
+    preset: str = Field(default="default", min_length=1)
+    allow_reference_timings: bool = False
+
+
+class JointVerificationConfig(StrictConfigModel):
+    """Bounded, in-process reference greedy decoding at joint milestones."""
+
+    interval: int = Field(default=1000, gt=0)
+    max_prompts: int = Field(default=2, gt=0)
+    max_new_tokens: int = Field(default=8, gt=0)
+    draft_tokens: int = Field(default=2, gt=0)
+    trials: int = Field(default=1, gt=0)
+    offload_optimizer: bool = True
+    # Comparison references only; never phase initialization or eligible arms.
+    existing_drafts: dict[str, str] = Field(default_factory=dict)
+
+    @staticmethod
+    def validate_existing_drafts(value):
+        """Reject unsupported/local-missing references during config planning."""
+        from collections.abc import Mapping
+
+        if not isinstance(value, Mapping):
+            raise ValueError(
+                "existing_drafts must map arm names to local HF export directories"
+            )
+        paths = {}
+        supported = {"DSparkDraftModel", "DFlashDraftModel", "DFlash2DraftModel"}
+        for name, source in value.items():
+            if (
+                not isinstance(name, str)
+                or not name.strip()
+                or not isinstance(source, str)
+                or not source.strip()
+            ):
+                raise ValueError(
+                    "existing_drafts requires nonempty arm names and local paths"
+                )
+            path = Path(source).expanduser().resolve()
+            try:
+                payload = json.loads((path / "config.json").read_text())
+            except (OSError, ValueError) as exc:
+                raise ValueError(
+                    f"existing_drafts[{name!r}] requires a local HF export with config.json"
+                ) from exc
+            architectures = (
+                payload.get("architectures") if isinstance(payload, dict) else None
+            )
+            if (
+                not isinstance(architectures, list)
+                or len(architectures) != 1
+                or not isinstance(architectures[0], str)
+                or architectures[0] not in supported
+            ):
+                raise ValueError(
+                    f"unsupported existing draft architecture: {architectures!r}"
+                )
+            if not any(
+                (path / filename).is_file()
+                for filename in (
+                    "model.safetensors",
+                    "model.safetensors.index.json",
+                    "pytorch_model.bin",
+                    "pytorch_model.bin.index.json",
+                )
+            ):
+                raise ValueError(f"existing_drafts[{name!r}] has no local HF weights")
+            paths[name] = str(path)
+        return paths
+
+    @model_validator(mode="after")
+    def _existing_references(self):
+        self.existing_drafts = self.validate_existing_drafts(self.existing_drafts)
+        if self.existing_drafts and not self.offload_optimizer:
+            raise ValueError("existing_drafts requires offload_optimizer=true")
+        return self
+
+
 class TrainingConfig(StrictConfigModel):
+    #: In-process Transformers capture for family --joint; no feature files.
+    joint_online_capture: bool = False
+    #: Optional explicit device for the frozen joint teacher; the draft stays on LOCAL_RANK.
+    joint_target_device: Optional[str] = None
+    #: CPU feature bytes, including leased accumulation windows; zero disables.
+    joint_feature_queue_bytes: int = Field(default=0, ge=0)
+    joint_feature_queue_batches: int = Field(default=2, gt=0)
+    joint_verification: Optional[JointVerificationConfig] = None
+    joint_control: Optional[JointControlConfig] = None
     # Keep this extensible for externally registered algorithms; the immutable
     # algorithm registry performs the supported-name validation at resolution.
     strategy: str = "eagle3"
@@ -650,7 +740,9 @@ class TrainingConfig(StrictConfigModel):
                 "training.dspark_acceptance_loss_alpha and temperature must be finite"
             )
         if self.dspark_acceptance_loss_alpha and self.dspark_acceptance_loss is None:
-            raise ValueError("training.dspark_acceptance_loss is required when its alpha is positive")
+            raise ValueError(
+                "training.dspark_acceptance_loss is required when its alpha is positive"
+            )
         if not math.isfinite(self.dflash2_selector_loss_alpha):
             raise ValueError("training.dflash2_selector_loss_alpha must be finite")
         if not 0.0 <= self.dpace_alpha <= 1.0:
@@ -778,7 +870,49 @@ class Config(StrictConfigModel):
         deployment = self.deployment.mode
         role = self.training.role
 
-        if mode == "online" and deployment != "disaggregated":
+        joint_online = self.training.joint_online_capture
+        target_device = self.training.joint_target_device
+        if target_device is not None and (
+            not joint_online
+            or not isinstance(target_device, str)
+            or not target_device.startswith("cuda:")
+            or not target_device[5:].isascii()
+            or not target_device[5:].isdecimal()
+            or str(int(target_device[5:])) != target_device[5:]
+        ):
+            raise ValueError(
+                "joint_target_device requires joint_online_capture and an explicit cuda:N device"
+            )
+        if self.training.joint_control and not self.training.joint_verification:
+            raise ValueError("joint_control requires joint_verification")
+        if (
+            self.training.joint_feature_queue_bytes or self.training.joint_verification
+        ) and not joint_online:
+            raise ValueError(
+                "joint feature queue/verification requires joint_online_capture"
+            )
+        if (
+            self.training.joint_feature_queue_bytes
+            and self.training.joint_feature_queue_batches
+            < self.training.accumulation_steps
+        ):
+            raise ValueError(
+                "joint queue batches must hold a complete accumulation window"
+            )
+        if joint_online and (
+            mode != "online"
+            or deployment != "local_colocated"
+            or self.model.target_backend != "transformers"
+            or self.model.input_modality != "text"
+            or not self.data.prompts_path
+            or not self.data.eval_data_path
+            or self.data.eval_hidden_states_path
+            or self.training.strategy not in {"dspark", "dflash", "dflash2"}
+        ):
+            raise ValueError(
+                "joint_online_capture requires colocated Transformers family training with tokenized prompts_path and eval_data_path"
+            )
+        if mode == "online" and deployment != "disaggregated" and not joint_online:
             raise ValueError(
                 "online training requires deployment.mode=disaggregated; "
                 "colocated online training is no longer supported"
@@ -836,8 +970,13 @@ class Config(StrictConfigModel):
                 "training.dspark_head_only requires strategy=dspark and "
                 "model.draft_checkpoint_path or training.resume_from"
             )
-        if self.training.dspark_acceptance_loss_alpha > 0 and self.training.strategy != "dspark":
-            raise ValueError("training.dspark_acceptance_loss_alpha requires strategy=dspark")
+        if (
+            self.training.dspark_acceptance_loss_alpha > 0
+            and self.training.strategy != "dspark"
+        ):
+            raise ValueError(
+                "training.dspark_acceptance_loss_alpha requires strategy=dspark"
+            )
         if self.training.retrain_anchor_alignment and (
             self.training.strategy not in ("dflash", "dflash2")
             or not self.model.draft_checkpoint_path
@@ -851,12 +990,15 @@ class Config(StrictConfigModel):
                 "profiling.enabled applies to trainer roles, not a capture-only "
                 "producer"
             )
-        if self.data.eval_data_path:
+        if self.data.eval_data_path and not joint_online:
             raise ValueError(
                 "data.eval_data_path is unsupported; online evaluation is not "
                 "supported by the server-only capture path"
             )
-        has_eval_source = bool(self.data.eval_hidden_states_path)
+        has_eval_source = bool(
+            self.data.eval_hidden_states_path
+            or (joint_online and self.data.eval_data_path)
+        )
         has_eval_interval = self.training.eval_interval > 0
         if has_eval_source != has_eval_interval:
             raise ValueError(

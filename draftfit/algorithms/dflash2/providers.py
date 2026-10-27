@@ -163,7 +163,9 @@ def algorithm_providers() -> AlgorithmProviders:
         model=ModelProvider(
             draft_config=DraftConfigProvider(
                 architecture=DRAFT_ARCHITECTURE,
-                compatible_architectures=frozenset({DRAFT_ARCHITECTURE, "TaichuDFlash2DraftModel"}),
+                compatible_architectures=frozenset(
+                    {DRAFT_ARCHITECTURE, "TaichuDFlash2DraftModel"}
+                ),
                 expected_auto_map_model="dflash2.DFlash2DraftModel",
                 target_defaults=TargetDerivedDraftDefaults(
                     model_type="qwen3",

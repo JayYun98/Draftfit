@@ -13,8 +13,8 @@ import json
 import random
 import sys
 import urllib.request
-from decimal import Decimal, InvalidOperation
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -53,7 +53,12 @@ OPC_SUBSETS = (
     "filtered_infinity_instruct",
     "realuser_instruct",
 )
-MIX_SOURCES = ("perfectblend-dedup", "opencodeinstruct", "apigen-mt", "nemotron-agentic")
+MIX_SOURCES = (
+    "perfectblend-dedup",
+    "opencodeinstruct",
+    "apigen-mt",
+    "nemotron-agentic",
+)
 MIX_PRESETS = {
     "baseline": (80, 20, 0, 0),
     "agent-aware": (70, 10, 10, 10),
@@ -101,7 +106,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--ratios",
         help="Override mixture weights, e.g. perfectblend-dedup=70,opencodeinstruct=10,apigen-mt=10,nemotron-agentic=10 (sum 100).",
     )
-    parser.add_argument("--seed", type=int, default=42, help="Mixture sampling seed (default: 42).")
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Mixture sampling seed (default: 42)."
+    )
     parser.add_argument(
         "--split-eval",
         action="store_true",
@@ -133,7 +140,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         if args.dataset == "mix" and args.ratios is None:
             parser.error("--dataset mix requires --ratios")
         try:
-            args.ratios = parse_ratios(args.ratios) if args.ratios else MIX_PRESETS[args.dataset]
+            args.ratios = (
+                parse_ratios(args.ratios) if args.ratios else MIX_PRESETS[args.dataset]
+            )
         except ValueError as exc:
             parser.error(str(exc))
         if args.data_path is not None or args.opc_subset != OPC_SUBSETS[0]:
@@ -170,7 +179,9 @@ def mixture_counts(size: int, ratios: Sequence[Decimal | int]) -> tuple[int, ...
     exact = [Decimal(size) * Decimal(weight) / 100 for weight in ratios]
     counts = [int(number) for number in exact]
     remainder = size - sum(counts)
-    for index in sorted(range(len(counts)), key=lambda i: (-(exact[i] - counts[i]), i))[:remainder]:
+    for index in sorted(range(len(counts)), key=lambda i: (-(exact[i] - counts[i]), i))[
+        :remainder
+    ]:
         counts[index] += 1
     return tuple(counts)
 
@@ -310,17 +321,32 @@ def process_apigen_mt_row(
         if role == "function_call":
             call_number += 1
             call = json.loads(content)
-            messages.append({
-                "role": "assistant", "content": "",
-                "tool_calls": [{
-                    "id": f"call_{call_number}", "type": "function",
-                    "function": {"name": call["name"], "arguments": call["arguments"]},
-                }],
-            })
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [
+                        {
+                            "id": f"call_{call_number}",
+                            "type": "function",
+                            "function": {
+                                "name": call["name"],
+                                "arguments": call["arguments"],
+                            },
+                        }
+                    ],
+                }
+            )
         elif role == "observation":
             if not call_number:
                 raise ValueError("APIGen observation has no preceding tool call")
-            messages.append({"role": "tool", "content": content, "tool_call_id": f"call_{call_number}"})
+            messages.append(
+                {
+                    "role": "tool",
+                    "content": content,
+                    "tool_call_id": f"call_{call_number}",
+                }
+            )
         else:
             mapped_role = ROLE_MAPPING.get(role)
             if mapped_role is None:
@@ -534,18 +560,30 @@ def load_dataset_preset(
             process_sharegpt_row,
         )
     if dataset_name == "perfectblend-dedup":
-        return _indexed(_load_hf_dataset(
-            "tepirale/open-perfectblend-deduplicate-mlabonne", split="train",
-            streaming=streaming,
-        )), process_sharegpt_row
+        return (
+            _indexed(
+                _load_hf_dataset(
+                    "tepirale/open-perfectblend-deduplicate-mlabonne",
+                    split="train",
+                    streaming=streaming,
+                )
+            ),
+            process_sharegpt_row,
+        )
     if dataset_name == "apigen-mt":
-        return _load_hf_dataset(
-            "Salesforce/APIGen-MT-5k", split="train", streaming=streaming
-        ), process_apigen_mt_row
+        return (
+            _load_hf_dataset(
+                "Salesforce/APIGen-MT-5k", split="train", streaming=streaming
+            ),
+            process_apigen_mt_row,
+        )
     if dataset_name == "nemotron-agentic":
         from datasets import IterableDataset
 
-        return IterableDataset.from_generator(_iter_nemotron_rows), process_nemotron_agentic_row
+        return (
+            IterableDataset.from_generator(_iter_nemotron_rows),
+            process_nemotron_agentic_row,
+        )
 
     regenerated_presets = {
         "perfectblend-llama3.1-8b-instruct": (
@@ -777,8 +815,12 @@ def prepare_mixture(
             if selected == count:
                 break
         if selected != count:
-            raise ValueError(f"{source} has only {selected} usable unique rows; requested {count}")
-        print(f"Selected {count} rows from {source}; excluded {excluded} incomplete or duplicate rows.")
+            raise ValueError(
+                f"{source} has only {selected} usable unique rows; requested {count}"
+            )
+        print(
+            f"Selected {count} rows from {source}; excluded {excluded} incomplete or duplicate rows."
+        )
     random.Random(seed).shuffle(rows)
     if len(rows) != sample_size:
         raise ValueError(f"expected {sample_size} output rows, got {len(rows)}")
@@ -786,7 +828,9 @@ def prepare_mixture(
     train_path = output_directory / f"{dataset_name}_train.jsonl"
     eval_path = output_directory / f"{dataset_name}_test.jsonl"
     if train_path.exists() or (split_eval and eval_path.exists()):
-        raise FileExistsError("mixture output already exists; choose a fresh --output-path")
+        raise FileExistsError(
+            "mixture output already exists; choose a fresh --output-path"
+        )
     if split_eval:
         if sample_size < 2:
             raise ValueError("--split-eval requires at least two rows")
@@ -807,7 +851,9 @@ def prepare_mixture(
         for path in written:
             path.unlink()
         raise
-    print(f"Saved {len(train_rows)} train and {len(eval_rows)} eval rows to {output_directory}.")
+    print(
+        f"Saved {len(train_rows)} train and {len(eval_rows)} eval rows to {output_directory}."
+    )
     return train_path
 
 
@@ -816,14 +862,22 @@ def main(argv: Sequence[str] | None = None) -> None:
     if args.dataset in {"apigen-mt", "nemotron-agentic"}:
         ratios = tuple(100 if source == args.dataset else 0 for source in MIX_SOURCES)
         prepare_mixture(
-            args.dataset, args.sample_size, ratios, args.output_path,
-            seed=args.seed, split_eval=args.split_eval,
+            args.dataset,
+            args.sample_size,
+            ratios,
+            args.output_path,
+            seed=args.seed,
+            split_eval=args.split_eval,
         )
         return
     if args.dataset in (*MIX_PRESETS, "mix"):
         prepare_mixture(
-            args.dataset, args.sample_size, args.ratios, args.output_path,
-            seed=args.seed, split_eval=args.split_eval,
+            args.dataset,
+            args.sample_size,
+            args.ratios,
+            args.output_path,
+            seed=args.seed,
+            split_eval=args.split_eval,
         )
         return
     dataset, processor = load_dataset_preset(

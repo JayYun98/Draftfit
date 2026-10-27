@@ -72,8 +72,12 @@ def resume_contract(_config, draft_model, training_model):
     }
     if getattr(training_model, "dspark_acceptance_loss_alpha", 0.0):
         contract["dspark_acceptance_loss"] = training_model.dspark_acceptance_loss
-        contract["dspark_acceptance_loss_alpha"] = float(training_model.dspark_acceptance_loss_alpha)
-        contract["dspark_acceptance_temperature"] = float(training_model.dspark_acceptance_temperature)
+        contract["dspark_acceptance_loss_alpha"] = float(
+            training_model.dspark_acceptance_loss_alpha
+        )
+        contract["dspark_acceptance_temperature"] = float(
+            training_model.dspark_acceptance_temperature
+        )
     if getattr(_config.training, "dspark_head_only", False):
         contract["dspark_head_only"] = True
     if not getattr(training_model, "sample_from_anchor", True):
@@ -91,7 +95,9 @@ def build_draft(config, draft_config):
             if head is not None:
                 head.requires_grad_(True)
         if not any(parameter.requires_grad for parameter in draft.parameters()):
-            raise ValueError("DSpark head-only training requires a Markov or confidence head")
+            raise ValueError(
+                "DSpark head-only training requires a Markov or confidence head"
+            )
     return draft
 
 

@@ -123,6 +123,34 @@ _harmony_encoding = None
 class HFParser(Parser):
     """Use the tokenizer's native generation spans, never guessed delimiters."""
 
+    def _normalize_hf_message(self, message: dict) -> dict:
+        normalized = self._normalize_message(message)
+        calls = normalized.get("tool_calls")
+        if calls is None:
+            return normalized
+        if not isinstance(calls, list):
+            raise ValueError("HF tool_calls must be a list")
+        normalized_calls = []
+        for call in calls:
+            if not isinstance(call, dict) or not isinstance(call.get("function"), dict):
+                raise ValueError(
+                    "HF tool_calls entries must contain a function mapping"
+                )
+            function = dict(call["function"])
+            arguments = function.get("arguments", {})
+            if isinstance(arguments, str):
+                try:
+                    arguments = json.loads(arguments)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(
+                        "HF tool call arguments must contain valid JSON"
+                    ) from exc
+            if not isinstance(arguments, dict):
+                raise ValueError("HF tool call arguments must be a mapping")
+            function["arguments"] = arguments
+            normalized_calls.append({**call, "function": function})
+        return {**normalized, "tool_calls": normalized_calls}
+
     def parse(
         self,
         conversation,
@@ -139,7 +167,7 @@ class HFParser(Parser):
                 "use an explicit registered renderer or pre-tokenized input_ids/loss_mask "
                 "for preformatted text or last-turn-only training"
             )
-        messages = [self._normalize_message(message) for message in conversation]
+        messages = [self._normalize_hf_message(message) for message in conversation]
         template = self.tokenizer.get_chat_template(tools=tool or None)
         if not re.search(r"\{%[-+]?\s*generation\s*[-+]?%\}", template):
             raise ValueError(

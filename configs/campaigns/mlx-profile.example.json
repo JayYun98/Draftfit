@@ -1,0 +1,16 @@
+{
+  "comparison_id": "target-a-fixed-validation-v1",
+  "python": "/absolute/path/mlx-python",
+  "benchmark": "/absolute/path/draftfit/benchmarks/benchmark_mlx_family.py",
+  "runtime": "/absolute/path/mlx-dspark",
+  "data": "/absolute/path/heldout-validation.jsonl",
+  "per_domain": 16,
+  "trials": 3,
+  "max_tokens": 128,
+  "cap": 3,
+  "manifest": {
+    "target": "/absolute/path/frozen-mlx-target",
+    "target_float32": true,
+    "draft_bits": 4
+  }
+}

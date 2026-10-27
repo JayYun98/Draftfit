@@ -77,12 +77,24 @@ class TestEvaluatorAggregation(unittest.TestCase):
     def test_family_diagnostics_aggregate_counts_over_holdout(self):
         first = _additive_scalar_out(4, 2, 1, 2)
         second = _additive_scalar_out(8, 4, 3, 4)
-        first.ratio_metrics["confidence_abs_error"] = (torch.tensor(1.0), torch.tensor(2.0))
-        second.ratio_metrics["confidence_abs_error"] = (torch.tensor(2.0), torch.tensor(4.0))
+        first.ratio_metrics["confidence_abs_error"] = (
+            torch.tensor(1.0),
+            torch.tensor(2.0),
+        )
+        second.ratio_metrics["confidence_abs_error"] = (
+            torch.tensor(2.0),
+            torch.tensor(4.0),
+        )
         first.ratio_metrics["selector_loss"] = (torch.tensor(3.0), torch.tensor(2.0))
         second.ratio_metrics["selector_loss"] = (torch.tensor(1.0), torch.tensor(4.0))
-        first.ratio_metrics["acceptance_regret"] = (torch.tensor(0.5), torch.tensor(2.0))
-        second.ratio_metrics["acceptance_regret"] = (torch.tensor(2.0), torch.tensor(4.0))
+        first.ratio_metrics["acceptance_regret"] = (
+            torch.tensor(0.5),
+            torch.tensor(2.0),
+        )
+        second.ratio_metrics["acceptance_regret"] = (
+            torch.tensor(2.0),
+            torch.tensor(4.0),
+        )
         metrics = self._run([first, second])
         self.assertAlmostEqual(metrics["eval/confidence_abs_error"], 0.5)
         self.assertAlmostEqual(metrics["eval/selector_loss"], 4 / 6)

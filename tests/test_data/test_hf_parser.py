@@ -52,6 +52,53 @@ class HFParserTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "generation"):
             self.parser.parse(self.messages, 100)
 
+    def test_tool_arguments_json_is_decoded_without_mutating_input(self):
+        messages = [
+            {"role": "user", "content": "same"},
+            {
+                "role": "assistant",
+                "content": "answer",
+                "tool_calls": [
+                    {
+                        "id": "call-1",
+                        "type": "function",
+                        "function": {
+                            "name": "lookup",
+                            "arguments": '{"query": "same"}',
+                        },
+                    }
+                ],
+            },
+        ]
+        normalized = self.parser._normalize_hf_message(messages[1])
+        self.assertEqual(
+            normalized["tool_calls"][0]["function"]["arguments"],
+            {"query": "same"},
+        )
+        self.assertEqual(
+            messages[1]["tool_calls"][0]["function"]["arguments"],
+            '{"query": "same"}',
+        )
+        self.tokenizer.chat_template = (
+            "{% for m in messages %}{{ m.role }} "
+            "{% if m.role == 'assistant' %}{% generation %}"
+            "{% for call in m.tool_calls %}"
+            "{% for key, value in call.function.arguments.items() %}"
+            "{{ key }} {{ value }}{% endfor %}{% endfor %}"
+            "{{ m.content }}{% endgeneration %}"
+            "{% else %}{{ m.content }}{% endif %} {% endfor %}"
+        )
+        ids, mask = self.parser.parse(messages, 100)
+        self.assertEqual(ids.shape, mask.shape)
+        self.assertGreater(int(mask.sum()), 0)
+        with self.assertRaisesRegex(ValueError, "valid JSON"):
+            self.parser._normalize_hf_message(
+                {
+                    "role": "assistant",
+                    "tool_calls": [{"function": {"name": "lookup", "arguments": "{"}}],
+                }
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

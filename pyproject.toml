@@ -13,7 +13,7 @@ maintainers = [{name = "JayYun98"}]
 urls = {Homepage = "https://github.com/JayYun98/Draftfit", Upstream = "https://github.com/sgl-project/SpecForge"}
 dependencies = [
     "torch==2.11.0",
-    "transformers==5.8.1",
+    "transformers==5.12.1",
     "datasets",
     "tqdm",
     "accelerate",

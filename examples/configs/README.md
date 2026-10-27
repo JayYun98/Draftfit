@@ -91,6 +91,16 @@ initialization, `training.retrain_anchor_alignment` set to `true` explicitly cha
 the destination label alignment and requires fresh training. The default
 rejects this transfer; see the MiniCPM5 family matrix linked above.
 
+For joint training, `training.joint_online_capture` captures frozen-target
+features from tokenized inputs instead of loading saved feature files.
+`training.joint_target_device` optionally places that target on a separate device.
+`training.joint_feature_queue_bytes` bounds resident feature memory, and
+`training.joint_feature_queue_batches` limits lookahead batches within that bound.
+`training.joint_verification` configures fixed-holdout generation checks and
+optimizer offload/restore. `training.joint_control` enables checkpoint-bound
+policy decisions using explicit budget observations; the unattended controller
+owns this field when selected. These options do not establish serving speedup.
+
 New checked-in recipes should explicitly set `training.strategy`,
 `deployment.mode`, `deployment.trainer.nnodes`,
 `deployment.trainer.nproc_per_node`, `run_id`, and `output_dir`, even when the

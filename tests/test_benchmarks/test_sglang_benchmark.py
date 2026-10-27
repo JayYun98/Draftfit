@@ -387,11 +387,17 @@ class SGLangBenchmarkTest(unittest.TestCase):
             {"code": 1, "chat": 1},
         )
         self.assertEqual(
-            [(row["index"], row["domain"], row["output_tokens"]) for row in result.request_metrics],
+            [
+                (row["index"], row["domain"], row["output_tokens"])
+                for row in result.request_metrics
+            ],
             [(0, "chat", 2), (1, "code", 4)],
         )
         self.assertTrue(
-            all(row["median_request_tokens_per_second"] > 0 for row in result.domain_metrics.values())
+            all(
+                row["median_request_tokens_per_second"] > 0
+                for row in result.domain_metrics.values()
+            )
         )
         self.assertNotIn("answer", json.dumps(result.request_metrics))
         flush.assert_called_once()

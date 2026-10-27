@@ -24,6 +24,18 @@ not a blanket compatibility or production-readiness claim.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Joint training and automation
+
+   DFLASH_FAMILY
+   JOINT_ONLINE
+   SHARED_TARGET_FEATURE_QUEUE
+   UNATTENDED_NATIVE
+   JOINT_MONITORING
+   FAMILY_CAMPAIGN
+   HF_PUBLICATION
+
+.. toctree::
+   :maxdepth: 1
    :caption: Validation and runtime boundaries
 
    RUNTIME_PROFILES

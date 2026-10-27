@@ -191,7 +191,10 @@ class Qwen3DFlashAttention(nn.Module):
         v = v.transpose(1, 2)
         cos, sin = position_embeddings
         q, k = apply_rotary_pos_emb(
-            q, k, cos, sin,
+            q,
+            k,
+            cos,
+            sin,
             is_neox_style=getattr(self.config, "rope_is_neox_style", True),
         )
         if past_key_values is not None:

@@ -72,6 +72,7 @@ class _FixedDraft(nn.Module):
     def __init__(self, hidden_size: int):
         super().__init__()
         self.hidden_size = hidden_size
+        self.config = types.SimpleNamespace(dflash_config={})
         self.sliding_window = None
 
     def forward(self, position_ids, noise_embedding, target_hidden, attention_mask):
@@ -610,7 +611,9 @@ class TestDFlashLosses(unittest.TestCase):
 
     def test_dspark_dflash_anchor_alignment_excludes_anchor(self):
         model = _make_dspark_model(
-            self.logits, self.anchors, self.keep_mask,
+            self.logits,
+            self.anchors,
+            self.keep_mask,
             sample_from_anchor=False,
             dspark_ce_loss_alpha=1.0,
             dspark_l1_loss_alpha=0.0,
@@ -619,10 +622,14 @@ class TestDFlashLosses(unittest.TestCase):
         targets, mask, indices = model._build_dspark_labels_and_mask(
             self.input_ids, self.loss_mask, self.anchors, self.keep_mask
         )
-        self.assertTrue(torch.equal(indices[..., 0][self.keep_mask], self.anchors[self.keep_mask]))
-        self.assertTrue(torch.equal(
-            indices[..., 1][self.keep_mask], self.anchors[self.keep_mask] + 1
-        ))
+        self.assertTrue(
+            torch.equal(indices[..., 0][self.keep_mask], self.anchors[self.keep_mask])
+        )
+        self.assertTrue(
+            torch.equal(
+                indices[..., 1][self.keep_mask], self.anchors[self.keep_mask] + 1
+            )
+        )
         self.assertFalse(mask[..., 0].any())
         self.assertTrue(mask[..., 1:].any())
         loss, _, _ = model(
@@ -745,7 +752,9 @@ class TestDFlashLosses(unittest.TestCase):
         for objective, temperature in (("eal", 1.0), ("wtv", 0.7)):
             with self.subTest(objective=objective):
                 model = _make_dspark_model(
-                    self.logits, self.anchors, self.keep_mask,
+                    self.logits,
+                    self.anchors,
+                    self.keep_mask,
                     lm_head=_DualFixedHead(self.logits, target_logits).double(),
                     sample_from_anchor=False,
                     dspark_ce_loss_alpha=0.0,
@@ -766,20 +775,30 @@ class TestDFlashLosses(unittest.TestCase):
                 )
                 if objective == "eal":
                     q = torch.softmax(self.logits.float(), dim=-1)
-                    step = q.gather(-1, target_logits.argmax(dim=-1).unsqueeze(-1)).squeeze(-1)
+                    step = q.gather(
+                        -1, target_logits.argmax(dim=-1).unsqueeze(-1)
+                    ).squeeze(-1)
                 else:
                     p = torch.softmax(target_logits.float() / temperature, dim=-1)
                     q = torch.softmax(self.logits.float() / temperature, dim=-1)
                     step = torch.minimum(p, q).sum(dim=-1)
                 valid = mask[..., 1:].float()
-                want = (valid.cumprod(-1) - (valid * step[..., 1:]).cumprod(-1)).sum() / valid.sum()
-                torch.testing.assert_close(loss, want, rtol=0, atol=1e-6, check_dtype=False)
+                want = (
+                    valid.cumprod(-1) - (valid * step[..., 1:]).cumprod(-1)
+                ).sum() / valid.sum()
+                torch.testing.assert_close(
+                    loss, want, rtol=0, atol=1e-6, check_dtype=False
+                )
                 num, den = metrics["ratio_metrics"]["acceptance_regret"]
-                torch.testing.assert_close(num / den, want, rtol=0, atol=1e-6, check_dtype=False)
+                torch.testing.assert_close(
+                    num / den, want, rtol=0, atol=1e-6, check_dtype=False
+                )
 
     def test_dspark_acceptance_requires_target_hidden_states(self):
         model = _make_dspark_model(
-            self.logits, self.anchors, self.keep_mask,
+            self.logits,
+            self.anchors,
+            self.keep_mask,
             dspark_ce_loss_alpha=0.0,
             dspark_l1_loss_alpha=0.0,
             dspark_confidence_head_alpha=0.0,
