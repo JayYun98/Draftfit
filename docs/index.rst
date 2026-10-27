@@ -35,6 +35,7 @@ not a blanket compatibility or production-readiness claim.
    HF_PUBLICATION
    specs/training-feature-integration
    CALIBRATION
+   TRAINING_SEARCH
    specs/quantized-capture
    specs/research-methods
    WEB_WORKSPACE

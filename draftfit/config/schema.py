@@ -47,6 +47,15 @@ class ModelConfig(StrictConfigModel):
     #: Load draft weights only. Unlike training.resume_from, this never restores
     #: optimizer/scheduler state, counters, data position, or RNG state.
     draft_checkpoint_path: Optional[str] = None
+    #: Source auxiliary-state indexing for generic nested speculators checkpoints.
+    #: block_output uses zero-based post-block IDs; embedding_inclusive maps
+    #: positive hidden-state slot i to block i-1 and rejects embedding slot 0.
+    #: None requires an explicit declaration in the source config. Saved source
+    #: IDs and indexing must agree with this declaration on reload/warm start.
+    #: Verified native/Taichu defaults remain unchanged.
+    draft_capture_layer_indexing: Optional[
+        Literal["block_output", "embedding_inclusive"]
+    ] = None
     #: Optional architecture override. Auto-generated defaults preserve the
     #: former trainers: EAGLE3=1, P-EAGLE=4, DFlash=1.
     draft_num_hidden_layers: Optional[int] = Field(default=None, gt=0)

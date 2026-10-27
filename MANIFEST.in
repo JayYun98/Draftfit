@@ -11,7 +11,8 @@ include docs/MODEL_VALIDATION.md docs/PERSONAL_INFERENCE.md docs/TARGET_EXTENSIO
 include docs/PERFORMANCE_GATE.md docs/RELEASE_GATES.md
 include docs/CODE_OWNERSHIP.md docs/ENVIRONMENT.md
 include docs/OWNED_GPU_ENVIRONMENT.md
-include docs/CALIBRATION.md docs/WEB_WORKSPACE.md
+include docs/CALIBRATION.md
+include docs/TRAINING_SEARCH.md docs/WEB_WORKSPACE.md
 include docs/specs/training-feature-integration.md docs/specs/quantized-capture.md
 include docs/specs/research-methods.md
 include draftfit/offline_capture/PRISM_RUNTIME_LICENSE draftfit/research/NOTICE.md

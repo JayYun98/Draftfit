@@ -161,8 +161,17 @@ def build_family_plan(manifest_path: str) -> tuple[Path, list[FamilyStage]]:
                 "family runs must share training and held-out feature sources"
             )
         registration = builtin_algorithm_registry().resolve(strategy)
+        source_options = dict(
+            cache_dir=cfg.model.cache_dir,
+            trust_remote_code=cfg.model.trust_remote_code,
+            target_model_path=cfg.model.target_model_path,
+            target_revision=cfg.model.target_revision,
+            draft_capture_layer_indexing=cfg.model.draft_capture_layer_indexing,
+        )
         if custom_config:
-            draft = load_draft_config_source(cfg.model.draft_model_config)
+            draft = load_draft_config_source(
+                cfg.model.draft_model_config, **source_options
+            )
             provider = registration.providers.model.draft_config
             compatible = provider.compatible_architectures or {provider.architecture}
             if (
@@ -183,7 +192,9 @@ def build_family_plan(manifest_path: str) -> tuple[Path, list[FamilyStage]]:
             # The common scratch config defines geometry; each arm selects its
             # own family architecture. An explicit per-arm config stays strict.
             draft = convert_family_draft_config(
-                load_draft_config_source(cfg.model.draft_model_config),
+                load_draft_config_source(
+                    cfg.model.draft_model_config, **source_options
+                ),
                 strategy,
                 retrain_anchor_alignment=cfg.training.retrain_anchor_alignment,
                 mask_token_id=cfg.model.mask_token_id,

@@ -42,6 +42,7 @@ class BuildWithAssets(build_py):
             "docs/ENVIRONMENT.md",
             "docs/OWNED_GPU_ENVIRONMENT.md",
             "docs/CALIBRATION.md",
+            "docs/TRAINING_SEARCH.md",
             "docs/WEB_WORKSPACE.md",
             "docs/specs/training-feature-integration.md",
             "docs/specs/quantized-capture.md",

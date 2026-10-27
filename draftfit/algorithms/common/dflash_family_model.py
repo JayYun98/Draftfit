@@ -53,9 +53,12 @@ def create_dflash_sdpa_mask(
     device,
     is_causal: Optional[bool] = None,
     sliding_window: Optional[int] = None,
+    context_window_origin: str = "query",
 ):
     """Construct a full or sliding dense boolean DFlash mask."""
 
+    if context_window_origin not in {"query", "anchor"}:
+        raise ValueError("context_window_origin must be query or anchor")
     if sliding_window is not None and sliding_window <= 0:
         raise ValueError("sliding_window must be > 0")
     B, N = anchor_positions.shape
@@ -87,9 +90,13 @@ def create_dflash_sdpa_mask(
         kv_block_offsets = (kv_indices - S) % block_size
         mask_draft = mask_draft & (kv_block_offsets <= q_block_offsets)
     if sliding_window is not None:
-        context_lower_bound = anchor_expanded + q_block_offsets - (sliding_window - 1)
+        context_lower_bound = (
+            anchor_expanded - sliding_window
+            if context_window_origin == "anchor"
+            else anchor_expanded + q_block_offsets - (sliding_window - 1)
+        )
         mask_context = mask_context & (kv_indices >= context_lower_bound)
-        if is_causal is not None:
+        if is_causal is not None and context_window_origin == "query":
             query_position = anchor_expanded + q_block_offsets
             mask_context = mask_context & (
                 (query_position - kv_indices) < sliding_window
@@ -115,9 +122,12 @@ def create_dflash_block_mask(
     flex_block_size=None,
     is_causal: Optional[bool] = None,
     sliding_window: Optional[int] = None,
+    context_window_origin: str = "query",
 ):
     """Construct a full or sliding Flex Attention mask for DFlash training."""
 
+    if context_window_origin not in {"query", "anchor"}:
+        raise ValueError("context_window_origin must be query or anchor")
     if sliding_window is not None and sliding_window <= 0:
         raise ValueError("sliding_window must be > 0")
 
@@ -139,9 +149,13 @@ def create_dflash_block_mask(
             kv_block_offset = (kv_idx - S) % block_size
             mask_draft = mask_draft & (kv_block_offset <= q_block_offset)
         if sliding_window is not None:
-            context_lower_bound = anchor_pos + q_block_offset - (sliding_window - 1)
+            context_lower_bound = (
+                anchor_pos - sliding_window
+                if context_window_origin == "anchor"
+                else anchor_pos + q_block_offset - (sliding_window - 1)
+            )
             mask_context = mask_context & (kv_idx >= context_lower_bound)
-            if is_causal is not None:
+            if is_causal is not None and context_window_origin == "query":
                 query_position = anchor_pos + q_block_offset
                 mask_context = mask_context & (
                     (query_position - kv_idx) < sliding_window
@@ -227,14 +241,27 @@ class OnlineDFlashModel(nn.Module):
     def _block_mask_options(self) -> Dict[str, object]:
         """Return mask options; specialized DFlash families may override."""
 
-        # Keep legacy DFlash/DSpark mask semantics.  DFlash2 overrides this
-        # with explicit ``is_causal`` and ``sliding_window`` options.
-        return {}
+        semantics = getattr(
+            self.draft_model.config, "speculators_attention_semantics", None
+        )
+        if semantics is None:
+            return {}
+        if semantics != "anchor_relative":
+            raise ValueError(
+                f"unsupported speculators attention semantics: {semantics}"
+            )
+        # Published speculators keeps a fixed prefix window for every query
+        # in an anchor block. Full-attention layers remain non-causal.
+        return {"context_window_origin": "anchor"}
 
     def _sliding_block_mask_options(self) -> Dict[str, object]:
-        return {
+        options = {
             k: v for k, v in self._block_mask_options().items() if k != "sliding_window"
         }
+        if options.get("context_window_origin") == "anchor":
+            method = getattr(self.draft_model.config, "dflash_config", None) or {}
+            options["is_causal"] = not method.get("sliding_window_non_causal", False)
+        return options
 
     def _compute_logits(self, hidden: torch.Tensor) -> torch.Tensor:
         """Project draft hidden states through the frozen target LM head."""
@@ -732,6 +759,11 @@ class OnlineDFlash2Model(OnlineDFlashModel):
             )
 
     def _block_mask_options(self) -> Dict[str, object]:
+        if (
+            getattr(self.draft_model.config, "speculators_attention_semantics", None)
+            is not None
+        ):
+            return super()._block_mask_options()
         if len(set(self.draft_model.layer_types)) > 1:
             # None gives each layer its published default; the sliding
             # options below separately enforce causality and the window.
@@ -743,6 +775,11 @@ class OnlineDFlash2Model(OnlineDFlashModel):
         }
 
     def _sliding_block_mask_options(self) -> Dict[str, object]:
+        if (
+            getattr(self.draft_model.config, "speculators_attention_semantics", None)
+            is not None
+        ):
+            return super()._sliding_block_mask_options()
         return {"is_causal": self.attention_is_causal}
 
     def _extra_training_loss(

@@ -13,6 +13,7 @@ os.environ["WANDB_MODE"] = "disabled"
 def load_tests(loader, tests, pattern):
     modules = [
         "tests.test_family",
+        "tests.test_family_capture_indexing",
         "tests.test_family_concurrency",
         "tests.test_family_process_cleanup",
         "tests.test_joint_family_core",
@@ -44,6 +45,11 @@ def load_tests(loader, tests, pattern):
         "tests.test_target_spec",
         "tests.test_target_inspector",
         "tests.test_runtime.test_model_loading",
+        "tests.test_runtime.test_speculators_warmstart",
+        "tests.test_runtime.test_published_dflash2_masks",
+        "tests.test_utils.test_speculators_mask",
+        "tests.test_modeling.test_dspark_sampling_alignment",
+        "tests.test_training_search",
         "tests.test_runtime.test_target_revision",
         "tests.test_data.test_hf_parser",
         "tests.test_packaging.test_assets",

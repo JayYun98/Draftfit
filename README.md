@@ -177,6 +177,7 @@ configuration alone cannot add an unsupported capture or serving backend.
 | Share features and train a family backbone | [Joint online](docs/JOINT_ONLINE.md) · [Queue and verification](docs/SHARED_TARGET_FEATURE_QUEUE.md) |
 | Run automatic bounded experiments | [Unattended controller](docs/UNATTENDED_NATIVE.md) · [External campaigns](docs/FAMILY_CAMPAIGN.md) |
 | Measure initial batch size and forecast time/cost | [Calibration](docs/CALIBRATION.md) |
+| Screen compatible training options with TPE | [Bounded training search](docs/TRAINING_SEARCH.md) |
 | Capture an explicitly supported packed teacher | [Quantized capture](docs/specs/quantized-capture.md) |
 | Try rollout distillation, conversion or tree decoding | [Research methods](docs/specs/research-methods.md) |
 | Inspect plans and jobs in a local browser | [Web workspace](docs/WEB_WORKSPACE.md) |
