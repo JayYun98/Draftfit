@@ -39,6 +39,36 @@ class Execute(BaseModel):
     timeout: int = Field(default=3600, ge=1, le=86400)
 
 
+def _engine_environment(engine, store):
+    """Pin every Python child without changing project cwd or Python 3.10 support."""
+    bootstrap = store.path("engine-import")
+    bootstrap.mkdir(exist_ok=True, mode=0o700)
+    # Python -m inserts cwd ahead of PYTHONPATH after site initialization. Preload
+    # the lightweight package during startup so nested -m workers use its path
+    # too. Keep any provisioned runtime's original sitecustomize hook.
+    store.path("engine-import/sitecustomize.py").write_text(f'''
+import importlib.machinery as _machinery
+import importlib.util as _util
+import sys as _sys
+from pathlib import Path as _Path
+_root = {str(engine.root)!r}
+_bootstrap = _Path(__file__).resolve().parent
+_sys.path.insert(0, _root)
+import draftfit as _draftfit
+if _Path(_draftfit.__file__).resolve() != _Path(_root, 'draftfit', '__init__.py').resolve():
+    raise SystemExit('The trainer imported a different Draftfit engine.')
+_search = [p for p in _sys.path if _Path(p or '.').resolve() != _bootstrap]
+_spec = _machinery.PathFinder.find_spec('sitecustomize', _search)
+if _spec is not None:
+    _original = _util.module_from_spec(_spec)
+    _sys.modules['sitecustomize'] = _original
+    _spec.loader.exec_module(_original)
+''', encoding="utf-8")
+    paths = [str(bootstrap), str(engine.root),
+             *filter(None, os.environ.get("PYTHONPATH", "").split(os.pathsep))]
+    return {"PYTHONPATH": os.pathsep.join(paths)}
+
+
 def create_app(project_root=None, state_root=None, *, load_env=False,
                allow_local_execution=False):
     project = Path(project_root or Path.cwd()).resolve()
@@ -52,7 +82,7 @@ def create_app(project_root=None, state_root=None, *, load_env=False,
             load_dotenv(fallback, override=False)
     engine = Engine(project)
     store = Store(Path(state_root or project / "outputs/web-workspace"))
-    jobs = Jobs(store, env={"PYTHONPATH": str(engine.root) + os.pathsep + os.environ.get("PYTHONPATH", "")})
+    jobs = Jobs(store, env=_engine_environment(engine, store))
     token = uuid.uuid4().hex
     execution_lock = threading.Lock()
 

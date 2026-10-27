@@ -53,26 +53,33 @@ class Jobs:
         self.store = store
         self.processes = {}
         self.cancellations = set()
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.threads = []
+        self.stopping = set()
+        self.closing = False
 
     def start(self, name, commands, cwd, *, metadata=None, timeout=3600):
-        record = self.store.create('job', name=name, status='queued', commands=commands,
-                                   metadata=metadata or {}, metrics=[], exit_code=None)
-        directory = self.store.path('jobs/' + record['id'])
-        directory.mkdir(parents=True)
-        record['log_path'] = str(directory.relative_to(self.store.root) / 'output.log')
-        self.store.put('job', record)
-        worker = threading.Thread(target=self._run, args=(record, commands, Path(cwd), timeout), daemon=True)
-        self.threads.append(worker)
-        worker.start()
+        with self.lock:
+            if self.closing:
+                raise ValueError('The workspace is shutting down.')
+            record = self.store.create('job', name=name, status='queued', commands=commands,
+                                       metadata=metadata or {}, metrics=[], exit_code=None)
+            directory = self.store.path('jobs/' + record['id'])
+            directory.mkdir(parents=True)
+            record['log_path'] = str(directory.relative_to(self.store.root) / 'output.log')
+            self.store.put('job', record)
+            worker = threading.Thread(target=self._run, args=(record, commands, Path(cwd), timeout), daemon=True)
+            self.threads.append(worker)
+            worker.start()
         return record
 
     def _run(self, record, commands, cwd, timeout):
         ident = record['id']
         deadline = time.monotonic() + timeout
-        record.update(status='running', started_at=time.time())
-        self.store.put('job', record)
+        with self.lock:
+            record.update(status='cancelling' if ident in self.cancellations else 'running',
+                          started_at=time.time())
+            self.store.put('job', record)
         try:
             with self.store.path(record['log_path']).open('a', buffering=1) as log:
                 for index, argv in enumerate(commands):
@@ -96,6 +103,7 @@ class Jobs:
                         timed_out.set()
                         self._signal(proc)
                     timer = threading.Timer(remaining, expire)
+                    timer.daemon = True
                     timer.start()
                     try:
                         for line in iter(proc.stdout.readline, ''):
@@ -115,50 +123,54 @@ class Jobs:
                         timer.cancel()
                         if proc.poll() is None:
                             self._signal(proc)
+                            proc.wait()
                         proc.stdout.close()
                 record['status'] = ('cancelled' if ident in self.cancellations else
                                     'succeeded' if record['exit_code'] == 0 else 'failed')
         except Exception as exc:
             record.update(status='failed', error=str(exc))
         finally:
-            record['finished_at'] = time.time()
-            self.store.put('job', record)
             with self.lock:
-                self.processes.pop(ident, None)
+                if ident in self.cancellations:
+                    record['status'] = 'cancelled'
+                record['finished_at'] = time.time()
+                self.store.put('job', record)
+                self.stopping.discard(self.processes.pop(ident, None))
 
-    @staticmethod
-    def _signal(proc):
-        try:
-            os.killpg(proc.pid, signal.SIGINT)
-        except ProcessLookupError:
-            return
-        def kill():
-            if proc.poll() is None:
-                try:
-                    os.killpg(proc.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-        timer = threading.Timer(10, kill)
-        timer.daemon = True
-        timer.start()
+    def _signal(self, proc):
+        # The engine owns detached worker/service sessions and their per-phase
+        # teardown deadlines. Signal its owner once; killing it first would
+        # orphan those sessions and leave inherited stdout open indefinitely.
+        with self.lock:
+            if proc in self.stopping or proc.poll() is not None:
+                return
+            self.stopping.add(proc)
+            try:
+                proc.send_signal(signal.SIGINT)
+            except ProcessLookupError:
+                pass
 
     def cancel(self, ident):
-        record = self.store.get('job', ident)
-        if record['status'] not in ('queued', 'running', 'cancelling'):
-            raise ValueError('Only an active job can be stopped.')
-        self.cancellations.add(ident)
-        record['status'] = 'cancelling'
-        self.store.put('job', record)
         with self.lock:
+            record = self.store.get('job', ident)
+            if record['status'] not in ('queued', 'running', 'cancelling'):
+                raise ValueError('Only an active job can be stopped.')
+            self.cancellations.add(ident)
+            record['status'] = 'cancelling'
+            self.store.put('job', record)
             proc = self.processes.get(ident)
-        if proc:
-            self._signal(proc)
+            if proc:
+                self._signal(proc)
         return record
 
     def close(self):
         """Stop only children launched by this UI; the engine owns recovery."""
-        for job in self.store.list('job'):
-            if job['status'] in ('queued', 'running', 'cancelling'):
-                self.cancel(job['id'])
-        for worker in self.threads:
-            worker.join(timeout=12)
+        with self.lock:
+            self.closing = True
+            for job in self.store.list('job'):
+                if job['status'] in ('queued', 'running', 'cancelling'):
+                    self.cancel(job['id'])
+            workers = tuple(self.threads)
+        # Do not close SQLite while a reader is still waiting for engine cleanup.
+        for worker in workers:
+            worker.join()

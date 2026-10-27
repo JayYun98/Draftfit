@@ -32,10 +32,12 @@ bash scripts/run_web.sh --allow-local-execution
 
 This enables local engine execution in the explicitly selected trainer runtime.
 It does not provision hardware. Engine prerequisites and budget admission still
-apply. Jobs have a bounded timeout (default one hour). Stop terminates the UI's
-child process; recovery uses engine checkpoints and its existing resume flow.
-Server shutdown also stops its children. Restart marks unfinished UI jobs as
-interrupted and never automatically restarts training.
+apply. Jobs have a runtime timeout (default one hour). Stop and timeout signal
+the owning CLI once and let the engine finish its worker and service teardown.
+Cleanup can outlast the job timeout across service phases. Recovery uses engine
+checkpoints and its existing resume flow. Server shutdown waits for cleanup
+before closing UI history. Restart marks unfinished UI jobs as interrupted and
+never automatically restarts training.
 
 The process environment takes precedence over dotenv. The project `.env` is
 loaded without overriding explicit variables. Only when that file is absent,
@@ -73,6 +75,11 @@ dataset paths are absolute. Controller configs and token comparison paths must
 be inside the selected project, including after resolving symlinks. Inputs and
 outputs used by a trusted training config retain the engine's existing access
 rules. Work with reviewed local configs.
+
+The selected project remains the working directory. A private Python startup
+guard pins the validated Draftfit package for CLI processes and their Python
+children, preserving provisioned runtime startup hooks. A project's own
+`draftfit` directory does not select another engine.
 
 UI records live under `outputs/web-workspace/` by default; use `--state-dir` to
 choose another location. These records are UI history, not a training scheduler.
