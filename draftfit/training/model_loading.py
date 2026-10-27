@@ -93,7 +93,10 @@ def _looks_like_local_path(source: str) -> bool:
 
 
 def _draft_config_from_dict(
-    payload: Dict[str, Any], *, target_config: Any = None
+    payload: Dict[str, Any],
+    *,
+    target_config: Any = None,
+    draft_capture_layer_indexing: Optional[str] = None,
 ) -> "PretrainedConfig":
     # Importing the draft package registers every built-in architecture before
     # consulting the registry. Model modules keep accelerator-only dependencies
@@ -101,7 +104,11 @@ def _draft_config_from_dict(
     import draftfit.modeling.draft  # noqa: F401
     from draftfit.modeling.draft.registry import DRAFT_REGISTRY, available_drafts
 
-    payload = _normalize_published_dspark_config(payload, target_config=target_config)
+    payload = _normalize_published_dspark_config(
+        payload,
+        target_config=target_config,
+        draft_capture_layer_indexing=draft_capture_layer_indexing,
+    )
     architectures = payload.get("architectures") or []
     if not isinstance(architectures, (list, tuple)) or len(architectures) != 1:
         raise ValueError(
@@ -148,22 +155,98 @@ def _draft_config_from_dict(
     payload.setdefault("use_cache", True)
     if payload.get("draft_vocab_size") is None:
         payload["draft_vocab_size"] = payload.get("vocab_size")
-    return DRAFT_REGISTRY[architecture].config_class.from_dict(payload)
+    config = DRAFT_REGISTRY[architecture].config_class.from_dict(payload)
+    _validate_published_speculators_semantics(config)
+    return config
+
+
+def _published_capture_layer_ids(
+    payload: Dict[str, Any],
+    *,
+    declaration: Optional[str] = None,
+    source_ids: Any = None,
+) -> list[int]:
+    """Resolve declared source slots to physical blocks, retaining provenance."""
+    stored = payload.get("draft_capture_layer_indexing")
+    for value in (declaration, stored):
+        if value is not None and value not in ("block_output", "embedding_inclusive"):
+            raise ValueError(f"unsupported draft_capture_layer_indexing: {value!r}")
+    if declaration is not None and stored is not None and declaration != stored:
+        raise ValueError("conflicting draft_capture_layer_indexing in source config")
+    indexing = declaration or stored
+    if indexing is None:
+        raise ValueError(
+            "generic speculators requires explicit draft_capture_layer_indexing"
+        )
+    saved_ids = payload.get("draft_capture_source_layer_ids")
+    if source_ids is None:
+        source_ids = saved_ids
+    for ids in (source_ids,) if saved_ids is None else (source_ids, saved_ids):
+        if (
+            not isinstance(ids, list)
+            or not ids
+            or any(type(index) is not int or index < 0 for index in ids)
+        ):
+            raise ValueError(
+                "speculators capture provenance requires nonnegative source layer IDs"
+            )
+        if len(set(ids)) != len(ids):
+            raise ValueError("speculators source layer IDs must not contain duplicates")
+    if saved_ids is not None and saved_ids != source_ids:
+        raise ValueError("conflicting speculators capture source layer IDs")
+    if indexing == "embedding_inclusive" and 0 in source_ids:
+        raise ValueError("embedding_inclusive capture slot 0 is unsupported")
+    payload["draft_capture_source_layer_ids"] = list(source_ids)
+    payload["draft_capture_layer_indexing"] = indexing
+    return [index - int(indexing == "embedding_inclusive") for index in source_ids]
+
+
+def _validate_published_capture_layers(
+    payload: Dict[str, Any], *, declaration: Optional[str] = None
+) -> None:
+    physical = _published_capture_layer_ids(payload, declaration=declaration)
+    configured = (payload.get("dflash_config") or {}).get("target_layer_ids")
+    if (
+        not isinstance(configured, list)
+        or any(type(index) is not int for index in configured)
+        or configured != physical
+    ):
+        raise ValueError("speculators target_layer_ids differs from capture provenance")
+    depth = payload.get("target_num_hidden_layers") or payload.get("num_target_layers")
+    if (
+        type(depth) is not int
+        or depth <= 0
+        or any(index >= depth for index in physical)
+    ):
+        raise ValueError(
+            "speculators capture layers require valid target depth metadata"
+        )
 
 
 def _normalize_published_dspark_config(
-    payload: Dict[str, Any], *, target_config: Any = None
+    payload: Dict[str, Any],
+    *,
+    target_config: Any = None,
+    draft_capture_layer_indexing: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Flatten registered speculators configs without guessing target geometry."""
     from draftfit.training.official_dspark import is_taichu_config
 
     payload = copy.deepcopy(payload)
     architecture = (payload.get("architectures") or [None])[0]
+    taichu = is_taichu_config(payload)
+    if taichu and any(
+        value not in (None, "block_output")
+        for value in (
+            draft_capture_layer_indexing,
+            payload.get("draft_capture_layer_indexing"),
+        )
+    ):
+        raise ValueError("Taichu capture indexing must preserve block_output semantics")
     if (
         architecture in {"DSparkDraftModel", "DFlashDraftModel"}
         and "transformer_layer_config" in payload
     ):
-        taichu = is_taichu_config(payload)
         transformer = payload.pop("transformer_layer_config")
         if transformer.get("model_type") != "qwen3":
             raise ValueError("unsupported nested speculators transformer model_type")
@@ -185,6 +268,10 @@ def _normalize_published_dspark_config(
         taps = payload.pop("aux_hidden_state_layer_ids")
         if "target_layer_ids" in payload and payload.pop("target_layer_ids") != taps:
             raise ValueError("conflicting speculators config field target_layer_ids")
+        if not taichu:
+            taps = _published_capture_layer_ids(
+                payload, declaration=draft_capture_layer_indexing, source_ids=taps
+            )
         put("target_layer_ids", taps)
         for field in (
             "mask_token_id",
@@ -209,6 +296,8 @@ def _normalize_published_dspark_config(
         family = "dspark" if architecture == "DSparkDraftModel" else "dflash"
         method.setdefault("projector_type", family)
         method.setdefault("sample_from_anchor", family == "dspark")
+        if family == "dspark":
+            method.setdefault("attention_mode", "gqa")
         if method["projector_type"] != family or method.get("domino_auf", False):
             raise ValueError("unsupported nested speculators projector semantics")
         if family == "dflash" and (
@@ -282,6 +371,10 @@ def _normalize_published_dspark_config(
         payload["dflash_config"] = method
         payload["auto_map"] = {"AutoModel": "dspark.DSparkDraftModel"}
         payload["official_dspark_format"] = "lfm2"
+    if payload.get("published_speculators_format") is True:
+        _validate_published_capture_layers(
+            payload, declaration=draft_capture_layer_indexing
+        )
     return payload
 
 
@@ -293,6 +386,7 @@ def load_draft_config_source(
     target_config: Any = None,
     target_model_path: Optional[str] = None,
     target_revision: Optional[str] = None,
+    draft_capture_layer_indexing: Optional[str] = None,
 ) -> "PretrainedConfig":
     """Load a registered draft config from JSON, a directory, or an HF repo."""
 
@@ -329,7 +423,11 @@ def load_draft_config_source(
             loaded = AutoConfig.from_pretrained(
                 source, cache_dir=cache_dir, trust_remote_code=trust_remote_code
             )
-            return _draft_config_from_dict(loaded.to_dict())
+            return _draft_config_from_dict(
+                loaded.to_dict(),
+                target_config=target_config,
+                draft_capture_layer_indexing=draft_capture_layer_indexing,
+            )
 
     try:
         with open(config_path, encoding="utf-8") as stream:
@@ -356,7 +454,11 @@ def load_draft_config_source(
                 trust_remote_code=False,
                 revision=target_revision,
             )
-    config = _draft_config_from_dict(payload, target_config=target_config)
+    config = _draft_config_from_dict(
+        payload,
+        target_config=target_config,
+        draft_capture_layer_indexing=draft_capture_layer_indexing,
+    )
     if target_model_path:
         config.speculators_target_model_path = target_model_path
         config.speculators_target_revision = target_revision
@@ -370,10 +472,47 @@ def _validate_published_speculators_semantics(config) -> None:
         raise ValueError(
             "published speculators requires anchor_relative attention metadata"
         )
-    if config.architectures not in (["DFlashDraftModel"], ["DSparkDraftModel"]):
+    if config.architectures not in (
+        ["DFlashDraftModel"],
+        ["DSparkDraftModel"],
+        ["DFlash2DraftModel"],
+    ):
         raise ValueError(
-            "published speculators attention is supported only by native DFlash/DSpark"
+            "published speculators attention requires native DFlash/DSpark/DFlash2"
         )
+    _validate_published_capture_layers(config.to_dict())
+    if config.architectures == ["DFlash2DraftModel"] and (
+        "sliding_attention" in (getattr(config, "layer_types", None) or [])
+        or getattr(config, "is_causal", False)
+    ):
+        # Native DFlash2 overrides both mask-option methods and currently uses
+        # query-relative windows. Only its non-causal full mask matches here.
+        raise ValueError(
+            "native DFlash2 cannot preserve published anchor_relative sliding/causal masks"
+        )
+
+
+def _validate_warm_start_capture_provenance(source_config, draft_config) -> None:
+    source_published = (
+        getattr(source_config, "published_speculators_format", False) is True
+    )
+    draft_published = (
+        getattr(draft_config, "published_speculators_format", False) is True
+    )
+    if not (source_published or draft_published):
+        return
+    if not (source_published and draft_published):
+        raise ValueError("warm start requires matching published capture provenance")
+    for config in (source_config, draft_config):
+        _validate_published_speculators_semantics(config)
+    for field in ("draft_capture_layer_indexing", "draft_capture_source_layer_ids"):
+        if getattr(source_config, field) != getattr(draft_config, field):
+            raise ValueError(f"warm start has incompatible capture provenance {field}")
+    if (
+        source_config.dflash_config["target_layer_ids"]
+        != draft_config.dflash_config["target_layer_ids"]
+    ):
+        raise ValueError("warm start has incompatible capture target_layer_ids")
 
 
 def _checkpoint_config_source(checkpoint_source: Optional[str]) -> Optional[str]:
@@ -485,6 +624,19 @@ def _apply_draft_overrides(
     draft_config: "PretrainedConfig",
     provider: "DraftConfigProvider",
 ) -> None:
+    published = getattr(draft_config, "published_speculators_format", False) is True
+    if published:
+        _validate_published_speculators_semantics(draft_config)
+        _validate_published_capture_layers(
+            draft_config.to_dict(),
+            declaration=cfg.model.draft_capture_layer_indexing,
+        )
+        if cfg.model.target_layer_ids is not None and cfg.model.target_layer_ids != (
+            draft_config.dflash_config["target_layer_ids"]
+        ):
+            raise ValueError(
+                "model.target_layer_ids conflicts with source capture provenance"
+            )
     num_layers = cfg.model.draft_num_hidden_layers
     if num_layers is not None:
         draft_config.num_hidden_layers = num_layers
@@ -492,6 +644,8 @@ def _apply_draft_overrides(
         draft_config.block_size = cfg.model.draft_block_size
     if provider.apply_overrides is not None:
         provider.apply_overrides(cfg, draft_config)
+    if published:
+        _validate_published_speculators_semantics(draft_config)
 
 
 def convert_family_draft_config(
@@ -654,6 +808,7 @@ def resolve_draft_config(
             target_config=target_config,
             target_model_path=cfg.model.target_model_path,
             target_revision=cfg.model.target_revision,
+            draft_capture_layer_indexing=cfg.model.draft_capture_layer_indexing,
         )
         _validate_published_speculators_semantics(draft_config)
         if not cfg.model.draft_model_config and cfg.training.strategy in (
@@ -829,9 +984,13 @@ def _load_pretrained_draft_state(
         trust_remote_code=trust_remote_code,
         target_model_path=getattr(draft_config, "speculators_target_model_path", None),
         target_revision=getattr(draft_config, "speculators_target_revision", None),
+        draft_capture_layer_indexing=getattr(
+            draft_config, "draft_capture_layer_indexing", None
+        ),
     )
     _validate_published_speculators_semantics(source_config)
     _validate_published_speculators_semantics(draft_config)
+    _validate_warm_start_capture_provenance(source_config, draft_config)
     family = {
         "DFlashDraftModel",
         "DSparkDraftModel",
@@ -1045,6 +1204,29 @@ def warm_start_draft_model(
 
     runtime_state = _runtime_state_file(source)
     if runtime_state is not None:
+        _validate_published_speculators_semantics(draft_config)
+        config_source = _checkpoint_config_source(source) or _checkpoint_config_source(
+            runtime_state
+        )
+        source_payload = {}
+        if config_source is not None:
+            with open(config_source, encoding="utf-8") as stream:
+                source_payload = json.load(stream)
+        if (
+            getattr(draft_config, "published_speculators_format", False) is True
+            or source_payload.get("published_speculators_format") is True
+        ):
+            if not config_source:
+                raise ValueError(
+                    "published warm start requires a source config with capture provenance"
+                )
+            source_config = _draft_config_from_dict(
+                source_payload,
+                draft_capture_layer_indexing=getattr(
+                    draft_config, "draft_capture_layer_indexing", None
+                ),
+            )
+            _validate_warm_start_capture_provenance(source_config, draft_config)
         checkpoint_format: Literal["specforge", "pretrained"] = "specforge"
         state, cross_family = _load_specforge_draft_state(
             runtime_state,

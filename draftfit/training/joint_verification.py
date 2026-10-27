@@ -257,7 +257,10 @@ def _load_existing_draft(bundle, path):
         OnlineDSparkModel,
     )
     from draftfit.modeling.auto import AutoDraftModel
-    from draftfit.training.model_loading import load_draft_config_source
+    from draftfit.training.model_loading import (
+        _validate_warm_start_capture_provenance,
+        load_draft_config_source,
+    )
 
     if type(bundle.model) not in (
         OnlineDFlashModel,
@@ -266,7 +269,18 @@ def _load_existing_draft(bundle, path):
     ):
         raise ValueError("unsupported existing draft model wrapper")
     current = bundle.draft_model
-    source_config = load_draft_config_source(path, trust_remote_code=False)
+    source_config = load_draft_config_source(
+        path,
+        trust_remote_code=False,
+        target_model_path=getattr(
+            current.config, "speculators_target_model_path", None
+        ),
+        target_revision=getattr(current.config, "speculators_target_revision", None),
+        draft_capture_layer_indexing=getattr(
+            current.config, "draft_capture_layer_indexing", None
+        ),
+    )
+    _validate_warm_start_capture_provenance(source_config, current.config)
     if source_config.architectures != [type(current).__name__]:
         raise ValueError("existing draft architecture differs from corresponding arm")
     # Tensor shapes alone do not bind capture taps, masks, RoPE or target logits.

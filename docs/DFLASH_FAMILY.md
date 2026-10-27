@@ -103,7 +103,23 @@ for the individual-run commands.
 ### Published `speculators` checkpoints
 
 Recognized nested Qwen3-compatible DSpark and DFlash configurations can be used
-as warm starts. The loader resolves the target depth from the actual target
+as warm starts. Generic nested sources must declare
+`model.draft_capture_layer_indexing`, or provide equivalent explicit source
+metadata. `block_output` means zero-based decoder block outputs;
+`embedding_inclusive` means source ID `i > 0` maps to decoder block `i - 1`.
+Embedding slot zero is unsupported by this capture path. Missing or conflicting
+conventions fail before loading weights; repository names and method names do
+not identify the producer's capture boundary. Saved native configurations retain
+original IDs, the declaration and resolved physical block IDs so reload does not
+apply the conversion twice. A declaration enables a controlled experiment; it
+does not prove that an undocumented publisher used that convention.
+
+For example, the verified wkk Qwen3-0.6B DSpark producer uses `block_output`.
+A different publisher must be checked separately. Keep its resolved producer
+configuration or feature metadata with the checkpoint. The stored format alone
+cannot establish capture or zero-step quality parity.
+
+The loader resolves the target depth from the actual target
 configuration, preserves the source taps, label alignment and attention layout,
 and requires compatible tensor shapes. If the published artifact also contains
 frozen target embedding or LM-head copies, every present copy must match the
