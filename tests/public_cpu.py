@@ -46,6 +46,7 @@ def load_tests(loader, tests, pattern):
         "tests.test_target_inspector",
         "tests.test_runtime.test_model_loading",
         "tests.test_runtime.test_speculators_warmstart",
+        "tests.test_runtime.test_published_dflash2_masks",
         "tests.test_utils.test_speculators_mask",
         "tests.test_modeling.test_dspark_sampling_alignment",
         "tests.test_training_search",

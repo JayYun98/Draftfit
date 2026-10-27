@@ -481,15 +481,6 @@ def _validate_published_speculators_semantics(config) -> None:
             "published speculators attention requires native DFlash/DSpark/DFlash2"
         )
     _validate_published_capture_layers(config.to_dict())
-    if config.architectures == ["DFlash2DraftModel"] and (
-        "sliding_attention" in (getattr(config, "layer_types", None) or [])
-        or getattr(config, "is_causal", False)
-    ):
-        # Native DFlash2 overrides both mask-option methods and currently uses
-        # query-relative windows. Only its non-causal full mask matches here.
-        raise ValueError(
-            "native DFlash2 cannot preserve published anchor_relative sliding/causal masks"
-        )
 
 
 def _validate_warm_start_capture_provenance(source_config, draft_config) -> None:

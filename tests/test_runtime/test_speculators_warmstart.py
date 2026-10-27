@@ -390,12 +390,13 @@ class SpeculatorsWarmStartTest(unittest.TestCase):
                     expected = expected[0, 0]
                 self.assertTrue(torch.equal(actual, expected), backend)
 
-    def test_dflash2_sliding_conversion_fails_before_export(self):
+    def test_dflash2_sliding_conversion_keeps_published_provenance(self):
         config = _draft_config_from_dict(_payload(), target_config=_target())
-        with self.assertRaisesRegex(
-            ValueError, "DFlash2.*anchor.relative|anchor.relative.*DFlash2"
-        ):
-            convert_family_draft_config(config, "dflash2")
+        converted = convert_family_draft_config(config, "dflash2")
+        self.assertEqual(converted.layer_types, ["sliding_attention"])
+        self.assertEqual(converted.speculators_attention_semantics, "anchor_relative")
+        self.assertEqual(converted.draft_capture_source_layer_ids, [1, 13, 25])
+        self.assertEqual(converted.dflash_config["pure_draft_prefix_len"], 1)
 
     def test_runtime_state_warm_start_checks_saved_capture_provenance(self):
         payload = _payload()

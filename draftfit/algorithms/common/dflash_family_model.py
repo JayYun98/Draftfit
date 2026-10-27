@@ -759,6 +759,11 @@ class OnlineDFlash2Model(OnlineDFlashModel):
             )
 
     def _block_mask_options(self) -> Dict[str, object]:
+        if (
+            getattr(self.draft_model.config, "speculators_attention_semantics", None)
+            is not None
+        ):
+            return super()._block_mask_options()
         if len(set(self.draft_model.layer_types)) > 1:
             # None gives each layer its published default; the sliding
             # options below separately enforce causality and the window.
@@ -770,6 +775,11 @@ class OnlineDFlash2Model(OnlineDFlashModel):
         }
 
     def _sliding_block_mask_options(self) -> Dict[str, object]:
+        if (
+            getattr(self.draft_model.config, "speculators_attention_semantics", None)
+            is not None
+        ):
+            return super()._sliding_block_mask_options()
         return {"is_causal": self.attention_is_causal}
 
     def _extra_training_loss(
