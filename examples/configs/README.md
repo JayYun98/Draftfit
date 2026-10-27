@@ -181,7 +181,11 @@ should make their training strategy and topology explicit.
 | `model.draft_checkpoint_path` | `null` | Weights-only warm start for a new run. Do not combine it with `training.resume_from`. |
 | `model.draft_num_hidden_layers` | `null` | Positive fresh-architecture override where the strategy permits it. EAGLE3 remains one layer; P-EAGLE and DFlash may override their generated defaults. |
 | `model.draft_block_size` | `null` | Positive DFlash block-size override; generated DFlash configs default to 16. |
-| `model.target_backend` | `sglang` | `sglang`, `transformers`, or `vllm`. Native HF/vLLM online teachers use the owned loopback capture service, currently text TP1. Retired `hf`/`custom` names fail. Offline consumers do not instantiate a teacher. |
+| `model.target_backend` | `sglang` | `sglang`, `transformers`, `vllm`, or explicit local `prism_gguf`. Native HF/vLLM online teachers use the owned loopback capture service, currently text TP1. Prism is restricted to in-process joint-family capture with the pinned native bridge. Retired `hf`/`custom` names fail. Offline consumers do not instantiate a teacher. |
+| `model.prism_capture_bridge` | `null` | Local pinned native capture bridge; required for `prism_gguf`. See [quantized capture](../../docs/specs/quantized-capture.md) for the native build and ABI contract. |
+| `model.target_gguf_sha256` | `null` | Exact lowercase 64-character SHA256 of the local target GGUF; required for Prism capture and checked before loading. |
+| `model.gguf_context_size` | `1024` | Native Prism context limit, from 64 through 8192; must cover training and verification sequences. |
+| `model.gguf_chunk_size` | `32` | Native Prism capture chunk size, from 1 through 512. |
 | `model.hf_attn_implementation` | `sdpa` | Owned Transformers teacher attention: `sdpa` or `eager`. Nondefault settings require the Transformers online backend. |
 | `model.vllm_gpu_memory_utilization` | `0.8` | Owned vLLM teacher GPU memory fraction, strictly between zero and one. Nondefault settings require the vLLM online backend. |
 | `model.input_modality` | `text` | The provider modality. The unified runtime supports text only; VLM modalities such as `qwen2_5_vl` are rejected. |
@@ -302,6 +306,7 @@ Strategy-specific fields should be written only when tuning that objective:
 | DFlash / Domino / D-PACE | `training.num_anchors` (`512`), `training.loss_decay_gamma` (`null`), `training.objective_chunk_blocks` (`128`; `0` materializes all objective logits), `training.loss_type` (`dflash`), `training.dpace_alpha` (`0.5`), `training.lambda_base_start` (`1.0`), `training.lambda_base_decay_ratio` (`0.5`) |
 | DFlash2 | Shared DFlash objective settings plus `training.dflash2_selector_loss_alpha` (`1.0`, positive); trains grouped convolution and a full-vocabulary candidate selector. |
 | DSpark | Token-pooled objective with valid-first-target anchors and distributed ratio telemetry. Configure the shared `training.num_anchors` (`512`), `training.loss_decay_gamma` (`null`; production recipes use `4.0`), and `training.objective_chunk_blocks` (`128`; `0` materializes all objective logits), plus `training.dspark_ce_loss_alpha` (`0.1`), `training.dspark_l1_loss_alpha` (`0.9`), and `training.dspark_confidence_head_alpha` (`1.0`). |
+| ALR/IRA | `training.alr_topk` (`8`, positive), `training.alr_hard_label_mix` (`0.0`, from 0 through 1), and `training.alr_tail_bucket` (`true`). Uses prepared sparse target rollouts; it does not modify the ordinary DFlash objective. See [research workflows](../../docs/specs/research-methods.md). |
 | P-EAGLE | `training.num_depths` (`8`), `training.down_sample_ratio` (`0.8`), `training.down_sample_ratio_min` (`0.2`), `training.norm_before_residual` (`null`) |
 
 New recipes must not write the loader-only migration fields

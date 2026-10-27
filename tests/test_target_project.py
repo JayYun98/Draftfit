@@ -139,7 +139,16 @@ class TargetProjectTest(unittest.TestCase):
         catalog = algorithm_catalog()
         self.assertEqual(
             {x["algorithm"] for x in catalog},
-            {"dspark", "dflash", "dflash2", "eagle3", "peagle", "domino"},
+            {
+                "dspark",
+                "dflash",
+                "dflash2",
+                "eagle3",
+                "peagle",
+                "domino",
+                "alr_ira",
+                "osprey",
+            },
         )
         dspark = next(x for x in catalog if x["algorithm"] == "dspark")
         self.assertIn(
