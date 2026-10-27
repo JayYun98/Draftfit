@@ -1,0 +1,8 @@
+# Optional control service only; the trainer keeps its provisioned runtime.
+fastapi==0.143.0
+uvicorn==0.54.0
+python-multipart==0.0.32
+python-dotenv==1.2.4
+pydantic==2.14.1
+pyyaml==6.0.3
+requests==2.34.2
