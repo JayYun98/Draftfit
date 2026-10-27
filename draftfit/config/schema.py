@@ -704,6 +704,10 @@ class TrainingConfig(StrictConfigModel):
     dspark_head_only: bool = False
     #: Explicitly re-align an anchor-sampling DSpark backbone for DFlash/DFlash2.
     retrain_anchor_alignment: bool = False
+    #: Sparse target KD on prepared target rollouts; ordinary DFlash is unchanged.
+    alr_topk: int = Field(default=8, gt=0)
+    alr_hard_label_mix: float = Field(default=0.0, ge=0.0, le=1.0, allow_inf_nan=False)
+    alr_tail_bucket: bool = True
     dflash2_selector_loss_alpha: float = Field(default=1.0, gt=0.0)
     #: P-EAGLE COD sampling/model knobs.
     num_depths: int = Field(default=8, gt=0)
