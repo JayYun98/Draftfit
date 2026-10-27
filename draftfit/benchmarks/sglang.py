@@ -20,6 +20,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from draftfit.benchmarks.compare import _load_report, validate_runtime
+
 DATASETS: dict[str, dict[str, Any]] = {
     "gsm8k": {
         "load_args": ("openai/gsm8k", "main"),
@@ -243,6 +245,12 @@ def _sha256_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def _sha256_json(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
 def _prompt_messages(sample: list[Any]) -> list[dict[str, Any]]:
     if sample and isinstance(sample[0], dict):
         return sample
@@ -295,6 +303,11 @@ def _run_sglang(args) -> BenchmarkResult:
     import requests
     from transformers import AutoTokenizer
 
+    runtime_path = getattr(args, "runtime_json", None)
+    runtime = (
+        validate_runtime(_load_report(Path(runtime_path))) if runtime_path else None
+    )
+
     if args.concurrency <= 0:
         raise ValueError("--concurrency must be positive")
     if args.num_prompts <= 0:
@@ -319,10 +332,12 @@ def _run_sglang(args) -> BenchmarkResult:
             "kind": "builtin",
             "name": args.dataset,
             "sample_count": len(dataset),
+            "sha256": _sha256_json(dataset),
         }
     tokenizer = AutoTokenizer.from_pretrained(
         args.model,
         trust_remote_code=args.trust_remote_code,
+        **({"revision": runtime["tokenizer_revision"]} if runtime else {}),
     )
     prompt_count = args.num_prompts
     warmup_count = args.concurrency
@@ -353,6 +368,7 @@ def _run_sglang(args) -> BenchmarkResult:
             )
         )
     prompts = prompts[warmup_count:]
+    rendered_sha256 = _sha256_json(prompts)
 
     total_tokens = 0
     verify_count = 0
@@ -427,6 +443,8 @@ def _run_sglang(args) -> BenchmarkResult:
         domain_metrics=domain_metrics,
         request_metrics=request_metrics,
         metadata={
+            **({"runtime": runtime} if runtime else {}),
+            "rendered_prompts_sha256": rendered_sha256,
             "seed": 42,
             "model": args.model,
             "tokenizer": args.model,
