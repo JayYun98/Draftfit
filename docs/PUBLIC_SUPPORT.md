@@ -9,14 +9,15 @@ Use `draftfit algorithms` for the live registry and feature tensor contracts.
 | Capability | Implemented boundary |
 | --- | --- |
 | Joint DSpark/DFlash/DFlash2 | Single-device shared backbone/private parameters, one optimizer; scratch or compatible seeded initialization |
-| Shared online capture | Frozen Transformers target, matching taps/contracts, bounded RAM features; synchronous capture/training alternation |
+| Shared online capture | Frozen Transformers target or explicit experimental Prism GGUF adapter, matching taps/contracts, bounded RAM features; synchronous capture/training alternation |
 | Recovery | Same-run checkpoint restores optimizer/RNG/consumed cursor; immutable source and export checks |
 | Native verification | Supported Llama/Qwen2/Qwen3 and Gemma4Unified text adapters; target-only, compatible existing drafts and current drafts; full-prefix reference timing |
 | Optional SGLang milestone | Ordinary Torch HF dense target on one CUDA device; bounded engine lifecycle/report checks; long-output parity remains an open gate |
 | Unattended policy | Loss/acceptance selection and registered batch/LR phases; speed-based decisions rejected |
 | Resource feedback | Measured telemetry selects registered settings; no universal VRAM/time estimator or automatic architecture search |
+| Calibration and forecast | Isolated initial batch probes and capture-inclusive empirical time/cost admission; unmeasured recurring work requires explicit bounds |
 | HF publication | Immutable snapshots, background worker and verified retry receipts; live transport/permissions need a separate check |
-| MLX | Optional external inference/evaluation adapter, not a draft-training backend |
+| MLX | Experimental offline feature producer and external evaluation adapter; draft training remains PyTorch |
 
 These are implementation boundaries, not a claim that every combination or
 failure mode is proven on GPU. Current live serving evidence is bounded;
@@ -24,6 +25,13 @@ longer-output token-parity failures and a completed-run GPU resume timeout are
 not resolved by CPU coverage. No general speedup is certified. Read
 [the unattended guide](UNATTENDED_NATIVE.md) and
 [queue/verification lifecycle](SHARED_TARGET_FEATURE_QUEUE.md) before deployment.
+
+See [calibration](CALIBRATION.md) for measured admission,
+[quantized capture](specs/quantized-capture.md) for the required native build and
+unrun MLX/native target gates, and [research methods](specs/research-methods.md)
+for ALR/IRA, Osprey, CAST and Redline boundaries. The
+[optional web workspace](WEB_WORKSPACE.md) delegates to these current engine
+interfaces; it is a local source-checkout tool.
 
 ## Owned native teacher services
 

@@ -1,4 +1,5 @@
 """Bounded native research entry point, reusable by the main CLI."""
+
 import argparse
 import json
 
@@ -21,7 +22,9 @@ def main(argv=None):
             parser.error("--config is required unless --sources is selected")
         try:
             config = load_recipe(args.config, args.overrides)
-            result = plan(config, args.config) if args.plan else run(config, args.config)
+            result = (
+                plan(config, args.config) if args.plan else run(config, args.config)
+            )
         except (OSError, ValueError) as error:
             parser.error(str(error))
     print(json.dumps(result, indent=2, allow_nan=False))

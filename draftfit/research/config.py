@@ -1,4 +1,5 @@
 """Strict recipes for the four selectively integrated native research methods."""
+
 from __future__ import annotations
 
 import json
@@ -62,8 +63,14 @@ class RolloutOptions(StrictConfigModel):
 
     @model_validator(mode="after")
     def check(self):
-        if not self.target_layer_ids or self.target_layer_ids != sorted(set(self.target_layer_ids)) or min(self.target_layer_ids) < 0:
-            raise ValueError("target_layer_ids must be distinct ascending nonnegative indices")
+        if (
+            not self.target_layer_ids
+            or self.target_layer_ids != sorted(set(self.target_layer_ids))
+            or min(self.target_layer_ids) < 0
+        ):
+            raise ValueError(
+                "target_layer_ids must be distinct ascending nonnegative indices"
+            )
         if self.max_length <= self.block_size:
             raise ValueError("max_length must exceed block_size")
         return self
@@ -90,7 +97,9 @@ class OspreyModel(StrictConfigModel):
     def check_taps(self):
         taps = self.target_layer_ids
         if len(taps) != 3 or taps != sorted(set(taps)) or min(taps) < 0:
-            raise ValueError("Osprey requires three distinct ascending nonnegative target layer taps")
+            raise ValueError(
+                "Osprey requires three distinct ascending nonnegative target layer taps"
+            )
         return self
 
 
@@ -114,7 +123,10 @@ class RedlineConfig(StrictConfigModel):
     output_dir: str
 
 
-Recipe = Annotated[Union[CastConfig, ALRConfig, OspreyConfig, RedlineConfig], Field(discriminator="method")]
+Recipe = Annotated[
+    Union[CastConfig, ALRConfig, OspreyConfig, RedlineConfig],
+    Field(discriminator="method"),
+]
 ADAPTER = TypeAdapter(Recipe)
 
 
@@ -122,6 +134,7 @@ def load_recipe(path: str, overrides=()):
     with open(path, encoding="utf-8") as handle:
         if Path(path).suffix in {".yml", ".yaml"}:
             import yaml
+
             raw = yaml.safe_load(handle)
         else:
             raw = json.load(handle)
@@ -131,7 +144,8 @@ def load_recipe(path: str, overrides=()):
         if "=" not in value:
             raise ValueError("override must be section.field=value")
         field, text = value.split("=", 1)
-        keys = field.split("."); node = raw
+        keys = field.split(".")
+        node = raw
         for key in keys[:-1]:
             if not isinstance(node.get(key), dict):
                 raise ValueError(f"unknown override {field}")
@@ -139,5 +153,6 @@ def load_recipe(path: str, overrides=()):
         if keys[-1] not in node:
             raise ValueError(f"unknown override {field}")
         import yaml
+
         node[keys[-1]] = yaml.safe_load(text)
     return ADAPTER.validate_python(raw)

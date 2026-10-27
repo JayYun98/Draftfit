@@ -1,4 +1,5 @@
 """Render a small allowlist of existing engine commands, without a shell."""
+
 from __future__ import annotations
 
 import json
@@ -24,23 +25,38 @@ def build_commands(engine, action, *, config_path=None, params=None):
     params = params or {}
     if action in ("plan", "train"):
         if params or config_path is None:
-            raise ValueError("Training uses the saved config without execution overrides.")
-        return [engine.command("train", "-c", config_path,
-                               *(["--plan"] if action == "plan" else []))]
+            raise ValueError(
+                "Training uses the saved config without execution overrides."
+            )
+        return [
+            engine.command(
+                "train", "-c", config_path, *(["--plan"] if action == "plan" else [])
+            )
+        ]
     if action == "validate_tokens":
         if set(params) != {"expected", "actual"}:
-            raise ValueError("Token validation requires expected and actual JSON paths.")
+            raise ValueError(
+                "Token validation requires expected and actual JSON paths."
+            )
         paths = [engine.file(params[key]) for key in ("expected", "actual")]
-        return [engine.command("validate", "tokens", "--expected", paths[0],
-                               "--actual", paths[1])]
+        return [
+            engine.command(
+                "validate", "tokens", "--expected", paths[0], "--actual", paths[1]
+            )
+        ]
     if action in ("unattended_plan", "unattended", "unattended_resume"):
         if set(params) != {"config_path"}:
             raise ValueError("Unattended actions require only config_path.")
         path, _ = unattended_config(engine, params["config_path"])
-        flags = {"unattended_plan": ["--plan"], "unattended": [],
-                 "unattended_resume": ["--resume"]}[action]
+        flags = {
+            "unattended_plan": ["--plan"],
+            "unattended": [],
+            "unattended_resume": ["--resume"],
+        }[action]
         return [engine.command("unattended", "--config", path, *flags)]
-    raise ValueError(f"Unsupported web action: {action}. Use the current engine CLI for other workflows.")
+    raise ValueError(
+        f"Unsupported web action: {action}. Use the current engine CLI for other workflows."
+    )
 
 
 def read_tail(path, limit=256 * 1024):
@@ -65,7 +81,9 @@ def unattended_status(engine, config_path):
     phases = state.get("phases", []) if isinstance(state, dict) else []
     attempts = phases[-1].get("attempts", []) if phases else []
     if attempts:
-        curves = engine.file(str(Path(attempts[-1]) / "learning-curves.jsonl"), required=False)
+        curves = engine.file(
+            str(Path(attempts[-1]) / "learning-curves.jsonl"), required=False
+        )
         if curves.is_file():
             for line in read_tail(curves).splitlines():
                 try:
@@ -74,8 +92,19 @@ def unattended_status(engine, config_path):
                     continue
                 if isinstance(row, dict):
                     rows.append(row)
-    queue = next((r.get("queue") if r.get("kind") == "capture" else r
-                  for r in reversed(rows) if r.get("kind") in ("capture", "queue_closed")), None)
-    return {"config_path": str(path), "output_dir": str(root), "state": state,
-            "events": rows[-500:], "queue": queue,
-            "evidence_scope": "Saved engine observations only; process completion is not a GPU or speedup claim."}
+    queue = next(
+        (
+            r.get("queue") if r.get("kind") == "capture" else r
+            for r in reversed(rows)
+            if r.get("kind") in ("capture", "queue_closed")
+        ),
+        None,
+    )
+    return {
+        "config_path": str(path),
+        "output_dir": str(root),
+        "state": state,
+        "events": rows[-500:],
+        "queue": queue,
+        "evidence_scope": "Saved engine observations only; process completion is not a GPU or speedup claim.",
+    }

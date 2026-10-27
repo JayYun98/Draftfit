@@ -120,7 +120,9 @@ Q/K/V half can receive gradients immediately. Preservation is relative to the
 retained prefix; reducing layer count does not preserve the full source model.
 
 Supported sources are bias-free, dense Qwen3 with default RoPE and Llama with
-default or Llama3 RoPE. Exactly three unique ascending target taps are required.
+default or Llama3 RoPE. Active sliding attention is rejected before conversion;
+only full-attention source layers are supported. Exactly three unique ascending
+target taps are required.
 Optional tokenizer alignment maps exact tokens first, otherwise averages the
 source-token embedding/head rows for the target token's decoded text. Unmapped
 rows remain zero. It rewrites vocabulary buffers and target special token IDs in
@@ -134,12 +136,10 @@ alignment is a conversion operation. The frozen converted embedding is retained
 in every draft checkpoint and HF reload. The architecture names are
 `OspreyQwen3DraftModel` and `OspreyLlamaDraftModel`.
 
-The registered factory receipt uses matching BF16 target/draft/captures and an
-indexed local target checkpoint. The original shared `TargetHead` loader fixed
-its head to BF16 and required an index; dtype-aware and unsharded loading are
-parent-owned integration hooks. Direct model conversion/TTT tests also exercise
-FP32 independently of that loader. Verify capture/head dtype and target format
-through the current shared loader before extending the factory support claim.
+The shared target-head loader follows the configured training dtype, supports
+indexed or a single unsharded local checkpoint, and checks the exact head shape
+before copying. Direct conversion, registered training and HF reload checks use
+tiny local models; they do not establish pretrained-model quality.
 
 The CPU EAGLE3 objective uses the dense differentiable reference. CUDA retains
 the existing fused Triton loss. SDPA conversion, training and HF reload have CPU
@@ -202,8 +202,8 @@ registered cache-to-optimizer updates, Osprey Qwen3/Llama logit preservation,
 TTT target-half gradients, tokenizer remapping/special IDs, complete checkpoint
 HF reload, CAST greedy token parity/caps/EOS and corrected sampling frequency,
 Redline recipe persistence, strict validation and unchanged unrelated resume
-contracts. Local CPU environment: Torch 2.11.0, Transformers 5.8.1, Pydantic
-2.13.4; this is not the locked Linux accelerator environment.
+contracts. Use the pinned environment in [ENVIRONMENT](../ENVIRONMENT.md). CPU
+checks do not substitute for the locked Linux accelerator environment.
 
 `tests.test_research_device` is a three-test handoff for the parent-owned GPU
 check. It defaults to CPU and selects CUDA only with

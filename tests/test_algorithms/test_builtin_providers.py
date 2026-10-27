@@ -22,7 +22,16 @@ from draftfit.algorithms.common.providers import (
 from draftfit.algorithms.contracts import AlgorithmSpec, FeatureMode
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILTINS = ("alr_ira", "dflash", "dflash2", "domino", "dspark", "eagle3", "osprey", "peagle")
+BUILTINS = (
+    "alr_ira",
+    "dflash",
+    "dflash2",
+    "domino",
+    "dspark",
+    "eagle3",
+    "osprey",
+    "peagle",
+)
 
 
 class BuiltinProviderContractTest(unittest.TestCase):
@@ -217,8 +226,13 @@ class BuiltinProviderContractTest(unittest.TestCase):
         }
         models["osprey"] = models["eagle3"]
         models["alr_ira"] = SimpleNamespace(
-            block_size=16, topk=8, hard_label_mix=0.0, tail_bucket=True,
-            loss_decay_gamma=None, mask_token_id=31, attention_backend="sdpa",
+            block_size=16,
+            topk=8,
+            hard_label_mix=0.0,
+            tail_bucket=True,
+            loss_decay_gamma=None,
+            mask_token_id=31,
+            attention_backend="sdpa",
         )
         expected_keys = {
             "eagle3": {
@@ -264,8 +278,11 @@ class BuiltinProviderContractTest(unittest.TestCase):
             key.replace("eagle3_", "osprey_") for key in expected_keys["eagle3"]
         }
         expected_keys["alr_ira"] = {
-            "alr_ira_block_size", "alr_ira_topk", "alr_ira_hard_label_mix",
-            "alr_ira_tail_bucket", "alr_ira_target_layer_ids",
+            "alr_ira_block_size",
+            "alr_ira_topk",
+            "alr_ira_hard_label_mix",
+            "alr_ira_tail_bucket",
+            "alr_ira_target_layer_ids",
         }
 
         for name in BUILTINS:
@@ -277,10 +294,16 @@ class BuiltinProviderContractTest(unittest.TestCase):
                 if name != "alr_ira":
                     # New ALR defaults must not extend another strategy's resume contract.
                     training.alr_topk = 16
-                    training.alr_hard_label_mix = .25
+                    training.alr_hard_label_mix = 0.25
                     training.alr_tail_bucket = False
-                    self.assertEqual(step.resume_contract(config, draft, models[name]), contract)
-                    del training.alr_topk, training.alr_hard_label_mix, training.alr_tail_bucket
+                    self.assertEqual(
+                        step.resume_contract(config, draft, models[name]), contract
+                    )
+                    del (
+                        training.alr_topk,
+                        training.alr_hard_label_mix,
+                        training.alr_tail_bucket,
+                    )
 
     def test_step_runtime_config_binds_options_contract_and_missing_key_policy(self):
         step = self.registry.resolve("eagle3").providers.step

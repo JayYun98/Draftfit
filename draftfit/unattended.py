@@ -21,6 +21,7 @@ from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
 
+from draftfit.training.joint_control import training_fingerprint
 from draftfit.training.joint_policy import _config, _validate, decide, fingerprint
 
 SCHEMA = "draftfit-unattended-v1"
@@ -192,6 +193,7 @@ def load_plan(path):
         "publication",
         "resources",
         "serving",
+        "forecast",
     }
     if set(config) - allowed or config.get("schema") != SCHEMA:
         raise ValueError("invalid unattended schema or unknown fields")
@@ -367,6 +369,45 @@ def load_plan(path):
         resource_config(config, stages)
     if config.get("serving") is not None:
         serving_config(config, stages)
+    if config.get("forecast") is not None:
+        forecast = config["forecast"]
+        required = {
+            "hourly_usd",
+            "overhead_seconds",
+            "safety_factor",
+            "minimum_samples",
+        }
+        bounds = {"checkpoint_seconds", "evaluation_seconds", "verification_seconds"}
+        if (
+            not isinstance(forecast, dict)
+            or not required <= set(forecast) <= required | bounds
+        ):
+            raise ValueError(
+                "forecast requires hourly_usd/overhead_seconds/safety_factor/minimum_samples"
+            )
+        for key in ("hourly_usd", "overhead_seconds", "safety_factor"):
+            value = forecast[key]
+            if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+                raise ValueError("forecast values must be finite and nonnegative")
+        if forecast["hourly_usd"] <= 0 or forecast["safety_factor"] < 1:
+            raise ValueError(
+                "forecast hourly_usd must be positive and safety_factor at least one"
+            )
+        if (
+            type(forecast["minimum_samples"]) is not int
+            or forecast["minimum_samples"] < 1
+        ):
+            raise ValueError("forecast minimum_samples must be positive")
+        for name in bounds & forecast.keys():
+            value = forecast[name]
+            if (
+                type(value) not in (int, float)
+                or not math.isfinite(value)
+                or value <= 0
+            ):
+                raise ValueError(
+                    "forecast operation bounds must be finite and positive"
+                )
     manifest = read(config["manifest"])
     binding = {
         "config": config,
@@ -1004,9 +1045,7 @@ class Controller:
                 family=stage.config.training.strategy,
                 preset=phase["preset"],
                 step=global_step,
-                training_fingerprint=fingerprint(
-                    stage.config.training.model_dump(mode="json")
-                ),
+                training_fingerprint=training_fingerprint(stage.config.training),
                 objective_fingerprint=fingerprint(stage.draft_config.to_dict()),
                 capture_fingerprint=capture,
             )
@@ -1167,6 +1206,50 @@ class Controller:
                 "continue",
             )
         )
+        if self.config.get("forecast") is not None:
+            from draftfit.calibrate import forecast
+            from draftfit.training.campaign_budget import read_joint_profile
+
+            settings = self.config["forecast"]
+            profile = read_joint_profile(
+                Path(checkpoint).parent / "learning-curves.jsonl", through_step=step
+            )
+            budget = self.budget()
+            limits = self.config["policy"]["limits"]
+            training = stages[0].config.training
+            estimate = forecast(
+                profile,
+                current_step=global_step,
+                target_step=self.config["max_steps"],
+                available_seconds=max(0.0, self.config["deadline_unix"] - time.time()),
+                remaining_usd=max(
+                    0.0,
+                    limits["max_usd"]
+                    - limits["reserve_usd"]
+                    - budget["spent_usd"]
+                    - budget.get("reserved_usd", 0),
+                ),
+                checkpoint_interval=training.save_interval,
+                evaluation_interval=training.eval_interval,
+                verification_interval=training.joint_verification.interval,
+                **settings,
+            )
+            # Forecasting is advisory until enough current-attempt samples exist.
+            # Thereafter admit only complete next intervals with recovery reserve.
+            self.state["forecast"] = estimate
+            capacity = estimate["max_feasible_step"]
+            if not stop and estimate.get("reason") == "unmeasured_recurring_cost":
+                stop, reason, branch = True, "forecast_unmeasured_overhead", None
+            elif (
+                not stop
+                and capacity is not None
+                and capacity
+                < min(
+                    self.config["max_steps"],
+                    global_step + self.config["policy"]["next_steps"],
+                )
+            ):
+                stop, reason, branch = True, "forecast_runtime_budget", None
         if not stop and step < phase["steps"] and step >= phase["admitted_until"]:
             if not self.reserve(self.config["policy"]["next_cost_usd"], persist=False):
                 stop, reason = True, "budget_or_deadline"

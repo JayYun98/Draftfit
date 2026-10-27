@@ -1,11 +1,12 @@
 """Tiny synthetic GGUF codec, independent transform, gradient and boundary checks."""
+
 import math
-from pathlib import Path
 import struct
 import sys
 import tempfile
-from types import SimpleNamespace
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import torch
@@ -26,7 +27,8 @@ def _value(typ, value):
     if typ == 9:
         element, items = value
         return struct.pack("<IQ", element, len(items)) + b"".join(
-            _value(element, item) for item in items)
+            _value(element, item) for item in items
+        )
     return struct.pack("<" + {4: "I", 5: "i", 7: "B", 2: "H"}[typ], value)
 
 
@@ -68,26 +70,36 @@ def _fixture(path, *, changes=None, duplicate=None, descriptors=None, alignment=
         for row in range(rows):
             values = []
             for group in range(width // 128):
-                scale = struct.unpack("<e", struct.pack("<e", .0031 * (1 + row + group + table)))[0]
+                scale = struct.unpack(
+                    "<e", struct.pack("<e", 0.0031 * (1 + row + group + table))
+                )[0]
                 raw.extend(struct.pack("<e", scale))
                 for j in range(32):
                     code = (j * 53 + row * 17 + group * 11 + table * 7) % 256
                     raw.append(code)
-                    values.extend([(((code >> shift) & 3) - 1) * scale
-                                   for shift in (0, 2, 4, 6)])
+                    values.extend(
+                        [(((code >> shift) & 3) - 1) * scale for shift in (0, 2, 4, 6)]
+                    )
             dense.append(values)
         data.append(bytes(raw))
         expected.append(torch.tensor(dense, dtype=torch.float16))
     second = (len(data[0]) + alignment - 1) // alignment * alignment
-    desc = descriptors or [("output.weight", (width, rows), 142, 0),
-                           ("token_embd.weight", (width, rows), 142, second)]
+    desc = descriptors or [
+        ("output.weight", (width, rows), 142, 0),
+        ("token_embd.weight", (width, rows), 142, second),
+    ]
     header = b"GGUF" + struct.pack("<IQQ", 3, len(desc), len(entries))
-    header += b"".join(_string(key) + struct.pack("<I", typ) + _value(typ, value)
-                       for key, (typ, value) in entries)
+    header += b"".join(
+        _string(key) + struct.pack("<I", typ) + _value(typ, value)
+        for key, (typ, value) in entries
+    )
     for name, dims, typ, offset in desc:
-        header += (_string(name) + struct.pack("<I", len(dims))
-                   + struct.pack("<" + "Q" * len(dims), *dims)
-                   + struct.pack("<IQ", typ, offset))
+        header += (
+            _string(name)
+            + struct.pack("<I", len(dims))
+            + struct.pack("<" + "Q" * len(dims), *dims)
+            + struct.pack("<IQ", typ, offset)
+        )
     header += b"\0" * (-len(header) % alignment)
     path.write_bytes(header + data[0] + b"\0" * (second - len(data[0])) + data[1])
     return expected, torch.tensor(signs[:width], dtype=torch.float32)
@@ -97,8 +109,9 @@ def _reference_transform(rows, signs, inverse=False):
     # Independent explicit Sylvester matrix, five separate 1024-wide blocks.
     matrix = torch.ones(1, 1)
     while matrix.shape[0] < 1024:
-        matrix = torch.cat((torch.cat((matrix, matrix), 1),
-                            torch.cat((matrix, -matrix), 1)), 0)
+        matrix = torch.cat(
+            (torch.cat((matrix, matrix), 1), torch.cat((matrix, -matrix), 1)), 0
+        )
     matrix /= math.sqrt(1024)
     value = rows.float() if inverse else rows.float() * signs
     value = (value.reshape(-1, 1024) @ matrix).reshape(rows.shape)
@@ -122,19 +135,36 @@ class GGUFPartsTest(unittest.TestCase):
         self.path.rename(upper)
         # Match the existing family provider's kwargs; only device/dtype belong
         # to the explicit local GGUF loader. No HF model/config import is needed.
-        kwargs = dict(embed_key="model.embed_tokens.weight", lm_head_key="lm_head.weight",
-                      revision="caller-owned-identity", cache_dir="unused-local-file",
-                      trust_remote_code=False, device="cpu", dtype=torch.bfloat16)
-        with (patch.object(gguf, "_VOCAB_SIZE", 4),
-              patch.dict(sys.modules, {"draftfit.modeling.target.target_utils": None}),
-              patch.object(gguf, "load_target_parts", wraps=gguf.load_target_parts) as loader):
+        kwargs = dict(
+            embed_key="model.embed_tokens.weight",
+            lm_head_key="lm_head.weight",
+            revision="caller-owned-identity",
+            cache_dir="unused-local-file",
+            trust_remote_code=False,
+            device="cpu",
+            dtype=torch.bfloat16,
+        )
+        with (
+            patch.object(gguf, "_VOCAB_SIZE", 4),
+            patch.dict(sys.modules, {"draftfit.modeling.target.target_utils": None}),
+            patch.object(
+                gguf, "load_target_parts", wraps=gguf.load_target_parts
+            ) as loader,
+        ):
             for embedding_only in (False, True):
                 with self.subTest(embedding_only=embedding_only):
                     parts = quantized_parts.load_target_parts(
-                        upper, embedding_only=embedding_only, **kwargs)
-                    loader.assert_called_with(upper, embedding_only=embedding_only,
-                                              device="cpu", dtype=torch.bfloat16)
-                    self.assertEqual(parts.embed_tokens(torch.tensor([0])).dtype, torch.bfloat16)
+                        upper, embedding_only=embedding_only, **kwargs
+                    )
+                    loader.assert_called_with(
+                        upper,
+                        embedding_only=embedding_only,
+                        device="cpu",
+                        dtype=torch.bfloat16,
+                    )
+                    self.assertEqual(
+                        parts.embed_tokens(torch.tensor([0])).dtype, torch.bfloat16
+                    )
                     self.assertEqual(hasattr(parts, "lm_head"), not embedding_only)
 
     def test_quantized_loader_preserves_nonlocal_and_non_gguf_route(self):
@@ -143,12 +173,18 @@ class GGUFPartsTest(unittest.TestCase):
         non_gguf = self.path.with_suffix(".safetensors")
         non_gguf.touch()
         fallback = Mock(return_value=object())
-        module = SimpleNamespace(TargetEmbeddingsAndHead=SimpleNamespace(from_pretrained=fallback))
-        with (patch.dict(sys.modules, {"draftfit.modeling.target.target_utils": module}),
-              patch.object(gguf, "load_target_parts") as loader):
+        module = SimpleNamespace(
+            TargetEmbeddingsAndHead=SimpleNamespace(from_pretrained=fallback)
+        )
+        with (
+            patch.dict(sys.modules, {"draftfit.modeling.target.target_utils": module}),
+            patch.object(gguf, "load_target_parts") as loader,
+        ):
             for path in (directory, non_gguf, self.path, "owner/model.gguf"):
                 with self.subTest(path=path):
-                    result = quantized_parts.load_target_parts(path, device="cpu", revision="pinned")
+                    result = quantized_parts.load_target_parts(
+                        path, device="cpu", revision="pinned"
+                    )
                     self.assertIs(result, fallback.return_value)
                     fallback.assert_called_with(path, device="cpu", revision="pinned")
             loader.assert_not_called()
@@ -160,7 +196,9 @@ class GGUFPartsTest(unittest.TestCase):
                 quantized_parts.load_target_parts(self.path)
             for key in ("embed_key", "lm_head_key"):
                 with self.subTest(key=key), self.assertRaisesRegex(ValueError, "fixed"):
-                    quantized_parts.load_target_parts(self.path, **{key: "custom.weight"})
+                    quantized_parts.load_target_parts(
+                        self.path, **{key: "custom.weight"}
+                    )
 
     def test_header_and_exact_codec(self):
         expected, _ = _fixture(self.path)
@@ -174,21 +212,28 @@ class GGUFPartsTest(unittest.TestCase):
         self.assertEqual(header.data_offset % 64, 0)
         with self.path.open("rb") as source:
             raw = gguf._read_rows(source, header, "output.weight", 0, 4)
-        torch.testing.assert_close(gguf.dequantize_pq2_rows(raw), expected[0], atol=0, rtol=0)
+        torch.testing.assert_close(
+            gguf.dequantize_pq2_rows(raw), expected[0], atol=0, rtol=0
+        )
         # Fixed byte 0xe4 must yield -1, 0, 1, 2 consecutively, not planes.
-        block = torch.tensor(list(struct.pack("<e", .25)) + [0xe4] * 32,
-                             dtype=torch.uint8).reshape(1, 34)
-        torch.testing.assert_close(gguf.dequantize_pq2_rows(block),
-                                   torch.tensor([[-.25, 0, .25, .5]]).repeat(1, 32).half())
+        block = torch.tensor(
+            list(struct.pack("<e", 0.25)) + [0xE4] * 32, dtype=torch.uint8
+        ).reshape(1, 34)
+        torch.testing.assert_close(
+            gguf.dequantize_pq2_rows(block),
+            torch.tensor([[-0.25, 0, 0.25, 0.5]]).repeat(1, 32).half(),
+        )
 
     def test_independent_head_inverse_embedding_and_gradient(self):
         (head, embedding), signs = _fixture(self.path)
         parts = self.load()
         ids = torch.tensor([[3, 0, 3], [1, 2, 0]])
         expected = _reference_transform(embedding[ids], signs, inverse=True)
-        torch.testing.assert_close(parts.embed_tokens(ids), expected, atol=3e-3, rtol=2e-3)
+        torch.testing.assert_close(
+            parts.embed_tokens(ids), expected, atol=3e-3, rtol=2e-3
+        )
         torch.manual_seed(29)
-        x = (torch.randn(2, 3, 5120) * .1).requires_grad_()
+        x = (torch.randn(2, 3, 5120) * 0.1).requires_grad_()
         ref_x = x.detach().clone().requires_grad_()
         ref_logits = F.linear(_reference_transform(ref_x.half(), signs), head).float()
         logits = parts.lm_head(x)
@@ -200,9 +245,11 @@ class GGUFPartsTest(unittest.TestCase):
         self.assertEqual(list(parts.parameters()), [])
         self.assertFalse(parts.training)
         # A missing/inverted transform must be detectable by this fixture.
-        self.assertGreater((logits - F.linear(x.half(), head).float()).abs().max().item(), .1)
+        self.assertGreater(
+            (logits - F.linear(x.half(), head).float()).abs().max().item(), 0.1
+        )
         wrong = _reference_transform(embedding[ids], signs, inverse=False)
-        self.assertGreater((expected - wrong).abs().max().item(), .1)
+        self.assertGreater((expected - wrong).abs().max().item(), 0.1)
 
     def test_frozen_precision_device_cast_autocast_and_empty_ids(self):
         _fixture(self.path)
@@ -210,7 +257,7 @@ class GGUFPartsTest(unittest.TestCase):
         original = {name: value.clone() for name, value in parts.named_buffers()}
         ids = torch.tensor([1, 3])
         embedding = parts.embed_tokens(ids)
-        x = torch.linspace(-.1, .2, 5120).reshape(1, -1)
+        x = torch.linspace(-0.1, 0.2, 5120).reshape(1, -1)
         logits = parts.lm_head(x)
         for dtype in (torch.bfloat16, torch.float32, torch.float16):
             parts.to(device="cpu", dtype=dtype)
@@ -218,12 +265,15 @@ class GGUFPartsTest(unittest.TestCase):
                 self.assertEqual(value.dtype, original[name].dtype)
                 torch.testing.assert_close(value, original[name], atol=0, rtol=0)
             self.assertEqual(parts.embed_tokens(ids).dtype, dtype)
-            torch.testing.assert_close(parts.embed_tokens(ids), embedding.to(dtype), atol=0, rtol=0)
+            torch.testing.assert_close(
+                parts.embed_tokens(ids), embedding.to(dtype), atol=0, rtol=0
+            )
             with torch.autocast("cpu", dtype=torch.bfloat16):
                 torch.testing.assert_close(parts.lm_head(x), logits, atol=0, rtol=0)
-        self.assertEqual(parts.embed_tokens(torch.empty(2, 0, dtype=torch.long)).shape,
-                         (2, 0, 5120))
-        for ids in (torch.tensor([-1]), torch.tensor([4]), torch.tensor([.1])):
+        self.assertEqual(
+            parts.embed_tokens(torch.empty(2, 0, dtype=torch.long)).shape, (2, 0, 5120)
+        )
+        for ids in (torch.tensor([-1]), torch.tensor([4]), torch.tensor([0.1])):
             with self.assertRaises(ValueError):
                 parts.embed_tokens(ids)
         only = self.load(embedding_only=True)
@@ -261,8 +311,11 @@ class GGUFPartsTest(unittest.TestCase):
                 _fixture(self.path, changes={key: value})
                 with self.assertRaises(ValueError):
                     self.load()
-        for key in ("prism.hadamard.version", "prism.hadamard.sign_values",
-                    "prism.hadamard.inverse_weight_names"):
+        for key in (
+            "prism.hadamard.version",
+            "prism.hadamard.sign_values",
+            "prism.hadamard.inverse_weight_names",
+        ):
             with self.subTest(missing=key):
                 _fixture(self.path, changes={key: None})
                 with self.assertRaises(ValueError):
@@ -274,7 +327,8 @@ class GGUFPartsTest(unittest.TestCase):
     def test_reject_bad_tensor_spans_types_duplicates_and_truncation(self):
         good = ("output.weight", (5120, 4), 142, 0)
         for desc in (
-            [good], [good, good],
+            [good],
+            [good, good],
             [good, ("token_embd.weight", (5120, 4), 142, 0)],
             [good, ("token_embd.weight", (5120, 4), 142, 1 << 60)],
             [good, ("token_embd.weight", (5120, 4), 142, 1)],
@@ -298,40 +352,65 @@ class GGUFPartsTest(unittest.TestCase):
 
     def test_bounded_malformed_header_rejected_before_tensor_allocation(self):
         prefix = b"GGUF" + struct.pack("<IQQ", 3, 1, 1)
-        samples = [b"GGUF" + struct.pack("<IQQ", 2, 1, 1),
-                   b"GGUF" + struct.pack("<IQQ", 3, 1 << 60, 1),
-                   prefix + struct.pack("<Q", 1 << 60),
-                   prefix + _string("x") + struct.pack("<IIQ", 9, 8, 1 << 60),
-                   prefix + _string("x") + struct.pack("<IIQ", 9, 9, 1),
-                   prefix + _string("x") + struct.pack("<IB", 7, 2),
-                   prefix + _string("x") + struct.pack("<I", 99)]
+        samples = [
+            b"GGUF" + struct.pack("<IQQ", 2, 1, 1),
+            b"GGUF" + struct.pack("<IQQ", 3, 1 << 60, 1),
+            prefix + struct.pack("<Q", 1 << 60),
+            prefix + _string("x") + struct.pack("<IIQ", 9, 8, 1 << 60),
+            prefix + _string("x") + struct.pack("<IIQ", 9, 9, 1),
+            prefix + _string("x") + struct.pack("<IB", 7, 2),
+            prefix + _string("x") + struct.pack("<I", 99),
+        ]
         for raw in samples:
             with self.subTest(raw=raw):
                 self.path.write_bytes(raw)
-                with patch.object(torch, "empty", side_effect=AssertionError("allocated")):
+                with patch.object(
+                    torch, "empty", side_effect=AssertionError("allocated")
+                ):
                     with self.assertRaises(ValueError):
                         self.load()
 
     def test_nonfinite_and_fp16_overflow_scales_fail(self):
-        for scale in (math.nan, math.inf, 65504.):
+        for scale in (math.nan, math.inf, 65504.0):
             raw = struct.pack("<e", scale) + bytes([255] * 32)
             with self.subTest(scale=scale), self.assertRaises(ValueError):
-                gguf.dequantize_pq2_rows(torch.tensor(list(raw), dtype=torch.uint8).reshape(1, 34))
+                gguf.dequantize_pq2_rows(
+                    torch.tensor(list(raw), dtype=torch.uint8).reshape(1, 34)
+                )
 
     def test_cpu_numpy_exact_bits_chunk_boundary_strides_and_owned_output(self):
         import numpy as np
 
         # Signed zeros, subnormals, normal boundaries and largest finite values.
-        bits = [0, 0x8000, 1, 0x8001, 0x3ff, 0x83ff, 0x400, 0x8400,
-                0x3555, 0xb555, 0x77ff, 0xf7ff, 0x7800, 0xf800, 0x7bff, 0xfbff]
+        bits = [
+            0,
+            0x8000,
+            1,
+            0x8001,
+            0x3FF,
+            0x83FF,
+            0x400,
+            0x8400,
+            0x3555,
+            0xB555,
+            0x77FF,
+            0xF7FF,
+            0x7800,
+            0xF800,
+            0x7BFF,
+            0xFBFF,
+        ]
         raw = bytearray()
         for row in range(513):
             for group in range(2):
                 scale = bits[(row + group) % len(bits)]
                 raw.extend(struct.pack("<H", scale))
                 # A large scale is valid when the overflowing code 3 is unused.
-                raw.extend(bytes([0x24] * 32) if (scale & 0x7fff) >= 0x7800
-                           else bytes((row * 17 + group * 11 + j) % 256 for j in range(32)))
+                raw.extend(
+                    bytes([0x24] * 32)
+                    if (scale & 0x7FFF) >= 0x7800
+                    else bytes((row * 17 + group * 11 + j) % 256 for j in range(32))
+                )
         packed = torch.frombuffer(raw, dtype=torch.uint8).reshape(513, 68)
         backing = torch.empty(514, 136, dtype=torch.uint8)
         strided = backing[1:, ::2]
@@ -339,8 +418,9 @@ class GGUFPartsTest(unittest.TestCase):
         original = strided.clone()
         reference = gguf._dequantize_pq2_rows_torch(strided)
         actual = gguf._dequantize_pq2_rows_numpy(strided, np)
-        torch.testing.assert_close(actual.view(torch.int16), reference.view(torch.int16),
-                                   atol=0, rtol=0)
+        torch.testing.assert_close(
+            actual.view(torch.int16), reference.view(torch.int16), atol=0, rtol=0
+        )
         self.assertTrue(torch.equal(strided, original))
         saved = actual.clone()
         strided.zero_()
@@ -349,20 +429,34 @@ class GGUFPartsTest(unittest.TestCase):
     def test_cpu_numpy_rejects_same_nonfinite_scales_and_overflow(self):
         import numpy as np
 
-        for scale in (math.nan, math.inf, -math.inf, 32768., -32768., 65504., -65504.):
+        for scale in (
+            math.nan,
+            math.inf,
+            -math.inf,
+            32768.0,
+            -32768.0,
+            65504.0,
+            -65504.0,
+        ):
             raw = bytearray(struct.pack("<e", scale) + bytes([255] * 32))
             packed = torch.frombuffer(raw, dtype=torch.uint8).reshape(1, 34)
-            for decode in (gguf._dequantize_pq2_rows_torch,
-                           lambda p: gguf._dequantize_pq2_rows_numpy(p, np)):
-                with self.subTest(scale=scale, decode=decode), self.assertRaises(ValueError):
+            for decode in (
+                gguf._dequantize_pq2_rows_torch,
+                lambda p: gguf._dequantize_pq2_rows_numpy(p, np),
+            ):
+                with (
+                    self.subTest(scale=scale, decode=decode),
+                    self.assertRaises(ValueError),
+                ):
                     decode(packed)
 
     def test_cpu_dispatch_fallback_and_accelerator_route(self):
-        raw = bytearray(struct.pack("<e", .25) + bytes([0xe4] * 32))
+        raw = bytearray(struct.pack("<e", 0.25) + bytes([0xE4] * 32))
         packed = torch.frombuffer(raw, dtype=torch.uint8).reshape(1, 34)
         expected = gguf._dequantize_pq2_rows_torch(packed)
-        with patch.object(gguf, "_dequantize_pq2_rows_numpy",
-                          wraps=gguf._dequantize_pq2_rows_numpy) as numpy_decode:
+        with patch.object(
+            gguf, "_dequantize_pq2_rows_numpy", wraps=gguf._dequantize_pq2_rows_numpy
+        ) as numpy_decode:
             self.assertTrue(torch.equal(gguf.dequantize_pq2_rows(packed), expected))
             self.assertEqual(numpy_decode.call_count, 1)
             with patch.object(torch, "get_num_threads", return_value=4):
@@ -375,8 +469,12 @@ class GGUFPartsTest(unittest.TestCase):
             self.assertTrue(torch.equal(gguf.dequantize_pq2_rows(packed), expected))
         # Dispatch evidence only: no GPU execution is needed for this assertion.
         noncpu = torch.empty(1, 34, dtype=torch.uint8, device="meta")
-        with (patch.object(gguf, "_dequantize_pq2_rows_numpy") as numpy_decode,
-              patch.object(gguf, "_dequantize_pq2_rows_torch", return_value=expected) as decode):
+        with (
+            patch.object(gguf, "_dequantize_pq2_rows_numpy") as numpy_decode,
+            patch.object(
+                gguf, "_dequantize_pq2_rows_torch", return_value=expected
+            ) as decode,
+        ):
             self.assertIs(gguf.dequantize_pq2_rows(noncpu), expected)
             decode.assert_called_once_with(noncpu)
             numpy_decode.assert_not_called()
@@ -388,16 +486,22 @@ class GGUFPartsTest(unittest.TestCase):
         reference = self.load()
         # Exercise the bounded NumPy codec through the real tiny loader as
         # well; production batches deliberately retain the faster Torch route.
-        with patch.object(gguf, "dequantize_pq2_rows",
-                          side_effect=lambda p: gguf._dequantize_pq2_rows_numpy(p, np)) as decode:
+        with patch.object(
+            gguf,
+            "dequantize_pq2_rows",
+            side_effect=lambda p: gguf._dequantize_pq2_rows_numpy(p, np),
+        ) as decode:
             actual = self.load()
             ids = torch.tensor([3, 1, 0])
-            torch.testing.assert_close(actual.embed_tokens(ids), reference.embed_tokens(ids),
-                                       atol=0, rtol=0)
+            torch.testing.assert_close(
+                actual.embed_tokens(ids), reference.embed_tokens(ids), atol=0, rtol=0
+            )
             self.assertGreaterEqual(decode.call_count, 3)
         for name, value in actual.named_buffers():
-            torch.testing.assert_close(value, dict(reference.named_buffers())[name], atol=0, rtol=0)
-        x = torch.linspace(-.1, .2, 5120).reshape(1, -1).requires_grad_()
+            torch.testing.assert_close(
+                value, dict(reference.named_buffers())[name], atol=0, rtol=0
+            )
+        x = torch.linspace(-0.1, 0.2, 5120).reshape(1, -1).requires_grad_()
         y = x.detach().clone().requires_grad_()
         logits, ref_logits = actual.lm_head(x), reference.lm_head(y)
         torch.testing.assert_close(logits, ref_logits, atol=0, rtol=0)

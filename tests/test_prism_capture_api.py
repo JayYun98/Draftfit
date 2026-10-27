@@ -2,19 +2,18 @@
 
 import ctypes
 import hashlib
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import threading
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import torch
 
-from draftfit.offline_capture.prism_gguf import OfflinePrismGGUFCapture, PRISM_REVISION
+from draftfit.offline_capture.prism_gguf import PRISM_REVISION, OfflinePrismGGUFCapture
 from tests.test_gguf_parts import _fixture
-
 
 # Execute the actual bridge's validation/parameter routing without a Prism build.
 # Native numerical capture remains a separate real-runtime gate.
@@ -87,23 +86,47 @@ class PrismNativeParametersTest(unittest.TestCase):
     def setUpClass(cls):
         compiler = shutil.which("c++")
         if not compiler:
-            raise unittest.SkipTest("C++ compiler unavailable for fake-native bridge test")
+            raise unittest.SkipTest(
+                "C++ compiler unavailable for fake-native bridge test"
+            )
         directory = tempfile.TemporaryDirectory(prefix="prism-native-api-")
         cls.addClassCleanup(directory.cleanup)
         root = Path(directory.name)
         (root / "llama.h").write_text(_FAKE_LLAMA)
         for name in ("llama-ext.h", "ggml-backend.h"):
             (root / name).write_text("")
-        bridge = Path(__file__).resolve().parents[1] / "benchmarks/native/prism_capture_bridge.cpp"
+        bridge = (
+            Path(__file__).resolve().parents[1]
+            / "benchmarks/native/prism_capture_bridge.cpp"
+        )
         library = root / "bridge.so"
-        result = subprocess.run([compiler, "-std=c++17", "-shared", "-fPIC", "-I", str(root),
-                                 str(bridge), "-o", str(library)],
-                                capture_output=True, text=True, timeout=60)
+        result = subprocess.run(
+            [
+                compiler,
+                "-std=c++17",
+                "-shared",
+                "-fPIC",
+                "-I",
+                str(root),
+                str(bridge),
+                "-o",
+                str(library),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
         if result.returncode:
             raise AssertionError(result.stdout + result.stderr)
         cls.lib = ctypes.CDLL(str(library))
-        cls.lib.draftfit_prism_open.argtypes = [ctypes.c_char_p, ctypes.c_void_p,
-                                               ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+        cls.lib.draftfit_prism_open.argtypes = [
+            ctypes.c_char_p,
+            ctypes.c_void_p,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+        ]
         cls.lib.draftfit_prism_open.restype = ctypes.c_void_p
         cls.lib.draftfit_prism_error.restype = ctypes.c_char_p
         cls.lib.prism_test_observed.argtypes = [ctypes.c_int]
@@ -113,7 +136,9 @@ class PrismNativeParametersTest(unittest.TestCase):
         taps = (ctypes.c_int32 * 2)(1, 5)
         observed = self.lib.prism_test_observed
         loads = observed(0)
-        self.assertIsNone(self.lib.draftfit_prism_open(b"fixture.gguf", taps, 2, 63, 32, 0))
+        self.assertIsNone(
+            self.lib.draftfit_prism_open(b"fixture.gguf", taps, 2, 63, 32, 0)
+        )
         self.assertEqual(observed(0), loads, "reject before native model loading")
 
     def test_context_floor_and_cpu_gpu_offload_routing(self):
@@ -122,8 +147,12 @@ class PrismNativeParametersTest(unittest.TestCase):
         loads = observed(0)
         for gpu in (0, 1):
             with self.subTest(gpu=gpu):
-                self.assertIsNone(self.lib.draftfit_prism_open(b"fixture.gguf", taps, 2, 64, 32, gpu))
-                self.assertIn(b"context creation failed", self.lib.draftfit_prism_error())
+                self.assertIsNone(
+                    self.lib.draftfit_prism_open(b"fixture.gguf", taps, 2, 64, 32, gpu)
+                )
+                self.assertIn(
+                    b"context creation failed", self.lib.draftfit_prism_error()
+                )
                 self.assertEqual(observed(0), loads + gpu + 1)
                 self.assertEqual((observed(1), observed(2)), (gpu, gpu))
                 self.assertEqual((observed(3), observed(4), observed(6)), (64, 64, 64))
@@ -152,31 +181,44 @@ class PrismCaptureAPITest(unittest.TestCase):
         self.lib.draftfit_prism_geometry.side_effect = geometry
 
     def source(self, **kwargs):
-        with (patch("draftfit.offline_capture.prism_gguf.ctypes.CDLL", return_value=self.lib),
-              patch("draftfit.modeling.target.gguf_parts._VOCAB_SIZE", 4)):
-            result = OfflinePrismGGUFCapture(self.gguf, bridge_path=self.bridge,
-                                            expected_sha256=self.sha, **kwargs)
+        with (
+            patch(
+                "draftfit.offline_capture.prism_gguf.ctypes.CDLL", return_value=self.lib
+            ),
+            patch("draftfit.modeling.target.gguf_parts._VOCAB_SIZE", 4),
+        ):
+            result = OfflinePrismGGUFCapture(
+                self.gguf, bridge_path=self.bridge, expected_sha256=self.sha, **kwargs
+            )
         self.addCleanup(result.close)
         return result
 
     def test_context_63_rejected_before_library_load_and_64_accepted(self):
-        with (patch("draftfit.offline_capture.prism_gguf.ctypes.CDLL") as load,
-              patch("draftfit.modeling.target.gguf_parts._VOCAB_SIZE", 4)):
+        with (
+            patch("draftfit.offline_capture.prism_gguf.ctypes.CDLL") as load,
+            patch("draftfit.modeling.target.gguf_parts._VOCAB_SIZE", 4),
+        ):
             with self.assertRaisesRegex(ValueError, "context"):
-                OfflinePrismGGUFCapture(self.gguf, bridge_path=self.bridge,
-                                        expected_sha256=self.sha, context_size=63)
+                OfflinePrismGGUFCapture(
+                    self.gguf,
+                    bridge_path=self.bridge,
+                    expected_sha256=self.sha,
+                    context_size=63,
+                )
             load.assert_not_called()
         self.assertEqual(self.source(context_size=64).context_size, 64)
 
     def test_sha_revision_and_profile_fail_before_native_model_open(self):
         with patch("draftfit.offline_capture.prism_gguf.ctypes.CDLL") as load:
             with self.assertRaisesRegex(ValueError, "SHA256"):
-                OfflinePrismGGUFCapture(self.gguf, bridge_path=self.bridge,
-                                        expected_sha256="0" * 64)
+                OfflinePrismGGUFCapture(
+                    self.gguf, bridge_path=self.bridge, expected_sha256="0" * 64
+                )
             # The miniature vocabulary is rejected by the unmodified production profile.
             with self.assertRaisesRegex(ValueError, "tokenizer.ggml.tokens"):
-                OfflinePrismGGUFCapture(self.gguf, bridge_path=self.bridge,
-                                        expected_sha256=self.sha)
+                OfflinePrismGGUFCapture(
+                    self.gguf, bridge_path=self.bridge, expected_sha256=self.sha
+                )
             load.assert_not_called()
         self.lib.draftfit_prism_revision.return_value = b"wrong-build"
         with self.assertRaisesRegex(ValueError, "revision"):
@@ -199,10 +241,12 @@ class PrismCaptureAPITest(unittest.TestCase):
     def test_geometry_mismatch_closes_failed_native_handle(self):
         source = self.source(context_size=64)
         source.set_capture_layers([1, 5])
+
         def wrong_geometry(handle, address):
             output = (ctypes.c_int32 * 3).from_address(address)
             output[:] = (5120, 4, 63)
             return 0
+
         self.lib.draftfit_prism_geometry.side_effect = wrong_geometry
         with source._lock, self.assertRaisesRegex(ValueError, "geometry"):
             source._open()
@@ -215,19 +259,28 @@ class PrismCaptureAPITest(unittest.TestCase):
             with self.subTest(taps=taps), self.assertRaises(ValueError):
                 source.set_capture_layers(taps)
         source.set_capture_layers([1])
-        for ids, attn, loss in (([[4]], [[1]], [[1]]),
-                                ([[-1]], [[1]], [[1]]),
-                                ([[1, 2, 3]], [[1, 0, 1]], [[1, 0, 1]]),
-                                ([[1, 2]], [[1, 0]], [[1, 1]]),
-                                ([[1]], [[2]], [[1]])):
+        for ids, attn, loss in (
+            ([[4]], [[1]], [[1]]),
+            ([[-1]], [[1]], [[1]]),
+            ([[1, 2, 3]], [[1, 0, 1]], [[1, 0, 1]]),
+            ([[1, 2]], [[1, 0]], [[1, 1]]),
+            ([[1]], [[2]], [[1]]),
+        ):
             with self.subTest(ids=ids, attn=attn), self.assertRaises(ValueError):
-                source.capture(input_ids=torch.tensor(ids), attention_mask=torch.tensor(attn),
-                               loss_mask=torch.tensor(loss))
+                source.capture(
+                    input_ids=torch.tensor(ids),
+                    attention_mask=torch.tensor(attn),
+                    loss_mask=torch.tensor(loss),
+                )
         self.lib.draftfit_prism_open.assert_not_called()
+
         def overflow(handle, tokens, count, aux, hidden, logits):
-            (ctypes.c_float * (count * 5120)).from_address(aux)[:] = [70000.0] * (count * 5120)
+            (ctypes.c_float * (count * 5120)).from_address(aux)[:] = [70000.0] * (
+                count * 5120
+            )
             ctypes.memset(hidden, 0, count * 5120 * 4)
             return 0
+
         self.lib.draftfit_prism_capture.side_effect = overflow
         ids = torch.ones(1, 1, dtype=torch.long)
         with self.assertRaisesRegex(ValueError, "overflow"):
@@ -320,7 +373,9 @@ class PrismCaptureAPITest(unittest.TestCase):
         def capture():
             try:
                 ids = torch.ones(1, 1, dtype=torch.int64)
-                results.append(source.capture(input_ids=ids, attention_mask=ids, loss_mask=ids))
+                results.append(
+                    source.capture(input_ids=ids, attention_mask=ids, loss_mask=ids)
+                )
             except Exception as error:
                 errors.append(error)
 

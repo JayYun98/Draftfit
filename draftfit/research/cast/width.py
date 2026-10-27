@@ -62,7 +62,11 @@ class WidthPrediction:
     trace: list = field(repr=False, default_factory=list)
 
     def __str__(self):
-        where = f"stops at N={self.n_stop}" if self.crossed else "does not stop inside the mass curve"
+        where = (
+            f"stops at N={self.n_stop}"
+            if self.crossed
+            else "does not stop inside the mass curve"
+        )
         return f"c1 = {self.c1:.4f} ms per packed token, the rule {where}, N* = {self.n_star}"
 
 
@@ -75,7 +79,9 @@ def predict_width(n, ms, rho=None, draft_ms=0.0, grid=GRID, lo=16, hi=128):
     c0, c1 = fit_cost(n, ms, lo, hi)
     rho = GSM8K_MASSES if rho is None else rho
     n_stop, trace = stopping_width(rho, draft_ms, c0, c1)
-    return WidthPrediction(c0, c1, n_stop, deploy_width(n_stop, grid), n_stop < len(rho), trace)
+    return WidthPrediction(
+        c0, c1, n_stop, deploy_width(n_stop, grid), n_stop < len(rho), trace
+    )
 
 
 def prefix_masses(top_lp, n_max=128, k=8):

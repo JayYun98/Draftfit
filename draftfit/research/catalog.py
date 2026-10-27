@@ -9,6 +9,12 @@ SOURCES = {
 
 
 def source_catalog():
-    return [{"project": name, "url": "https://github.com/" + repo,
-             "revision": revision, "integration": "native"}
-            for name, (repo, revision) in SOURCES.items()]
+    return [
+        {
+            "project": name,
+            "url": "https://github.com/" + repo,
+            "revision": revision,
+            "integration": "native",
+        }
+        for name, (repo, revision) in SOURCES.items()
+    ]

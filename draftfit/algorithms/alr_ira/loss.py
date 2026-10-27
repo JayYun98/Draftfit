@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # ALR-IRA fa473642; Copyright (c) 2026 Jungseob Lee.
 from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

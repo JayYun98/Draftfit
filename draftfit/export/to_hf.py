@@ -35,6 +35,21 @@ from draftfit.export.checkpoint_io import (
 
 def _load_embedding_tensor(source: str, key: str) -> torch.Tensor:
     """Read one target embedding without materializing the target lm_head."""
+    from pathlib import Path
+
+    local = Path(source).expanduser()
+    packed = local.is_file() and local.suffix.lower() == ".gguf"
+    if local.is_dir() and (local / "config.json").is_file():
+        config = json.loads((local / "config.json").read_text(encoding="utf-8"))
+        packed = config.get("model_type") == "prism_hadamard_qwen35"
+    if packed:
+        if key != "model.embed_tokens.weight":
+            raise ValueError(
+                "quantized embedding export requires the canonical embedding key"
+            )
+        from draftfit.modeling.target.quantized_parts import export_embedding
+
+        return export_embedding(local)
     root = source if os.path.exists(source) else snapshot_download(repo_id=source)
     index_paths = glob.glob(os.path.join(root, "*.index.json"))
     if len(index_paths) > 1:

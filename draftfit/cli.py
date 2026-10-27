@@ -185,12 +185,24 @@ def main(argv: Optional[List[str]] = None) -> int:
         from draftfit.offline_capture.prepare import main as capture_main
 
         return capture_main(argv[1:]) or 0
+    if argv[:1] == ["calibrate"]:
+        from draftfit.calibrate import main as calibrate_main
+
+        return calibrate_main(argv[1:]) or 0
+    if argv[:1] == ["research"]:
+        from draftfit.research.__main__ import main as research_main
+
+        return research_main(argv[1:]) or 0
     if len(argv) >= 2 and argv[0] == "data" and argv[1] in data_tools:
         module = import_module(f"draftfit.data.{data_tools[argv[1]]}")
         return module.main(argv[2:]) or 0
     parser = argparse.ArgumentParser(prog="draftfit")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("capture", help="capture offline teacher features")
+    sub.add_parser(
+        "calibrate", help="measure batch candidates and forecast training cost"
+    )
+    sub.add_parser("research", help="plan and run opt-in research recipes")
     train = sub.add_parser("train", help="train a draft model from a typed config")
     train.add_argument("-c", "--config", required=True, help="YAML or JSON run config")
     train.add_argument(
@@ -469,6 +481,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             "Measure throughput and optional speculative-decoding telemetry from "
             "a running SGLang server."
         ),
+    )
+    benchmark.add_argument(
+        "--runtime-json", help="operator-recorded immutable model and runtime identity"
     )
     benchmark.add_argument("--model", required=True)
     benchmark_source = benchmark.add_mutually_exclusive_group(required=True)

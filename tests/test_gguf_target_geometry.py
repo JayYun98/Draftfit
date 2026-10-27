@@ -1,4 +1,5 @@
 """Real GGUF descriptors must reach bundle assembly without HF/JSON loading."""
+
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,12 +15,22 @@ class GGUFGeometryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "target.gguf"
             _fixture(path)
-            with (patch.object(gguf_parts, "_VOCAB_SIZE", 4),
-                  patch("draftfit.modeling.target.target_utils.AutoConfig.from_pretrained",
-                        side_effect=AssertionError("GGUF passed to Transformers"))):
+            with (
+                patch.object(gguf_parts, "_VOCAB_SIZE", 4),
+                patch(
+                    "draftfit.modeling.target.target_utils.AutoConfig.from_pretrained",
+                    side_effect=AssertionError("GGUF passed to Transformers"),
+                ),
+            ):
                 config = load_target_config(str(path), revision="pinned-native-target")
-            self.assertEqual((config.hidden_size, target_vocab_size(config),
-                              config.num_hidden_layers), (5120, 4, 64))
+            self.assertEqual(
+                (
+                    config.hidden_size,
+                    target_vocab_size(config),
+                    config.num_hidden_layers,
+                ),
+                (5120, 4, 64),
+            )
             self.assertEqual(config.model_type, "prism_gguf_qwen35")
             self.assertFalse(config.tie_word_embeddings)
 
@@ -27,7 +38,9 @@ class GGUFGeometryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "target.gguf"
             path.write_bytes(b"not a GGUF")
-            with patch("draftfit.modeling.target.target_utils.AutoConfig.from_pretrained") as hf:
+            with patch(
+                "draftfit.modeling.target.target_utils.AutoConfig.from_pretrained"
+            ) as hf:
                 with self.assertRaises(ValueError):
                     load_target_config(str(path))
                 hf.assert_not_called()

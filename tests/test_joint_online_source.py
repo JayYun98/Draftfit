@@ -114,6 +114,7 @@ class JointOnlineSourceTest(unittest.TestCase):
         self.stage = NS(
             config=NS(
                 model=NS(
+                    target_backend="transformers",
                     target_model_path=self.models["qwen"],
                     target_revision=None,
                     torch_dtype="float32",

@@ -93,6 +93,17 @@ def _semantic_fingerprint(
         # Serialization policy does not change training or exact resume identity.
         cfg["training"].pop("joint_emit_arm_checkpoints", None)
         cfg["model"].pop("draft_model_config", None)
+        if cfg["training"].get("strategy") != "alr_ira":
+            for field in ("alr_topk", "alr_hard_label_mix", "alr_tail_bucket"):
+                cfg["training"].pop(field, None)
+        if cfg["model"].get("target_backend") != "prism_gguf":
+            for field in (
+                "prism_capture_bridge",
+                "target_gguf_sha256",
+                "gguf_context_size",
+                "gguf_chunk_size",
+            ):
+                cfg["model"].pop(field, None)
         cfg["training"].pop("resume_from", None)
         verification = cfg["training"].get("joint_verification")
         if verification and not verification.get("existing_drafts"):
@@ -135,7 +146,7 @@ def _semantic_fingerprint(
     if online_source is not None:
         sources = online_source.fingerprint_sources()
         if fixed_only:
-            sources = {"eval": sources["eval"]}
+            sources = {name: info for name, info in sources.items() if name != "train"}
     for path in (
         ()
         if online_source is not None
@@ -274,6 +285,10 @@ def validate_joint_family(stages: list[FamilyStage]) -> None:
             "embedding_key",
             "lm_head_key",
             "target_backend",
+            "prism_capture_bridge",
+            "target_gguf_sha256",
+            "gguf_context_size",
+            "gguf_chunk_size",
             "trust_remote_code",
             "hf_attn_implementation",
             "target_layer_ids",
@@ -617,6 +632,7 @@ def run_joint_family(
     data_phase=0,
     milestone_observer=None,
     milestone_runtime=False,
+    probe_steps=None,
 ) -> dict:
     """Train all arms from one shared batch stream and one optimizer.
 
@@ -625,6 +641,17 @@ def run_joint_family(
     Opt-in milestone_runtime supplies a bounded observer with a model-memory
     handoff factory. The default resident native verification is unchanged.
     """
+    if probe_steps is not None and (
+        type(probe_steps) is not int
+        or probe_steps < 2
+        or resume_from is not None
+        or milestone_observer is not None
+        or data_phase
+        or stop_at_step is not None
+    ):
+        raise ValueError(
+            "calibration needs at least two fresh updates without resume or observers"
+        )
     if type(milestone_runtime) is not bool or (
         milestone_runtime and milestone_observer is None
     ):
@@ -787,6 +814,21 @@ def run_joint_family(
             lr_scheduler=t.lr_scheduler,
             offload_master=t.optimizer_cpu_offload,
         )
+        if probe_steps is not None:
+            from draftfit.training.hardware_tuning import probe_training
+
+            return probe_training(
+                torch,
+                training_loader,
+                stages,
+                strategies,
+                bundles,
+                optimizer,
+                _backward_window,
+                steps=probe_steps,
+                deadline=deadline_unix,
+                consume=online_source.consume if online_source is not None else None,
+            )
         from draftfit.algorithms.common.providers import MODEL_PROVENANCE_CONTRACT_KEY
 
         provenance = dict(
@@ -1559,7 +1601,7 @@ def run_joint_family(
 
     finally:
         if online_source is not None:
-            online_source.close_queues()
+            online_source.close()
 
 
 __all__ = ["validate_joint_family", "run_joint_family"]

@@ -14,9 +14,9 @@ import numpy as np
 @dataclass
 class TreeNode:
     token: int
-    depth: int      # offset from the pending root, 1..L
-    parent: int     # index into the node list, -1 = root
-    score: float    # path log-probability under the drafter marginals
+    depth: int  # offset from the pending root, 1..L
+    parent: int  # index into the node list, -1 = root
+    score: float  # path log-probability under the drafter marginals
 
 
 def block_topk(logits, k=8):
@@ -53,8 +53,10 @@ def build_tree(top_idx, top_lp, budget, k=8):
 
 def build_chain(top_idx, top_lp, length):
     """Rank-0 path of the given length, i.e. the standard DFlash block."""
-    return [TreeNode(int(top_idx[d - 1, 0]), d, d - 2, float(top_lp[:d, 0].sum()))
-            for d in range(1, length + 1)]
+    return [
+        TreeNode(int(top_idx[d - 1, 0]), d, d - 2, float(top_lp[:d, 0].sum()))
+        for d in range(1, length + 1)
+    ]
 
 
 def expected_accepted_length(nodes):
@@ -68,7 +70,9 @@ def select_global_topk(trees, total):
     A child never scores above its parent, so taking the top `total` nodes of
     the pooled forest keeps every tree prefix-closed.
     """
-    pool = [(nd.score, b, j) for b, nodes in enumerate(trees) for j, nd in enumerate(nodes)]
+    pool = [
+        (nd.score, b, j) for b, nodes in enumerate(trees) for j, nd in enumerate(nodes)
+    ]
     pool.sort(key=lambda t: (-t[0], t[1], t[2]))
     keep = [set() for _ in trees]
     for _, b, j in pool[:total]:
@@ -79,8 +83,17 @@ def select_global_topk(trees, total):
         remap = {-1: -1}
         for new, old in enumerate(kept):
             remap[old] = new
-        out.append([TreeNode(nodes[i].token, nodes[i].depth, remap.get(nodes[i].parent, -1),
-                             nodes[i].score) for i in kept])
+        out.append(
+            [
+                TreeNode(
+                    nodes[i].token,
+                    nodes[i].depth,
+                    remap.get(nodes[i].parent, -1),
+                    nodes[i].score,
+                )
+                for i in kept
+            ]
+        )
     return out
 
 

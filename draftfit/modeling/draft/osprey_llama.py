@@ -1,6 +1,8 @@
 """Llama-source Osprey backbones reuse the shared attention/TTT stack without Q/K norms."""
+
 import torch.nn as nn
 from transformers import LlamaConfig
+
 from .osprey_qwen3 import OspreyQwen3DraftModel
 from .registry import register_draft
 

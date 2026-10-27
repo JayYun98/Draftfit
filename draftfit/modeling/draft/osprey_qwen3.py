@@ -293,7 +293,9 @@ class Qwen3Attention(nn.Module):
         scaling type is rejected rather than silently ignored.
         """
         rope_scaling = getattr(self.config, "rope_scaling", None)
-        base = (getattr(self.config, "rope_parameters", None) or {}).get("rope_theta", getattr(self.config, "rope_theta", 10000))
+        base = (getattr(self.config, "rope_parameters", None) or {}).get(
+            "rope_theta", getattr(self.config, "rope_theta", 10000)
+        )
         if rope_scaling is None:
             self.rotary_emb = Qwen3RotaryEmbedding(
                 self.head_dim,
@@ -820,10 +822,16 @@ class OspreyQwen3DraftModel(Eagle3DraftModel):
         return loaded
 
     def __init__(self, config, quant_config=None, attention_backend="sdpa") -> None:
-        rope_type = (getattr(config, "rope_parameters", None) or {}).get("rope_type", "default")
-        supported = {"default", "llama3"} if config.model_type == "llama" else {"default"}
+        rope_type = (getattr(config, "rope_parameters", None) or {}).get(
+            "rope_type", "default"
+        )
+        supported = (
+            {"default", "llama3"} if config.model_type == "llama" else {"default"}
+        )
         if rope_type not in supported:
-            raise ValueError("Osprey source RoPE must be default or Llama3 scaling on a Llama backbone")
+            raise ValueError(
+                "Osprey source RoPE must be default or Llama3 scaling on a Llama backbone"
+            )
         super().__init__(config)
         self.config = config
         self.quant_config = quant_config

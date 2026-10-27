@@ -14,14 +14,15 @@ The caller owns immutable file identity and provenance; parsing verifies neither
 SHA nor authenticity. No remote paths, repository model code, or capture bridge
 are loaded. Only the two frozen readout modules are constructed.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
 import os
-from pathlib import Path
 import struct
 import sys
+from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 from torch import nn
@@ -29,26 +30,52 @@ from torch.nn import functional as F
 
 from .quantized_parts import FrozenPacked, hadamard
 
-
 _VOCAB_SIZE = 248320
 _HIDDEN_SIZE = 5120
 _SIGN_WIDTHS = [5120, 6144, 17408]
 _PREFIX = "prism.hadamard."
-_SCALARS = {0: "B", 1: "b", 2: "H", 3: "h", 4: "I", 5: "i",
-            6: "f", 7: "B", 10: "Q", 11: "q", 12: "d"}
+_SCALARS = {
+    0: "B",
+    1: "b",
+    2: "H",
+    3: "h",
+    4: "I",
+    5: "i",
+    6: "f",
+    7: "B",
+    10: "Q",
+    11: "q",
+    12: "d",
+}
 _META_TYPES = {
-    "general.architecture": 8, "general.alignment": 4, "split.count": 2,
-    "qwen35.embedding_length": 4, "qwen35.vocab_size": 4, "qwen35.block_count": 4,
+    "general.architecture": 8,
+    "general.alignment": 4,
+    "split.count": 2,
+    "qwen35.embedding_length": 4,
+    "qwen35.vocab_size": 4,
+    "qwen35.block_count": 4,
     "qwen35.tie_word_embeddings": 7,
-    "tokenizer.ggml.tokens": (9, 8), "tokenizer.ggml.merges": (9, 8),
-    "tokenizer.ggml.eos_token_id": 4, "tokenizer.ggml.bos_token_id": 4,
+    "tokenizer.ggml.tokens": (9, 8),
+    "tokenizer.ggml.merges": (9, 8),
+    "tokenizer.ggml.eos_token_id": 4,
+    "tokenizer.ggml.bos_token_id": 4,
     "tokenizer.ggml.padding_token_id": 4,
-    **{_PREFIX + key: typ for key, typ in {
-        "version": 4, "block_size": 4, "transform": 8, "axis": 8,
-        "sign_mode": 8, "weight_names": (9, 8), "sign_widths": (9, 5),
-        "sign_values": (9, 5), "inverse_weight_names": (9, 8),
-        "tied_output": 7, "gdn_v_grouped": 7,
-    }.items()},
+    **{
+        _PREFIX + key: typ
+        for key, typ in {
+            "version": 4,
+            "block_size": 4,
+            "transform": 8,
+            "axis": 8,
+            "sign_mode": 8,
+            "weight_names": (9, 8),
+            "sign_widths": (9, 5),
+            "sign_values": (9, 5),
+            "inverse_weight_names": (9, 8),
+            "tied_output": 7,
+            "gdn_v_grouped": 7,
+        }.items()
+    },
 }
 # Only storage layouts needed by this pinned family; unknown tensor types fail.
 _STORAGE = {0: (1, 4), 1: (1, 2), 30: (1, 2), 142: (128, 34), 143: (128, 28)}
@@ -205,12 +232,15 @@ def read_gguf_metadata(model_path, *, include_tokenizer=False):
 def _validate_bonsai(header):
     meta = header.metadata
     required = {
-        "general.architecture": "qwen35", "qwen35.embedding_length": _HIDDEN_SIZE,
+        "general.architecture": "qwen35",
+        "qwen35.embedding_length": _HIDDEN_SIZE,
         "qwen35.block_count": 64,
         "tokenizer.ggml.tokens": _VOCAB_SIZE,
-        _PREFIX + "version": 1, _PREFIX + "block_size": 1024,
+        _PREFIX + "version": 1,
+        _PREFIX + "block_size": 1024,
         _PREFIX + "transform": "normalized-sylvester-walsh-hadamard",
-        _PREFIX + "axis": "input-last-dimension", _PREFIX + "sign_mode": "explicit",
+        _PREFIX + "axis": "input-last-dimension",
+        _PREFIX + "sign_mode": "explicit",
         _PREFIX + "sign_widths": _SIGN_WIDTHS,
         _PREFIX + "gdn_v_grouped": True,
         _PREFIX + "inverse_weight_names": ["token_embd.weight"],
@@ -218,14 +248,21 @@ def _validate_bonsai(header):
     for key, expected in required.items():
         if meta.get(key) != expected:
             raise ValueError(f"unsupported Bonsai metadata: {key}")
-    if (meta.get(_PREFIX + "tied_output", False)
-            or meta.get("qwen35.tie_word_embeddings", False)
-            or meta.get("qwen35.vocab_size", _VOCAB_SIZE) != _VOCAB_SIZE
-            or meta.get("split.count", 1) != 1):
+    if (
+        meta.get(_PREFIX + "tied_output", False)
+        or meta.get("qwen35.tie_word_embeddings", False)
+        or meta.get("qwen35.vocab_size", _VOCAB_SIZE) != _VOCAB_SIZE
+        or meta.get("split.count", 1) != 1
+    ):
         raise ValueError("tied, split or mismatched Bonsai readout is unsupported")
     names = meta.get(_PREFIX + "weight_names", [])
-    if (not names or len(set(names)) != len(names) or "output.weight" not in names
-            or "token_embd.weight" in names or any(n not in header.tensors for n in names)):
+    if (
+        not names
+        or len(set(names)) != len(names)
+        or "output.weight" not in names
+        or "token_embd.weight" in names
+        or any(n not in header.tensors for n in names)
+    ):
         raise ValueError("invalid explicit forward Hadamard weights")
     values = meta.get(_PREFIX + "sign_values", [])
     if len(values) != sum(_SIGN_WIDTHS) or any(v not in (-1, 1) for v in values):
@@ -268,7 +305,7 @@ def _dequantize_pq2_rows_numpy(packed, np):
     dense = np.empty((rows, groups * 128), dtype=np.float16)
     shifts = np.array([0, 2, 4, 6], dtype=np.uint8)
     for start in range(0, rows, 512):
-        blocks = packed[start:start + 512].numpy().reshape(-1, groups, 34)
+        blocks = packed[start : start + 512].numpy().reshape(-1, groups, 34)
         scales = blocks[..., :2].copy().view("<f2").astype(np.float32)
         if not np.isfinite(scales).all():
             raise ValueError("non-finite PQ2_0 scale")
@@ -280,7 +317,7 @@ def _dequantize_pq2_rows_numpy(packed, np):
             chunk = values.reshape(len(blocks), groups * 128).astype(np.float16)
         if not np.isfinite(chunk).all():
             raise ValueError("PQ2_0 values overflow FP16 readout")
-        dense[start:start + len(blocks)] = chunk
+        dense[start : start + len(blocks)] = chunk
     return torch.from_numpy(dense)
 
 
@@ -313,12 +350,17 @@ class GGUFEmbedding(FrozenPacked):
             raise ValueError("embedding IDs outside vocabulary")
         # Preserve empty batches without an ambiguous reshape in the shared helper.
         if not ids.numel():
-            return torch.empty(*ids.shape, self.embedding_dim, device=ids.device,
-                               dtype=getattr(self, "output_dtype", torch.float16))
+            return torch.empty(
+                *ids.shape,
+                self.embedding_dim,
+                device=ids.device,
+                dtype=getattr(self, "output_dtype", torch.float16),
+            )
         rows = dequantize_pq2_rows(self.packed_weight[ids.reshape(-1).long()])
         result = hadamard(rows, 1024, self.signs, inverse=True)
         return result.reshape(*ids.shape, self.embedding_dim).to(
-            getattr(self, "output_dtype", torch.float16))
+            getattr(self, "output_dtype", torch.float16)
+        )
 
 
 class GGUFHead(FrozenPacked):
@@ -345,7 +387,9 @@ def _read_rows(source, header, name, start, count):
     return torch.frombuffer(raw, dtype=torch.uint8).reshape(count, row_bytes)
 
 
-def load_target_parts(model_path, *, embedding_only=False, device="cpu", dtype=torch.float16):
+def load_target_parts(
+    model_path, *, embedding_only=False, device="cpu", dtype=torch.float16
+):
     """Load exact untied Bonsai v1 PQ2_0 embedding/head from an explicit GGUF file.
 
     No SHA is inferred or checked. Caller must keep this local file immutable.
@@ -365,14 +409,15 @@ def load_target_parts(model_path, *, embedding_only=False, device="cpu", dtype=t
         packed = _read_rows(source, header, "token_embd.weight", 0, _VOCAB_SIZE)
         # Validate every scale/value in bounded chunks before exposing the module.
         for start in range(0, _VOCAB_SIZE, 512):
-            dequantize_pq2_rows(packed[start:start + 512])
+            dequantize_pq2_rows(packed[start : start + 512])
         parts = nn.Module()
         parts.embed_tokens = GGUFEmbedding(packed, signs.clone())
         if not embedding_only:
             dense = torch.empty(_VOCAB_SIZE, _HIDDEN_SIZE, dtype=torch.float16)
             for start in range(0, _VOCAB_SIZE, 512):
                 count = min(512, _VOCAB_SIZE - start)
-                dense[start:start + count] = dequantize_pq2_rows(
-                    _read_rows(source, header, "output.weight", start, count))
+                dense[start : start + count] = dequantize_pq2_rows(
+                    _read_rows(source, header, "output.weight", start, count)
+                )
             parts.lm_head = GGUFHead(dense, signs.clone())
     return parts.requires_grad_(False).eval().to(device=device, dtype=dtype)

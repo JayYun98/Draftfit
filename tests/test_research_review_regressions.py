@@ -1,4 +1,5 @@
 """Regressions for Osprey source attention and CAST sampling/stopping boundaries."""
+
 import hashlib
 import json
 import tempfile
@@ -25,7 +26,8 @@ from tests.test_research_methods import draft_model, target_model
 def file_hashes(directory):
     return {
         str(path.relative_to(directory)): hashlib.sha256(path.read_bytes()).hexdigest()
-        for path in directory.rglob("*") if path.is_file()
+        for path in directory.rglob("*")
+        if path.is_file()
     }
 
 
@@ -41,21 +43,35 @@ class OspreyAttentionRegressionTest(unittest.TestCase):
             ["sliding_attention"] * 3,
             ["full_attention", "sliding_attention", "full_attention"],
         ):
-            with self.subTest(layer_types=layer_types), tempfile.TemporaryDirectory() as directory:
+            with (
+                self.subTest(layer_types=layer_types),
+                tempfile.TemporaryDirectory() as directory,
+            ):
                 root = Path(directory)
                 source = source_with_attention(
-                    use_sliding_window=True, sliding_window=2, layer_types=layer_types,
+                    use_sliding_window=True,
+                    sliding_window=2,
+                    layer_types=layer_types,
                 )
                 source.save_pretrained(root / "source")
                 before = file_hashes(root)
                 with self.assertRaisesRegex(ValueError, "full.attention"):
-                    convert(str(root / "source"), str(root / "new" / "draft"), 3, 16, [0, 1, 2])
+                    convert(
+                        str(root / "source"),
+                        str(root / "new" / "draft"),
+                        3,
+                        16,
+                        [0, 1, 2],
+                    )
                 self.assertFalse((root / "new").exists())
                 self.assertEqual(file_hashes(root), before)
 
     def test_legacy_sliding_source_is_rejected_before_output_mutation(self):
         source = source_with_attention(
-            use_sliding_window=True, sliding_window=2, max_window_layers=0, layer_types=None,
+            use_sliding_window=True,
+            sliding_window=2,
+            max_window_layers=0,
+            layer_types=None,
         )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -66,19 +82,37 @@ class OspreyAttentionRegressionTest(unittest.TestCase):
             path.write_text(json.dumps(config))
             before = file_hashes(root)
             with self.assertRaisesRegex(ValueError, "full.attention"):
-                convert(str(root / "source"), str(root / "new" / "draft"), 3, 16, [0, 1, 2])
+                convert(
+                    str(root / "source"), str(root / "new" / "draft"), 3, 16, [0, 1, 2]
+                )
             self.assertFalse((root / "new").exists())
             self.assertEqual(file_hashes(root), before)
 
     def test_full_attention_with_window_metadata_preserves_logits(self):
         for attention, legacy in (
-            ({"use_sliding_window": True, "sliding_window": 2,
-              "layer_types": ["full_attention"] * 3}, False),
+            (
+                {
+                    "use_sliding_window": True,
+                    "sliding_window": 2,
+                    "layer_types": ["full_attention"] * 3,
+                },
+                False,
+            ),
             ({"use_sliding_window": False, "sliding_window": 2}, True),
-            ({"use_sliding_window": True, "sliding_window": 2,
-              "max_window_layers": 3, "layer_types": None}, True),
+            (
+                {
+                    "use_sliding_window": True,
+                    "sliding_window": 2,
+                    "max_window_layers": 3,
+                    "layer_types": None,
+                },
+                True,
+            ),
         ):
-            with self.subTest(attention=attention), tempfile.TemporaryDirectory() as directory:
+            with (
+                self.subTest(attention=attention),
+                tempfile.TemporaryDirectory() as directory,
+            ):
                 root = Path(directory)
                 source = source_with_attention(**attention)
                 source.save_pretrained(root / "source")
@@ -95,32 +129,58 @@ class OspreyAttentionRegressionTest(unittest.TestCase):
                 features = torch.randn(1, ids.shape[1], 48)
                 with torch.no_grad():
                     mask = draft.prepare_decoder_attention_mask(
-                        torch.ones_like(ids), features, 1, ids.shape[1], 0,
+                        torch.ones_like(ids),
+                        features,
+                        1,
+                        ids.shape[1],
+                        0,
                     )
                     hidden = draft.backbone(
                         input_embeds=draft.embed_input_ids(ids),
-                        hidden_states=draft.project_hidden_states(features), cache_hidden=None,
-                        attention_mask=mask, position_ids=torch.arange(ids.shape[1]).unsqueeze(0),
+                        hidden_states=draft.project_hidden_states(features),
+                        cache_hidden=None,
+                        attention_mask=mask,
+                        position_ids=torch.arange(ids.shape[1]).unsqueeze(0),
                         use_cache=False,
                     )
                     torch.testing.assert_close(
-                        draft.compute_logits(hidden), source(ids, use_cache=False).logits,
-                        atol=1e-6, rtol=1e-5,
+                        draft.compute_logits(hidden),
+                        source(ids, use_cache=False).logits,
+                        atol=1e-6,
+                        rtol=1e-5,
                     )
                 self.assertEqual(file_hashes(root / "source"), before)
 
 
 class CastBoundaryRegressionTest(unittest.TestCase):
+    def test_temperature_below_float32_range_preserves_finite_tied_mass(self):
+        logits = torch.tensor([1.0, 1.0, 0.0])
+        for temperature in (1e-45, 1e-50, 5e-324):
+            with self.subTest(temperature=temperature):
+                probabilities = target_probs(logits, temperature)
+                self.assertTrue(bool(torch.isfinite(probabilities).all()))
+                torch.testing.assert_close(probabilities, torch.tensor([0.5, 0.5, 0.0]))
+                self.assertIn(
+                    pick(logits, temperature, torch.Generator().manual_seed(0)),
+                    (0, 1),
+                )
+
     def test_small_positive_temperature_keeps_sampling_distribution(self):
         logits = torch.zeros(32)
         probabilities = torch.full_like(logits, 1 / logits.numel())
         for temperature in (1e-6, 1e-5):
             with self.subTest(temperature=temperature, helper="target_probs"):
-                torch.testing.assert_close(target_probs(logits, temperature), probabilities)
+                torch.testing.assert_close(
+                    target_probs(logits, temperature), probabilities
+                )
             with self.subTest(temperature=temperature, helper="pick"):
-                expected = int(torch.multinomial(
-                    probabilities, 1, generator=torch.Generator().manual_seed(0),
-                ))
+                expected = int(
+                    torch.multinomial(
+                        probabilities,
+                        1,
+                        generator=torch.Generator().manual_seed(0),
+                    )
+                )
                 actual = pick(logits, temperature, torch.Generator().manual_seed(0))
                 self.assertEqual(actual, expected)
                 self.assertNotEqual(actual, 0)
@@ -130,11 +190,17 @@ class CastBoundaryRegressionTest(unittest.TestCase):
         nodes = [TreeNode(token=0, depth=1, parent=-1, score=0.0)]
         expected_generator = torch.Generator().manual_seed(0)
         token, child = spec_sample_node(
-            probabilities, torch.tensor([0]), probabilities, expected_generator,
+            probabilities,
+            torch.tensor([0]),
+            probabilities,
+            expected_generator,
         )
         self.assertIsNone(child)
         actual = walk_tree(
-            nodes, torch.zeros(2, 3), temperature=1e-6, d_logits=torch.zeros(1, 3),
+            nodes,
+            torch.zeros(2, 3),
+            temperature=1e-6,
+            d_logits=torch.zeros(1, 3),
             generator=torch.Generator().manual_seed(0),
         )
         self.assertEqual(actual, ([], token))
@@ -148,13 +214,20 @@ class CastBoundaryRegressionTest(unittest.TestCase):
         for decoder in (ar_generate, cast_generate):
             for seed in range(4):
                 with self.subTest(decoder=decoder.__name__, seed=seed):
-                    expected = int(torch.multinomial(
-                        torch.full((32,), 1 / 32), 1,
-                        generator=torch.Generator().manual_seed(seed),
-                    ))
+                    expected = int(
+                        torch.multinomial(
+                            torch.full((32,), 1 / 32),
+                            1,
+                            generator=torch.Generator().manual_seed(seed),
+                        )
+                    )
                     args = (draft, target) if decoder is cast_generate else (target,)
                     actual = decoder(
-                        *args, prompt, 1, [], temperature=1e-6,
+                        *args,
+                        prompt,
+                        1,
+                        [],
+                        temperature=1e-6,
                         generator=torch.Generator().manual_seed(seed),
                     )
                     self.assertEqual(int(actual[0, -1]), expected)
@@ -164,9 +237,13 @@ class CastBoundaryRegressionTest(unittest.TestCase):
         before = generator.get_state().clone()
         logits = torch.zeros(3)
         self.assertEqual(pick(logits, 0.0, generator), 0)
-        torch.testing.assert_close(target_probs(logits, 0.0), torch.tensor([1., 0., 0.]))
+        torch.testing.assert_close(
+            target_probs(logits, 0.0), torch.tensor([1.0, 0.0, 0.0])
+        )
         nodes = [TreeNode(token=0, depth=1, parent=-1, score=0.0)]
-        self.assertEqual(walk_tree(nodes, logits.repeat(2, 1), generator=generator), ([0], 0))
+        self.assertEqual(
+            walk_tree(nodes, logits.repeat(2, 1), generator=generator), ([0], 0)
+        )
         self.assertTrue(torch.equal(generator.get_state(), before))
 
     def test_bonus_eos_stops_without_an_extra_round(self):
@@ -178,21 +255,36 @@ class CastBoundaryRegressionTest(unittest.TestCase):
         self.assertNotEqual(stop, int(expected[0, -2]))
         target_calls, draft_calls = [], []
         handles = [
-            target.register_forward_pre_hook(lambda _module, args: target_calls.append(args[0].clone())),
-            draft.register_forward_pre_hook(lambda _module, _args: draft_calls.append(True)),
+            target.register_forward_pre_hook(
+                lambda _module, args: target_calls.append(args[0].clone())
+            ),
+            draft.register_forward_pre_hook(
+                lambda _module, _args: draft_calls.append(True)
+            ),
         ]
         try:
             actual, stats = cast_generate(
-                draft, target, prompt, 6, [stop], budget=1, branch_k=1, return_stats=True,
+                draft,
+                target,
+                prompt,
+                6,
+                [stop],
+                budget=1,
+                branch_k=1,
+                return_stats=True,
             )
         finally:
             for handle in handles:
                 handle.remove()
         self.assertTrue(torch.equal(actual, expected), (actual, expected))
-        self.assertNotIn(stop, target_calls[1][0, 1:].tolist())  # EOS was the bonus, not a tree child.
+        self.assertNotIn(
+            stop, target_calls[1][0, 1:].tolist()
+        )  # EOS was the bonus, not a tree child.
         self.assertEqual(stats["rounds"], 1)
         self.assertEqual(stats["n_out"], 2)
-        self.assertEqual(len(target_calls), 2)  # Prefill and the first verification only.
+        self.assertEqual(
+            len(target_calls), 2
+        )  # Prefill and the first verification only.
         self.assertEqual(len(draft_calls), 1)
 
 

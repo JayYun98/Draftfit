@@ -5,11 +5,28 @@ import unittest
 from copy import deepcopy
 from types import SimpleNamespace as NS
 
-from draftfit.training.joint_control import observe_generation
+from draftfit.training.joint_control import observe_generation, training_fingerprint
 from tests.test_joint_policy import policy
 
 
 class JointControlDomainsTest(unittest.TestCase):
+    def test_unrelated_alr_defaults_preserve_existing_training_identity(self):
+        from draftfit.config.schema import TrainingConfig
+        from draftfit.training.joint_policy import fingerprint
+
+        training = TrainingConfig(strategy="dspark")
+        legacy = training.model_dump(mode="json")
+        for key in ("alr_topk", "alr_hard_label_mix", "alr_tail_bucket"):
+            legacy.pop(key)
+        self.assertEqual(training_fingerprint(training), fingerprint(legacy))
+        training.alr_topk = 31
+        self.assertEqual(training_fingerprint(training), fingerprint(legacy))
+        training.strategy = "alr_ira"
+        self.assertEqual(
+            training_fingerprint(training),
+            fingerprint(training.model_dump(mode="json")),
+        )
+
     def setUp(self):
         self.domains = ["general", "code", "math", "science"]
         self.settings = {

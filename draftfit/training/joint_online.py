@@ -67,6 +67,14 @@ def _token_hash(ids):
     return hashlib.sha256(json.dumps(ids, separators=(",", ":")).encode()).hexdigest()
 
 
+def _file_sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def _read_rows(path, max_length):
     if not path:
         raise ValueError("joint online requires train and eval tokenized JSONL paths")
@@ -193,6 +201,37 @@ class JointOnlineSource:
             "cache_dir": model.cache_dir,
             "attn_implementation": model.hf_attn_implementation,
         }
+        self._teacher_factory = OfflineTransformersCapture
+        capture_identity = None
+        if model.target_backend == "prism_gguf":
+            from draftfit.offline_capture.prism_gguf import (
+                PRISM_REVISION,
+                OfflinePrismGGUFCapture,
+            )
+
+            self._target_device = self._target_device or get_device()
+            if str(self._target_device) not in {"cpu", "cuda", "cuda:0"}:
+                raise ValueError("Prism capture supports CPU or cuda:0 only")
+            self._model_path = str(
+                Path(self._model_path).expanduser().resolve(strict=True)
+            )
+            bridge = str(
+                Path(model.prism_capture_bridge).expanduser().resolve(strict=True)
+            )
+            self._teacher_factory = OfflinePrismGGUFCapture
+            self._model_kwargs = {
+                "bridge_path": bridge,
+                "expected_sha256": model.target_gguf_sha256,
+                "torch_dtype": getattr(torch, model.torch_dtype),
+                "context_size": model.gguf_context_size,
+                "chunk_size": model.gguf_chunk_size,
+            }
+            capture_identity = {
+                "target_gguf_sha256": model.target_gguf_sha256,
+                "bridge_path": bridge,
+                "bridge_sha256": _file_sha256(bridge),
+                "prism_revision": PRISM_REVISION,
+            }
         train, train_hashes, train_ids, train_info = _read_rows(
             cfg.data.prompts_path,
             self._max_length,
@@ -209,6 +248,8 @@ class JointOnlineSource:
             raise ValueError("joint online train/eval overlap: duplicate sample ID")
         self._rows = {False: train, True: evaluation}
         self._sources = {"train": train_info, "eval": eval_info}
+        if capture_identity is not None:
+            self._sources["capture"] = capture_identity
         self._teacher = None
         self._queue_bytes = getattr(cfg.training, "joint_feature_queue_bytes", 0)
         self._queue_batches = getattr(cfg.training, "joint_feature_queue_batches", 2)
@@ -261,6 +302,12 @@ class JointOnlineSource:
             queue.clear()
         self._leases.clear()
 
+    def close(self):
+        """Release queues and an optional native context at runner teardown."""
+        self.close_queues()
+        if self._teacher is not None and hasattr(self._teacher, "close"):
+            self._teacher.close()
+
     def _batch_bytes(self, rows, indices):
         length = max(rows[index]["input_ids"].numel() for index in indices)
         features = len(self._layers) + int(self.needs_dspark)
@@ -272,7 +319,7 @@ class JointOnlineSource:
         )
 
     def fingerprint_sources(self):
-        """Identity of the bytes validated at construction, safe for JSON."""
+        """Token/bridge identity and the GGUF digest enforced by the lazy wrapper."""
         return {split: dict(info) for split, info in self._sources.items()}
 
     def loader(self, stage, epoch, shuffle, drop_last, evaluation=False):
@@ -307,7 +354,14 @@ class JointOnlineSource:
         device = self._target_device or get_device()
         with _preserve_rng(device):
             if self._teacher is None:
-                teacher = OfflineTransformersCapture.from_pretrained(
+                identity = self._sources.get("capture")
+                if (
+                    identity
+                    and _file_sha256(identity["bridge_path"])
+                    != identity["bridge_sha256"]
+                ):
+                    raise ValueError("Prism bridge changed after source fingerprinting")
+                teacher = self._teacher_factory.from_pretrained(
                     self._model_path,
                     device=device,
                     **self._model_kwargs,

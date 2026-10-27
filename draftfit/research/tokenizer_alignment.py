@@ -2,7 +2,6 @@
 # Osprey f62cd488 tokenizer alignment adapted into the native converter.
 """Align an Osprey drafter's embedding and LM head to a target tokenizer."""
 
-import argparse
 import json
 from pathlib import Path
 
@@ -21,7 +20,9 @@ def load_state(path: Path) -> dict[str, torch.Tensor]:
 def target_vocab_size(model: str, tokenizer, revision=None) -> int:
     size = len(tokenizer.get_vocab())
     try:
-        config = AutoConfig.from_pretrained(model, revision=revision, trust_remote_code=False)
+        config = AutoConfig.from_pretrained(
+            model, revision=revision, trust_remote_code=False
+        )
         text_config = getattr(config, "text_config", config)
         size = max(size, int(getattr(text_config, "vocab_size", 0) or 0))
     except Exception:
@@ -58,7 +59,9 @@ def _rewrite_generation_config(
         handle.write("\n")
 
 
-def align(source: Path, target_model: str, output: Path, *, target_revision=None) -> dict[str, int]:
+def align(
+    source: Path, target_model: str, output: Path, *, target_revision=None
+) -> dict[str, int]:
     output.mkdir(parents=True, exist_ok=True)
     state = load_state(source)
     with open(source / "config.json", encoding="utf-8") as handle:
@@ -120,7 +123,9 @@ def align(source: Path, target_model: str, output: Path, *, target_revision=None
     # the source backbone's id would otherwise survive into a checkpoint with a
     # different vocabulary, and a stale pad_token_id silently freezes that row
     # of the draft's embedding.
-    target_config = AutoConfig.from_pretrained(target_model, revision=target_revision, trust_remote_code=False)
+    target_config = AutoConfig.from_pretrained(
+        target_model, revision=target_revision, trust_remote_code=False
+    )
     special_token_ids = {}
     for key in ("bos_token_id", "eos_token_id", "pad_token_id"):
         value = getattr(target_config, key, None)

@@ -6,8 +6,9 @@ import time
 
 import torch
 import torch.nn.functional as F
-from draftfit.modeling.draft.dflash import extract_context_feature
 from transformers import DynamicCache
+
+from draftfit.modeling.draft.dflash import extract_context_feature
 
 from .tree import build_tree
 from .verify import gather_cache, topk_marginals, tree_attention_mask
@@ -21,7 +22,7 @@ def _synchronize(device):
 def pick(logits, temperature, generator=None):
     if temperature == 0:
         return int(logits.argmax())
-    probs = F.softmax(logits.float() / temperature, dim=-1)
+    probs = target_probs(logits, temperature)
     return int(torch.multinomial(probs, 1, generator=generator))
 
 
@@ -31,7 +32,14 @@ def target_probs(logits, temperature):
         p = torch.zeros_like(logits, dtype=torch.float32)
         p[int(logits.argmax())] = 1.0
         return p
-    return F.softmax(logits.float() / temperature, dim=-1)
+    dtype = (
+        torch.float64
+        if temperature < torch.finfo(torch.float32).tiny
+        else torch.float32
+    )
+    scores = logits.to(dtype)
+    scores = (scores - scores.max(dim=-1, keepdim=True).values) / temperature
+    return F.softmax(scores, dim=-1).float()
 
 
 def spec_sample_node(p, child_tokens, child_q, generator=None):
@@ -90,7 +98,9 @@ def spec_sample_node(p, child_tokens, child_q, generator=None):
     return int(torch.multinomial(cur / s, 1, generator=generator)), None
 
 
-def walk_tree(nodes, logits, temperature=0.0, d_logits=None, draft_temp=1.0, generator=None):
+def walk_tree(
+    nodes, logits, temperature=0.0, d_logits=None, draft_temp=1.0, generator=None
+):
     """Walk the verified tree and return (accepted path, next root token).
 
     Greedy at T=0. At T>0 each visited node runs spec_sample_node with the
@@ -116,7 +126,7 @@ def walk_tree(nodes, logits, temperature=0.0, d_logits=None, draft_temp=1.0, gen
         kids = children[cur]
         if not kids:
             return path, int(torch.multinomial(p, 1, generator=generator))
-        depth = nodes[kids[0]].depth           # siblings share a depth
+        depth = nodes[kids[0]].depth  # siblings share a depth
         if depth not in q_cache:
             q_cache[depth] = F.softmax(d_logits[depth - 1].float() / draft_temp, dim=-1)
         toks = torch.tensor([nodes[c].token for c in kids], device=logits.device)
@@ -128,9 +138,20 @@ def walk_tree(nodes, logits, temperature=0.0, d_logits=None, draft_temp=1.0, gen
 
 
 @torch.inference_mode()
-def cast_generate(draft, target, input_ids, max_new_tokens, stop_token_ids,
-                  budget=63, branch_k=8, temperature=0.0, draft_temp=1.0,
-                  generator=None, block_size=None, return_stats=False):
+def cast_generate(
+    draft,
+    target,
+    input_ids,
+    max_new_tokens,
+    stop_token_ids,
+    budget=63,
+    branch_k=8,
+    temperature=0.0,
+    draft_temp=1.0,
+    generator=None,
+    block_size=None,
+    return_stats=False,
+):
     """CAST decoding with a best-first tree of `budget` nonroot nodes.
 
     One drafter pass per round, one ancestor-masked verify pass, then the KV of
@@ -140,13 +161,24 @@ def cast_generate(draft, target, input_ids, max_new_tokens, stop_token_ids,
     if input_ids.ndim != 2 or input_ids.shape[0] != 1 or input_ids.shape[1] < 1:
         raise ValueError("CAST requires one nonempty prompt token sequence")
     if max_new_tokens < 0 or budget < 1 or branch_k < 1:
-        raise ValueError("token cap must be nonnegative; tree budget and branch width must be positive")
-    if not math.isfinite(temperature) or temperature < 0 or not math.isfinite(draft_temp) or draft_temp <= 0:
-        raise ValueError("temperature must be finite and nonnegative; draft_temp must be finite and positive")
+        raise ValueError(
+            "token cap must be nonnegative; tree budget and branch width must be positive"
+        )
+    if (
+        not math.isfinite(temperature)
+        or temperature < 0
+        or not math.isfinite(draft_temp)
+        or draft_temp <= 0
+    ):
+        raise ValueError(
+            "temperature must be finite and nonnegative; draft_temp must be finite and positive"
+        )
     if max_new_tokens == 0:
         stats = {"ms_per_token": 0.0, "R": 0.0, "packed": 0.0, "rounds": 0, "n_out": 0}
         return (input_ids.clone(), stats) if return_stats else input_ids.clone()
-    blk_len = draft.block_size if block_size is None else block_size        # root + L future positions
+    blk_len = (
+        draft.block_size if block_size is None else block_size
+    )  # root + L future positions
     if blk_len < 2:
         raise ValueError("CAST requires block_size >= 2")
     mask_id = draft.mask_token_id
@@ -154,29 +186,44 @@ def cast_generate(draft, target, input_ids, max_new_tokens, stop_token_ids,
     max_len = n_in + max_new_tokens
     dtype = next(target.parameters()).dtype
 
-    out_ids = torch.full((1, max_len + 2 * blk_len + 4), mask_id, dtype=torch.long, device=device)
+    out_ids = torch.full(
+        (1, max_len + 2 * blk_len + 4), mask_id, dtype=torch.long, device=device
+    )
     pos_ids = torch.arange(out_ids.shape[1], device=device).unsqueeze(0)
     kv_t, kv_d = DynamicCache(), DynamicCache()
 
-    out = target(input_ids, position_ids=pos_ids[:, :n_in], past_key_values=kv_t,
-                 use_cache=True, logits_to_keep=1, output_hidden_states=True)
+    out = target(
+        input_ids,
+        position_ids=pos_ids[:, :n_in],
+        past_key_values=kv_t,
+        use_cache=True,
+        logits_to_keep=1,
+        output_hidden_states=True,
+    )
     out_ids[:, :n_in] = input_ids
     out_ids[:, n_in] = pick(out.logits[0, -1], temperature, generator)
     ctx = extract_context_feature(out.hidden_states, draft.target_layer_ids)
-    if max_new_tokens == 1 or (stop_token_ids and int(out_ids[0, n_in]) in stop_token_ids):
-        final = out_ids[:, :n_in + 1]
+    if max_new_tokens == 1 or (
+        stop_token_ids and int(out_ids[0, n_in]) in stop_token_ids
+    ):
+        final = out_ids[:, : n_in + 1]
         stats = {"ms_per_token": 0.0, "R": 0.0, "packed": 0.0, "rounds": 0, "n_out": 1}
         return (final, stats) if return_stats else final
 
     start, t0 = n_in, None
     lens, packed = [], []
     while start < max_len:
-        blk = out_ids[:, start:start + blk_len].clone()
+        blk = out_ids[:, start : start + blk_len].clone()
         blk[:, 1:] = mask_id
-        h = draft(target_hidden=ctx, noise_embedding=target.model.embed_tokens(blk),
-                  position_ids=pos_ids[:, kv_d.get_seq_length():start + blk_len],
-                  past_key_values=kv_d, use_cache=True, is_causal=False)
-        d_logits = target.lm_head(h[:, 1 - blk_len:, :])[0]         # (L, V)
+        h = draft(
+            target_hidden=ctx,
+            noise_embedding=target.model.embed_tokens(blk),
+            position_ids=pos_ids[:, kv_d.get_seq_length() : start + blk_len],
+            past_key_values=kv_d,
+            use_cache=True,
+            is_causal=False,
+        )
+        d_logits = target.lm_head(h[:, 1 - blk_len :, :])[0]  # (L, V)
         d_logits = d_logits * float(getattr(draft.config, "output_multiplier", 1.0))
         softcap = getattr(draft.config, "final_logit_softcapping", None)
         if softcap:
@@ -190,14 +237,25 @@ def cast_generate(draft, target, input_ids, max_new_tokens, stop_token_ids,
             _synchronize(device)
             t0 = time.perf_counter()
 
-        toks = torch.tensor([[int(out_ids[0, start])] + [nd.token for nd in nodes]], device=device)
-        pos = torch.tensor([[start] + [start + nd.depth for nd in nodes]], device=device)
+        toks = torch.tensor(
+            [[int(out_ids[0, start])] + [nd.token for nd in nodes]], device=device
+        )
+        pos = torch.tensor(
+            [[start] + [start + nd.depth for nd in nodes]], device=device
+        )
         n_prefix = kv_t.get_seq_length()
-        out = target(toks, position_ids=pos, past_key_values=kv_t, use_cache=True,
-                     attention_mask=tree_attention_mask(n_prefix, nodes, device, dtype),
-                     output_hidden_states=True)
+        out = target(
+            toks,
+            position_ids=pos,
+            past_key_values=kv_t,
+            use_cache=True,
+            attention_mask=tree_attention_mask(n_prefix, nodes, device, dtype),
+            output_hidden_states=True,
+        )
 
-        path, bonus = walk_tree(nodes, out.logits[0], temperature, d_logits, draft_temp, generator)
+        path, bonus = walk_tree(
+            nodes, out.logits[0], temperature, d_logits, draft_temp, generator
+        )
         a = len(path)
         lens.append(a + 1)
         packed.append(1 + len(nodes))
@@ -212,15 +270,16 @@ def cast_generate(draft, target, input_ids, max_new_tokens, stop_token_ids,
 
         start += a + 1
         if stop_token_ids is not None and any(
-                t in out_ids[0, n_in:start + 1].tolist() for t in stop_token_ids):
+            t in out_ids[0, n_in : start + 1].tolist() for t in stop_token_ids
+        ):
             break
 
-    final = out_ids[:, :min(start + 1, max_len)]
+    final = out_ids[:, : min(start + 1, max_len)]
     if stop_token_ids is not None:
         hits = torch.isin(final[0, n_in:], torch.tensor(stop_token_ids, device=device))
         idx = hits.nonzero(as_tuple=True)[0]
         if idx.numel() > 0:
-            final = final[:, :n_in + idx[0] + 1]
+            final = final[:, : n_in + idx[0] + 1]
     _synchronize(device)
     elapsed = time.perf_counter() - t0 if t0 is not None else 0.0
     if not return_stats:
@@ -228,7 +287,7 @@ def cast_generate(draft, target, input_ids, max_new_tokens, stop_token_ids,
     n_out = final.shape[1] - n_in
     return final, {
         "ms_per_token": elapsed * 1000.0 / max(n_out, 1),
-        "R": sum(lens) / max(len(lens), 1),          # committed round length
+        "R": sum(lens) / max(len(lens), 1),  # committed round length
         "packed": sum(packed) / max(len(packed), 1),
         "rounds": len(lens),
         "n_out": n_out,
@@ -236,11 +295,20 @@ def cast_generate(draft, target, input_ids, max_new_tokens, stop_token_ids,
 
 
 @torch.inference_mode()
-def ar_generate(target, input_ids, max_new_tokens, stop_token_ids, temperature=0.0,
-                generator=None, return_stats=False):
+def ar_generate(
+    target,
+    input_ids,
+    max_new_tokens,
+    stop_token_ids,
+    temperature=0.0,
+    generator=None,
+    return_stats=False,
+):
     """Plain autoregressive decoding with the same decode-only clock."""
     if input_ids.ndim != 2 or input_ids.shape[0] != 1 or input_ids.shape[1] < 1:
-        raise ValueError("reference decoding requires one nonempty prompt token sequence")
+        raise ValueError(
+            "reference decoding requires one nonempty prompt token sequence"
+        )
     if max_new_tokens < 0 or not math.isfinite(temperature) or temperature < 0:
         raise ValueError("token cap and finite temperature must be nonnegative")
     if max_new_tokens == 0:
@@ -255,7 +323,11 @@ def ar_generate(target, input_ids, max_new_tokens, stop_token_ids, temperature=0
     for _ in range(max_new_tokens - 1):
         if stop_token_ids is not None and toks[-1] in stop_token_ids:
             break
-        out = target(torch.tensor([[toks[-1]]], device=device), past_key_values=kv, use_cache=True)
+        out = target(
+            torch.tensor([[toks[-1]]], device=device),
+            past_key_values=kv,
+            use_cache=True,
+        )
         toks.append(pick(out.logits[0, -1], temperature, generator))
         if stop_token_ids is not None and toks[-1] in stop_token_ids:
             break

@@ -5,13 +5,16 @@ import json
 import shutil
 from pathlib import Path
 from typing import Dict
+
 import torch
 from safetensors import safe_open
 from safetensors.torch import save_file
 
+
 def load_config(source: Path) -> Dict:
     with open(source / "config.json", "r", encoding="utf-8") as f:
         return json.load(f)
+
 
 def load_state_dict(source: Path) -> Dict[str, torch.Tensor]:
     safetensors_path = source / "model.safetensors"
@@ -45,17 +48,21 @@ def load_state_dict(source: Path) -> Dict[str, torch.Tensor]:
         shards = sorted(set(index["weight_map"].values()))
         out = {}
         for shard in shards:
-            out.update(torch.load(source / shard, map_location="cpu", weights_only=True))
+            out.update(
+                torch.load(source / shard, map_location="cpu", weights_only=True)
+            )
         return out
 
     raise FileNotFoundError(
         f"No model.safetensors[.index.json] or pytorch_model.bin[.index.json] under {source}"
     )
 
+
 def expand_qkv(old: torch.Tensor, hidden_size: int) -> torch.Tensor:
     new = old.new_zeros((old.shape[0], hidden_size * 2))
     new[:, hidden_size:] = old
     return new
+
 
 def make_fc_weight(config: Dict) -> torch.Tensor:
     """Initialize ``fc``, which maps the three concatenated target aux hidden
@@ -80,6 +87,7 @@ def make_fc_weight(config: Dict) -> torch.Tensor:
     start = block * target_hidden_size
     fc[:shared, start : start + shared] = torch.eye(shared, dtype=dtype)
     return fc
+
 
 def convert_state(
     source_state: Dict[str, torch.Tensor],
@@ -149,6 +157,7 @@ def convert_state(
 
     return out
 
+
 def make_eagle_config(
     config: Dict,
     draft_vocab_size: int,
@@ -158,7 +167,13 @@ def make_eagle_config(
 ) -> Dict:
     eagle = dict(config)
     eagle["num_hidden_layers"] = num_draft_layers
-    eagle["architectures"] = ["OspreyLlamaDraftModel" if config["model_type"] == "llama" else "OspreyQwen3DraftModel"]
+    eagle["architectures"] = [
+        (
+            "OspreyLlamaDraftModel"
+            if config["model_type"] == "llama"
+            else "OspreyQwen3DraftModel"
+        )
+    ]
     eagle["draft_vocab_size"] = draft_vocab_size
     eagle["tie_word_embeddings"] = False
     eagle["use_cache"] = True
@@ -172,6 +187,7 @@ def make_eagle_config(
         }
     eagle["swap_h_and_emb"] = True
     return eagle
+
 
 def copy_tokenizer_files(source: Path, output: Path):
     for name in (
@@ -188,7 +204,14 @@ def copy_tokenizer_files(source: Path, output: Path):
         if src.exists():
             shutil.copy2(src, output / name)
 
-def convert(source: str, output: str, num_layers: int, target_hidden_size: int, aux_layer_ids: list[int]):
+
+def convert(
+    source: str,
+    output: str,
+    num_layers: int,
+    target_hidden_size: int,
+    aux_layer_ids: list[int],
+):
     source, output = Path(source), Path(output)
     if output.exists():
         raise FileExistsError(f"output already exists: {output}")
@@ -198,36 +221,64 @@ def convert(source: str, output: str, num_layers: int, target_hidden_size: int, 
     layer_types = config.get("layer_types")
     if layer_types is None and config["model_type"] == "qwen3":
         from transformers import Qwen3Config
+
         # Resolve legacy window settings using the source model's configuration rules.
         layer_types = Qwen3Config.from_dict(config).layer_types
-    if layer_types is not None and any(kind != "full_attention" for kind in layer_types):
-        raise ValueError("Osprey source conversion supports full attention only; sliding attention is unsupported")
+    if layer_types is not None and any(
+        kind != "full_attention" for kind in layer_types
+    ):
+        raise ValueError(
+            "Osprey source conversion supports full attention only; sliding attention is unsupported"
+        )
     if config.get("attention_bias") or config.get("mlp_bias"):
-        raise ValueError("Osprey source conversion currently requires bias-free attention/MLP")
+        raise ValueError(
+            "Osprey source conversion currently requires bias-free attention/MLP"
+        )
     rope = config.get("rope_parameters") or config.get("rope_scaling") or {}
-    supported = {"default", "llama3"} if config["model_type"] == "llama" else {"default"}
+    supported = (
+        {"default", "llama3"} if config["model_type"] == "llama" else {"default"}
+    )
     if rope.get("rope_type", rope.get("type", "default")) not in supported:
-        raise ValueError("Osprey source conversion supports default RoPE or Llama3 scaling for Llama")
+        raise ValueError(
+            "Osprey source conversion supports default RoPE or Llama3 scaling for Llama"
+        )
     if not 1 <= num_layers <= config["num_hidden_layers"]:
         raise ValueError("requested layers must fit the source backbone")
-    if len(aux_layer_ids) != 3 or len(set(aux_layer_ids)) != 3 or any(i < 0 for i in aux_layer_ids):
+    if (
+        len(aux_layer_ids) != 3
+        or len(set(aux_layer_ids)) != 3
+        or any(i < 0 for i in aux_layer_ids)
+    ):
         raise ValueError("Osprey requires three distinct nonnegative target layer taps")
-    config = make_eagle_config(config, config["vocab_size"], num_layers, aux_layer_ids, target_hidden_size)
+    config = make_eagle_config(
+        config, config["vocab_size"], num_layers, aux_layer_ids, target_hidden_size
+    )
     source_state = load_state_dict(source)
     if not source_state["model.embed_tokens.weight"].dtype.is_floating_point:
-        raise ValueError("Osprey conversion requires unquantized floating-point source weights")
-    config["torch_dtype"] = str(source_state["model.embed_tokens.weight"].dtype).split(".")[-1]
+        raise ValueError(
+            "Osprey conversion requires unquantized floating-point source weights"
+        )
+    config["torch_dtype"] = str(source_state["model.embed_tokens.weight"].dtype).split(
+        "."
+    )[-1]
     state = convert_state(source_state, config, config["vocab_size"])
-    from draftfit.training.model_loading import _draft_config_from_dict
     from draftfit.modeling.auto import AutoDraftModel
+    from draftfit.training.model_loading import _draft_config_from_dict
+
     # Check actual model keys before producing a checkpoint.
     with torch.device("meta"):
         model = AutoDraftModel.from_config(_draft_config_from_dict(config))
     expected = model.state_dict()
-    if set(state) != set(expected) or any(state[k].shape != expected[k].shape for k in state):
+    if set(state) != set(expected) or any(
+        state[k].shape != expected[k].shape for k in state
+    ):
         raise ValueError("converted Osprey tensors do not match the registered draft")
     output.mkdir(parents=True)
     save_file(state, str(output / "model.safetensors"))
-    (output / "config.json").write_text(json.dumps(config, indent=2)+"\n")
+    (output / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     copy_tokenizer_files(source, output)
-    return {"architecture": config["architectures"][0], "layers": num_layers, "tensors": len(state)}
+    return {
+        "architecture": config["architectures"][0],
+        "layers": num_layers,
+        "tensors": len(state),
+    }

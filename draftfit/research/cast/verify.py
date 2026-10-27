@@ -23,7 +23,9 @@ def tree_attention_mask(n_prefix, nodes, device, dtype):
     vis = ancestor_matrix(nodes)
     n = vis.shape[0]
     mask = torch.zeros((1, 1, n, n_prefix + n), device=device, dtype=dtype)
-    mask[0, 0, :, n_prefix:] = torch.from_numpy(~vis).to(device) * torch.finfo(dtype).min
+    mask[0, 0, :, n_prefix:] = (
+        torch.from_numpy(~vis).to(device) * torch.finfo(dtype).min
+    )
     return mask
 
 
@@ -37,6 +39,7 @@ def cache_layers(cache):
 
         def put(i, k, v):
             layers[i].keys, layers[i].values = k, v
+
         return len(layers), get, put
 
     def get(i):
@@ -44,6 +47,7 @@ def cache_layers(cache):
 
     def put(i, k, v):
         cache.key_cache[i], cache.value_cache[i] = k, v
+
     return len(cache.key_cache), get, put
 
 

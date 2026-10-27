@@ -12,6 +12,15 @@ from copy import deepcopy
 from draftfit.training.joint_policy import decide, fingerprint
 
 
+def training_fingerprint(training):
+    """Keep unrelated objective defaults out of existing policy histories."""
+    values = training.model_dump(mode="json")
+    if values.get("strategy") != "alr_ira":
+        for field in ("alr_topk", "alr_hard_label_mix", "alr_tail_bucket"):
+            values.pop(field, None)
+    return fingerprint(values)
+
+
 def admit_initial(settings, budget, start_step, stop_step, interval):
     """Bound the first work interval before any optimizer update."""
     from draftfit.training.joint_policy import _config, _validate
@@ -83,9 +92,7 @@ def observe_generation(report, metrics, stages, settings, history, budget):
             step=report["step"],
             family=stage.config.training.strategy,
             preset=settings.get("preset", "default"),
-            training_fingerprint=fingerprint(
-                stage.config.training.model_dump(mode="json")
-            ),
+            training_fingerprint=training_fingerprint(stage.config.training),
             objective_fingerprint=fingerprint(
                 {
                     "strategy": stage.config.training.strategy,
