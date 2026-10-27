@@ -21,6 +21,7 @@ Preserve upstream credits when editing inherited material; see
 | Understand shared capture and milestone verification | [Feature queue](SHARED_TARGET_FEATURE_QUEUE.md) |
 | Run bounded automatic training | [Unattended controller](UNATTENDED_NATIVE.md) · [External campaigns](FAMILY_CAMPAIGN.md) |
 | Choose an initial batch and estimate time/cost | [Measured calibration](CALIBRATION.md) |
+| Screen options within one fixed validation objective | [Optional TPE controller](TRAINING_SEARCH.md) |
 | Use a local quantized target or MLX feature preparation | [Quantized capture](specs/quantized-capture.md) |
 | Prepare ALR/IRA, convert Osprey, run CAST or select with Redline | [Research methods](specs/research-methods.md) |
 | Inspect and launch from a local browser | [Optional web workspace](WEB_WORKSPACE.md) |

@@ -25,6 +25,11 @@ jobs:
           uv pip sync requirements-cpu.lock --torch-backend cpu --require-hashes
       - name: Run offline public regression gate
         run: uv run --no-project --python .venv/bin/python python -m tests.public_cpu
+      - name: Exercise optional training search with real Optuna
+        run: |
+          uv venv --python 3.12 --system-site-packages .venv-search
+          uv pip install --python .venv-search/bin/python 'optuna==4.5.0'
+          uv run --no-project --python .venv-search/bin/python python -m unittest tests.test_training_search
       - name: Install wheel and exercise CLI outside checkout
         run: |
           uv build --python .venv/bin/python --no-build-isolation --offline --wheel --out-dir dist
