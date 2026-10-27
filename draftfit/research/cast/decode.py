@@ -19,7 +19,7 @@ def _synchronize(device):
 
 
 def pick(logits, temperature, generator=None):
-    if temperature < 1e-5:
+    if temperature == 0:
         return int(logits.argmax())
     probs = F.softmax(logits.float() / temperature, dim=-1)
     return int(torch.multinomial(probs, 1, generator=generator))
@@ -27,7 +27,7 @@ def pick(logits, temperature, generator=None):
 
 def target_probs(logits, temperature):
     """Target sampling distribution; a point mass on the argmax at T=0."""
-    if temperature < 1e-5:
+    if temperature == 0:
         p = torch.zeros_like(logits, dtype=torch.float32)
         p[int(logits.argmax())] = 1.0
         return p
@@ -101,7 +101,7 @@ def walk_tree(nodes, logits, temperature=0.0, d_logits=None, draft_temp=1.0, gen
         children[nd.parent].append(i)
     path, cur = [], -1
 
-    if temperature < 1e-5:
+    if temperature == 0:
         while True:
             tok = pick(logits[cur + 1], temperature, generator)
             hit = next((c for c in children[cur] if nodes[c].token == tok), None)
@@ -212,7 +212,7 @@ def cast_generate(draft, target, input_ids, max_new_tokens, stop_token_ids,
 
         start += a + 1
         if stop_token_ids is not None and any(
-                t in out_ids[0, n_in:start].tolist() for t in stop_token_ids):
+                t in out_ids[0, n_in:start + 1].tolist() for t in stop_token_ids):
             break
 
     final = out_ids[:, :min(start + 1, max_len)]

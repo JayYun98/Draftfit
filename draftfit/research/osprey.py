@@ -195,6 +195,13 @@ def convert(source: str, output: str, num_layers: int, target_hidden_size: int, 
     config = load_config(source)
     if config.get("model_type") not in {"qwen3", "llama"}:
         raise ValueError("Osprey conversion requires a Qwen3 or Llama source backbone")
+    layer_types = config.get("layer_types")
+    if layer_types is None and config["model_type"] == "qwen3":
+        from transformers import Qwen3Config
+        # Resolve legacy window settings using the source model's configuration rules.
+        layer_types = Qwen3Config.from_dict(config).layer_types
+    if layer_types is not None and any(kind != "full_attention" for kind in layer_types):
+        raise ValueError("Osprey source conversion supports full attention only; sliding attention is unsupported")
     if config.get("attention_bias") or config.get("mlp_bias"):
         raise ValueError("Osprey source conversion currently requires bias-free attention/MLP")
     rope = config.get("rope_parameters") or config.get("rope_scaling") or {}
