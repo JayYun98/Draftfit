@@ -34,6 +34,7 @@ DOCUMENTS = (
     "docs/research/latest-speculative-methods.md",
     "docs/research/eagle4-minicpm.md",
     "docs/research/results/eagle4-minicpm-20261029.json",
+    "docs/research/results/eagle4-minicpm-diagnosis-20261029.json",
     "docs/research/results/latest-methods-effects-20261028.json",
     "examples/configs/research/README.md",
 )

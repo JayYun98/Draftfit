@@ -2,6 +2,11 @@
 
 ## Scope
 
+**Follow-up:** the original cache uses raw answers, while MiniCPM generates
+reasoning continuations. See [diagnosis and extension](#diagnosis-and-extension)
+before interpreting the generation acceptance figures. The corrected 10,000-update
+extension has not run; shared GPU measurements currently hold the GPU reservation.
+
 This record tests Draftfit's EAGLE4 implementation against existing DSpark and
 DFlash2 training. It uses spare memory on an existing shared A100-SXM4-80GB (driver 595.71.05).
 No serving process was stopped and no GPU was rented.
@@ -214,7 +219,8 @@ and new output directories. Preserve the existing patched serving environment.
 ```sh
 PYTORCH_ALLOC_CONF=expandable_segments:True python benchmarks/train_eagle4_comparison.py \
   --target /path/to/minicpm5-1b --output /path/to/comparison \
-  --steps 5000 --candidate-steps 1000 --memory-mib 6200 --reserve-mib 1024
+  --steps 5000 --candidate-steps 1000 --memory-mib 6200 --reserve-mib 1024 \
+  --capture-source reference
 python benchmarks/check_eagle4_cli.py --output /path/to/new-cli-gate
 python benchmarks/evaluate_eagle4_comparison.py \
   --target /path/to/minicpm5-1b --output /path/to/comparison \
@@ -233,3 +239,81 @@ python benchmarks/serve_eagle4_probe.py --target /path/to/minicpm5-1b \
 python benchmarks/serve_eagle4_probe.py --target /path/to/minicpm5-1b \
   --comparison /path/to/comparison --arm eagle4
 ```
+
+## Diagnosis and extension
+
+The [follow-up receipt](results/eagle4-minicpm-diagnosis-20261029.json) retains
+aggregate evidence. The original artifacts and results above remain unchanged.
+
+### Data protocol mismatch
+
+The original cache has 1,024 training answers containing 163,372 assistant tokens.
+It has no `<think>` or `</think>` tokens. All 64 cached held-out answers also
+omit these tokens. Every target-only generation starts with `<think>` (token 8).
+The draft therefore trains on raw answers and encounters generated reasoning
+during evaluation. This confirms a protocol mismatch. Its contribution to the
+low acceptance remains unmeasured.
+
+The comparison runner now defaults to greedy target-generated continuations.
+It captures features after generation using the same tokenizer and target.
+`--capture-source reference` retains the original raw-answer control.
+Warm starts check source conversation identities and exact prompt token IDs.
+All three methods consume the same new feature cache.
+
+### Recurrent layout and numerical controls
+
+An actual tiny Llama target and EAGLE4 draft produce matching training and
+proposal logits at three recurrent depths, including sliding-window masking.
+This checks FP32 token/feature alignment. CUDA BF16 and native execution require
+their separate gates.
+
+The retained BF16 failure reproduces on final held-out sample 7: EAGLE4 equality
+is 0/1, with 3/174 accepted proposals. The first difference is generated token 26.
+CPU FP32 replay selects token 7590 for both prefix lengths; its top-two gap is
+0.01267. CPU BF16 rounds tokens 7590 and 14585 to the same logit, 16.125.
+Both CPU BF16 shapes select 7590. These controls show near-tie sensitivity;
+the exact CUDA BF16 flip still needs a GPU replay. Native sample 3 first differs
+at token 13. Native diagnosis also remains pending.
+
+Upstream [test results](https://github.com/eagle-hq/EAGLE-4/blob/3b96ef6e1c0b2ef0c698fab74c8e383d8bf8053d/docs/support-matrix.md#how-these-were-measured)
+report exact agreement, near ties and FP32 controls separately. Its near-tie
+rule uses a no-speculation logprob gap of at most 0.13. Larger gaps receive
+additional FP32 checks. This policy differs from our strict token-equality gate.
+The upstream's published BF16 shape differences provide a relevant diagnosis
+pattern; they do not classify our unmeasured native mismatch.
+
+The native probe now saves token logprobs and first-mismatch details, following
+the [upstream diagnosis guidance](https://github.com/eagle-hq/EAGLE-4/blob/3b96ef6e1c0b2ef0c698fab74c8e383d8bf8053d/docs/new-model.md#check-generation-before-calibration).
+This updated native probe has not run. Strict equality gates remain unchanged.
+
+### Additional 10,000 dense updates
+
+The prepared extension loads each completed 5,000-update dense export.
+EAGLE4 loads `dense-export`, then trains the complete dense draft for another
+10,000 updates. A separate 1,000-update candidate stage follows.
+Each arm starts a fresh optimizer and cosine schedule. This is a model warm
+start, consistent with the [family guide](../DFLASH_FAMILY.md#existing-draft-identify-the-source-first).
+It does not resume the completed schedule at zero learning rate.
+The original dense EAGLE4 optimizer was superseded by candidate fitting.
+
+CPU checks loaded and validated all three actual source exports. Four new
+regressions passed; the affected suite ran 55 tests with 17 skips and no failures.
+The raw-answer capture regression failed before the correction and passed after it.
+These checks do not establish extended MiniCPM quality or GPU correctness.
+
+**Not run:** target-generated MiniCPM capture, additional training, new generation
+and native gates. GPU time coordination requires waiting until the other
+measurement task releases its reservation. No training or automatic restart is active.
+
+After that explicit release, use a new output directory:
+
+```sh
+PYTORCH_ALLOC_CONF=expandable_segments:True python benchmarks/train_eagle4_comparison.py \
+  --target /path/to/minicpm5-1b --output /path/to/new-extension \
+  --warm-start /path/to/original-comparison --capture-source target \
+  --steps 10000 --candidate-steps 1000 --memory-mib 6200 --reserve-mib 1024
+```
+
+This produces 15,000 cumulative dense updates per arm. New data and a new
+schedule change together; this extension alone cannot isolate their effects.
+Repeat the reference and native correctness gates before any performance claim.

@@ -16,7 +16,9 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import torch
-from train_eagle4_comparison import (
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from benchmarks.train_eagle4_comparison import (
     EAGLE_LAYERS,
     LAYERS,
     NAMES,
@@ -24,8 +26,6 @@ from train_eagle4_comparison import (
     memory_guard,
     write_json,
 )
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
 from draftfit.algorithms.common.dflash_family_model import (
     OnlineDFlash2Model,
     OnlineDSparkModel,

@@ -81,6 +81,7 @@ def load_tests(loader, tests, pattern):
         "tests.test_runtime.test_owned_teacher_stream",
         "tests.test_runtime.test_feature_dataloader",
         "tests.test_modeling.test_eagle4",
+        "tests.test_eagle4_comparison",
     ]
     suite = loader.loadTestsFromNames(modules)
     suite.addTests(loader.discover("tests/test_config", top_level_dir="."))

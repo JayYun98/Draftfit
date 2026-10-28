@@ -16,8 +16,14 @@ def main():
     parser.add_argument("--comparison", type=Path, required=True)
     parser.add_argument("--arm", choices=("target", "eagle4"), required=True)
     parser.add_argument("--samples", type=int, default=8)
+    parser.add_argument("--sample-start", type=int, default=0)
     parser.add_argument("--max-new-tokens", type=int, default=32)
+    parser.add_argument("--result-dir", default="native-serving")
     args = parser.parse_args()
+    if args.samples < 1 or args.sample_start < 0 or args.max_new_tokens < 1:
+        parser.error(
+            "Sample and token counts must be positive; sample-start must be nonnegative"
+        )
     os.environ["VLLM_USE_V2_MODEL_RUNNER"] = "1"
     os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -32,7 +38,9 @@ def main():
         TokensPrompt(
             prompt_token_ids=torch.load(p, weights_only=True)["prompt_ids"][0].tolist()
         )
-        for p in sorted((args.comparison / "test_sft").glob("*.pt"))[: args.samples]
+        for p in sorted((args.comparison / "test_sft").glob("*.pt"))[
+            args.sample_start : args.sample_start + args.samples
+        ]
     ]
     if len(prompts) != args.samples:
         raise ValueError("Not enough captured held-out prompts")
@@ -63,7 +71,7 @@ def main():
     model = LLM(**options)
     outputs = model.generate(
         prompts,
-        SamplingParams(temperature=0, max_tokens=args.max_new_tokens),
+        SamplingParams(temperature=0, max_tokens=args.max_new_tokens, logprobs=2),
         use_tqdm=False,
     )
     records = [
@@ -71,10 +79,17 @@ def main():
             prompt_token_ids=r.prompt_token_ids,
             token_ids=list(r.outputs[0].token_ids),
             finish_reason=r.outputs[0].finish_reason,
+            logprobs=[
+                {
+                    str(token): {"logprob": p.logprob, "rank": p.rank}
+                    for token, p in step.items()
+                }
+                for step in r.outputs[0].logprobs
+            ],
         )
         for r in outputs
     ]
-    destination = args.comparison / "native-serving"
+    destination = args.comparison / args.result_dir
     destination.mkdir(exist_ok=True)
     (destination / f"{args.arm}.json").write_text(
         json.dumps(
@@ -99,6 +114,35 @@ def main():
     )
     if args.arm == "eagle4":
         baseline = json.loads((destination / "target.json").read_text())["records"]
+        if len(baseline) != len(records) or any(
+            a["prompt_token_ids"] != b["prompt_token_ids"]
+            for a, b in zip(baseline, records)
+        ):
+            raise ValueError(
+                "Native baseline and draft must use the same held-out prompts"
+            )
+        mismatches = []
+        for i, (a, b) in enumerate(zip(baseline, records)):
+            if a["token_ids"] == b["token_ids"]:
+                continue
+            j = next(
+                (
+                    j
+                    for j, (x, y) in enumerate(zip(a["token_ids"], b["token_ids"]))
+                    if x != y
+                ),
+                min(len(a["token_ids"]), len(b["token_ids"])),
+            )
+            mismatches.append(
+                {
+                    "sample": args.sample_start + i,
+                    "first_divergence": j,
+                    "target_token": a["token_ids"][j : j + 1],
+                    "draft_token": b["token_ids"][j : j + 1],
+                    "target_logprobs": a.get("logprobs", [])[j : j + 1],
+                    "draft_logprobs": b.get("logprobs", [])[j : j + 1],
+                }
+            )
         equal = len(baseline) == len(records) and all(
             a["prompt_token_ids"] == b["prompt_token_ids"]
             and a["token_ids"] == b["token_ids"]
@@ -113,6 +157,7 @@ def main():
                     node_top_k=2,
                     max_verify_width=8,
                     calibrated=False,
+                    mismatches=mismatches,
                 ),
                 indent=2,
             )

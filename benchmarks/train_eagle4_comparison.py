@@ -78,12 +78,69 @@ def memory_guard(args):
     torch.cuda.set_per_process_memory_fraction(args.memory_mib * 2**20 / total)
 
 
+@torch.inference_mode()
+def capture_example(
+    target, capture, prompt, reference_ids, max_length, *, source="target"
+):
+    """Capture target continuations in the same chat mode as generation evaluation."""
+    device = target.get_input_embeddings().weight.device
+    if not prompt or len(prompt) >= max_length:
+        raise ValueError("The prompt must leave room for a continuation")
+    if source == "target":
+        tokens = torch.tensor([prompt], device=device)
+        tokens = target.generate(
+            tokens,
+            attention_mask=torch.ones_like(tokens),
+            do_sample=False,
+            use_cache=True,
+            max_new_tokens=max_length - len(prompt),
+        )
+    elif source == "reference":
+        if reference_ids[: len(prompt)] != prompt:
+            raise ValueError("Reference tokens must preserve the generation prompt")
+        tokens = torch.tensor([reference_ids[:max_length]], device=device)
+    else:
+        raise ValueError("Capture source must be target or reference")
+    if tokens.shape[1] <= len(prompt) + 1:
+        raise ValueError("The continuation has no supervised next-token positions")
+    mask = torch.ones_like(tokens)
+    mask[:, : len(prompt)] = 0
+    mask[:, -1] = 0
+    result = capture.capture(
+        input_ids=tokens,
+        attention_mask=torch.ones_like(tokens),
+        loss_mask=mask,
+    )
+    return {
+        "input_ids": tokens.cpu(),
+        "loss_mask": mask.cpu(),
+        "hidden_states": result.hidden_states.cpu(),
+        "target_last_hidden_states": result.last_hidden_states.cpu(),
+        "prompt_ids": torch.tensor([prompt]),
+    }
+
+
 def prepare(args):
     from datasets import load_dataset
 
     root = args.output
     if (root / "capture.json").exists():
         return
+    previous = (
+        json.loads((args.warm_start / "capture.json").read_text())
+        if args.warm_start
+        else None
+    )
+    if previous and any(
+        previous[key] != value
+        for key, value in {
+            "dataset_revision": DATASET_REVISION,
+            "target_revision": TARGET_REVISION,
+            "max_length": args.max_length,
+            "layers": LAYERS,
+        }.items()
+    ):
+        raise ValueError("Warm-start capture settings differ from this comparison")
     tokenizer = AutoTokenizer.from_pretrained(args.target, local_files_only=True)
     target = (
         AutoModelForCausalLM.from_pretrained(
@@ -144,31 +201,38 @@ def prepare(args):
                 ids = ids[: args.max_length]
                 if len(ids) - len(prompt) < 16:
                     continue
-                tokens = torch.tensor([ids], device="cuda")
-                mask = torch.ones_like(tokens)
-                mask[:, : len(prompt)] = 0
-                mask[:, -1] = 0
-                result = capture.capture(
-                    input_ids=tokens,
-                    attention_mask=torch.ones_like(tokens),
-                    loss_mask=mask,
+                sample = str(row.get("prompt_id", row.get("id", len(selected))))
+                if previous:
+                    identities_before = previous["splits"][split]
+                    if (
+                        len(selected) >= len(identities_before)
+                        or sample != identities_before[len(selected)]["sample"]
+                    ):
+                        raise ValueError("Warm-start source conversations changed")
+                    old = torch.load(
+                        args.warm_start / split / f"{len(selected):05}.pt",
+                        weights_only=True,
+                        mmap=True,
+                        map_location="cpu",
+                    )
+                    if old["prompt_ids"].tolist() != [prompt]:
+                        raise ValueError("Warm-start generation prompt tokens changed")
+                    del old
+                record = capture_example(
+                    target,
+                    capture,
+                    prompt,
+                    ids,
+                    args.max_length,
+                    source=args.capture_source,
                 )
-                record = {
-                    "input_ids": tokens.cpu(),
-                    "loss_mask": mask.cpu(),
-                    "hidden_states": result.hidden_states.cpu(),
-                    "target_last_hidden_states": result.last_hidden_states.cpu(),
-                    "prompt_ids": torch.tensor([prompt]),
-                }
                 path = folder / f"{len(selected):05}.pt"
                 torch.save(record, path)
                 selected.append(
                     {
-                        "sample": str(
-                            row.get("prompt_id", row.get("id", len(selected)))
-                        ),
+                        "sample": sample,
                         "sha256": digest(path),
-                        "tokens": len(ids),
+                        "tokens": record["input_ids"].shape[1],
                     }
                 )
                 if len(selected) % 32 == 0:
@@ -183,6 +247,8 @@ def prepare(args):
                     f"Only {len(selected)} usable {split} samples, expected {count}"
                 )
             identities[split] = selected
+            if previous and len(selected) != len(previous["splits"][split]):
+                raise ValueError("Warm-start source conversation count changed")
     write_json(
         root / "capture.json",
         {
@@ -192,6 +258,15 @@ def prepare(args):
             "layers": LAYERS,
             "target_tables_sha256": digest(root / "target-tables.pt"),
             "max_length": args.max_length,
+            "continuation_source": args.capture_source,
+            "source_capture_sha256": (
+                digest(args.warm_start / "capture.json") if args.warm_start else None
+            ),
+            "generation": (
+                {"do_sample": False, "dtype": "bfloat16", "use_cache": True}
+                if args.capture_source == "target"
+                else None
+            ),
             "splits": identities,
         },
     )
@@ -357,6 +432,51 @@ def save_checkpoint(path, draft, optimizer, step, name, stage):
     temporary.replace(path)
 
 
+def warm_start(draft, source, name):
+    """Load a completed dense draft; the new run owns a fresh optimizer schedule."""
+    if source is None:
+        return None
+    result = json.loads((source / name / "result.json").read_text())
+    export = source / name / ("dense-export" if name == "eagle4" else "export")
+    weights = {p.name: digest(p) for p in export.glob("*.safetensors")}
+    if not weights or (name != "eagle4" and weights != result["export_sha256"]):
+        raise ValueError("Warm-start export weights differ from the completed run")
+    with torch.random.fork_rng(devices=[]):
+        loaded, info = AutoDraftModel.from_pretrained(
+            export,
+            local_files_only=True,
+            device_map="cpu",
+            torch_dtype=next(draft.parameters()).dtype,
+            output_loading_info=True,
+        )
+    if any(
+        info.get(key)
+        for key in ("missing_keys", "unexpected_keys", "mismatched_keys", "error_msgs")
+    ):
+        raise ValueError("Warm-start export has missing or incompatible tensors")
+    if loaded.config.to_dict() != draft.config.to_dict():
+        # Serialized configs add metadata; compare the actual architecture fields.
+        ignored = {"_name_or_path", "transformers_version", "dtype", "torch_dtype"}
+        expected = {k: v for k, v in draft.config.to_dict().items() if k not in ignored}
+        actual = {k: v for k, v in loaded.config.to_dict().items() if k not in ignored}
+        if actual != expected:
+            raise ValueError("Warm-start draft configuration differs from this arm")
+    draft.load_state_dict(loaded.state_dict())
+    del loaded
+    if name == "eagle4" and parameter_hashes(draft) != json.loads(
+        (source / name / "dense-parameter-hashes.json").read_text()
+    ):
+        raise ValueError("Warm-start EAGLE4 dense tensors changed after training")
+    return {
+        "export": str(export.resolve()),
+        "weights_sha256": weights,
+        "previous_dense_steps": result.get(
+            "cumulative_dense_steps", result["dense_steps"]
+        ),
+        "optimizer": "reset; model warm start, not an optimizer-state resume",
+    }
+
+
 def train(args, name):
     root = args.output / name
     root.mkdir(exist_ok=True)
@@ -368,6 +488,7 @@ def train(args, name):
         or metadata["layers"] != LAYERS
         or metadata["target_revision"] != TARGET_REVISION
         or metadata["max_length"] != args.max_length
+        or metadata.get("continuation_source", "reference") != args.capture_source
     ):
         raise ValueError("Capture settings differ from the comparison contract")
     paths = sorted((args.output / "train_sft").glob("*.pt"))
@@ -388,6 +509,7 @@ def train(args, name):
     torch.cuda.manual_seed_all(args.seed)
     tables = torch.load(args.output / "target-tables.pt", weights_only=True)
     draft, wrapper, strategy = make_models(args, name, tables)
+    initialized_from = warm_start(draft, args.warm_start, name)
     draft.config.save_pretrained(root)
     initial_hashes = parameter_hashes(draft)
     dense_trainable = sum(p.numel() for p in draft.parameters() if p.requires_grad)
@@ -499,6 +621,9 @@ def train(args, name):
         "optimizer_fused": not args.optimizer_cpu_offload,
         "steps": total_steps,
         "dense_steps": args.steps,
+        "warm_start": initialized_from,
+        "cumulative_dense_steps": args.steps
+        + (initialized_from["previous_dense_steps"] if initialized_from else 0),
         "candidate_steps": args.candidate_steps if name == "eagle4" else 0,
         "optimizer": "BF16Optimizer with FP32 master parameters and cosine warmup",
         "trainable_parameters": sum(
@@ -523,6 +648,13 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--steps", type=int, default=5000)
     parser.add_argument("--candidate-steps", type=int, default=1000)
+    parser.add_argument("--warm-start", type=Path)
+    parser.add_argument(
+        "--capture-source",
+        choices=("target", "reference"),
+        default="target",
+        help="Use target-generated answers; reference reproduces the old raw-SFT control",
+    )
     parser.add_argument("--stop-at-step", type=int)
     parser.add_argument("--optimizer-cpu-offload", action="store_true")
     parser.add_argument("--train-samples", type=int, default=1024)
@@ -552,6 +684,10 @@ def main():
         for key, value in vars(args).items()
     }
     invocation["runner_sha256"] = digest(Path(__file__))
+    if args.warm_start:
+        invocation["warm_start_result_sha256"] = {
+            name: digest(args.warm_start / name / "result.json") for name in NAMES
+        }
     previous = args.output / "invocation.json"
     if previous.exists():
         recorded = json.loads(previous.read_text())
