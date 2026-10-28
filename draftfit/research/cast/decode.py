@@ -17,6 +17,8 @@ from .verify import gather_cache, topk_marginals, tree_attention_mask
 def _synchronize(device):
     if device.type == "cuda":
         torch.cuda.synchronize(device)
+    elif device.type == "mps":
+        torch.mps.synchronize()
 
 
 def pick(logits, temperature, generator=None):
@@ -151,6 +153,7 @@ def cast_generate(
     generator=None,
     block_size=None,
     return_stats=False,
+    branch_filter=None,
 ):
     """CAST decoding with a best-first tree of `budget` nonroot nodes.
 
@@ -158,6 +161,8 @@ def cast_generate(
     the accepted path is kept. The clock starts right before the first verify.
     """
     device = input_ids.device
+    if branch_filter is not None and temperature != 0:
+        raise ValueError("ValuSpec filtering requires greedy generation")
     if input_ids.ndim != 2 or input_ids.shape[0] != 1 or input_ids.shape[1] < 1:
         raise ValueError("CAST requires one nonempty prompt token sequence")
     if max_new_tokens < 0 or budget < 1 or branch_k < 1:
@@ -185,6 +190,8 @@ def cast_generate(
     n_in = input_ids.shape[1]
     max_len = n_in + max_new_tokens
     dtype = next(target.parameters()).dtype
+    _synchronize(device)
+    full_start = time.perf_counter()
 
     out_ids = torch.full(
         (1, max_len + 2 * blk_len + 4), mask_id, dtype=torch.long, device=device
@@ -211,7 +218,7 @@ def cast_generate(
         return (final, stats) if return_stats else final
 
     start, t0 = n_in, None
-    lens, packed = [], []
+    lens, packed, valuations = [], [], []
     while start < max_len:
         blk = out_ids[:, start : start + blk_len].clone()
         blk[:, 1:] = mask_id
@@ -232,6 +239,10 @@ def cast_generate(
 
         top_idx, top_lp = topk_marginals(d_logits, branch_k)
         nodes = build_tree(top_idx, top_lp, budget, branch_k)
+
+        if branch_filter is not None:
+            nodes, valuation = branch_filter(out_ids[0, : start + 1].tolist(), nodes)
+            valuations.append(valuation)
 
         if t0 is None:
             _synchronize(device)
@@ -291,6 +302,11 @@ def cast_generate(
         "packed": sum(packed) / max(len(packed), 1),
         "rounds": len(lens),
         "n_out": n_out,
+        "valuation": valuations,
+        "full_generation_seconds": time.perf_counter() - full_start,
+        "full_generation_scope": "prefill_draft_scorer_and_verification",
+        "ms_per_token_scope": "legacy_from_first_tree_verify_excludes_first_draft_and_filter",
+        "production_engine_speed": False,
     }
 
 

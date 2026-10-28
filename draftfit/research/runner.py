@@ -5,12 +5,23 @@ import shutil
 import tempfile
 from pathlib import Path
 
+IMPLEMENTATIONS = {
+    "cast": "native_reference",
+    "ngramrl": "native_synchronous_reference",
+    "specmem": "native_memory_reference",
+    "rift": "native_kv_recompute_reference",
+    "arr": "independent_stationary_reference",
+    "treewy": "author_numerical_reference",
+    "moe_spac": "policy_trace_reference",
+    "query_layout": "tensor_diagnostic",
+}
+
 
 def plan(config, recipe_path=None):
     """Describe the selected work without loading models or writing output."""
     return {
         "project": config.method,
-        "implementation": "native_reference" if config.method == "cast" else "native",
+        "implementation": IMPLEMENTATIONS.get(config.method, "native"),
         "config": config.model_dump(),
         "execution": "not-run",
         "serving_compatibility": "not_validated",
@@ -63,41 +74,52 @@ def _cast(config):
     tokenizer = None
     answers = []
     torch.manual_seed(config.runtime.seed)
-    with open(config.data.input_path) as handle:
-        for index, line in enumerate(handle):
-            if index >= config.data.max_samples:
-                break
-            row = json.loads(line)
-            if "input_ids" in row:
-                ids = torch.tensor(
-                    [row["input_ids"]], dtype=torch.long, device=config.runtime.device
-                )
-            else:
-                if tokenizer is None:
-                    tokenizer = AutoTokenizer.from_pretrained(
-                        model_cfg.target_model_path,
-                        revision=model_cfg.target_revision,
-                        trust_remote_code=model_cfg.trust_remote_code,
-                    )
-                ids = tokenizer(row["prompt"], return_tensors="pt").input_ids.to(
-                    config.runtime.device
-                )
-            output, stats = cast_generate(
-                draft,
-                target,
-                ids,
-                config.generation.max_new_tokens,
-                config.generation.stop_token_ids,
-                budget=config.speculation.budget,
-                branch_k=config.speculation.branch_k,
-                temperature=config.generation.temperature,
-                return_stats=True,
-            )
-            generated = output[0, ids.shape[1] :].tolist()
-            answers.append(
-                {"id": row.get("id", index), "token_ids": generated, "stats": stats}
-            )
-    return {"answers": answers, "model": model_cfg.model_dump()}
+    branch_filter, calibration = None, None
+    if config.valuation is not None:
+        from .valuation_runner import prepare_filter
+
+        branch_filter, calibration, samples = prepare_filter(
+            config, target, draft.block_size - 1
+        )
+    else:
+        samples = []
+        with open(config.data.input_path) as handle:
+            for index, line in enumerate(handle):
+                if index >= config.data.max_samples:
+                    break
+                row = json.loads(line)
+                if "input_ids" in row:
+                    ids = row["input_ids"]
+                else:
+                    if tokenizer is None:
+                        tokenizer = AutoTokenizer.from_pretrained(
+                            model_cfg.target_model_path,
+                            revision=model_cfg.target_revision,
+                            trust_remote_code=model_cfg.trust_remote_code,
+                        )
+                    ids = tokenizer(row["prompt"]).input_ids
+                samples.append((row.get("id", index), ids))
+    for identifier, tokens in samples:
+        ids = torch.tensor([tokens], dtype=torch.long, device=config.runtime.device)
+        output, stats = cast_generate(
+            draft,
+            target,
+            ids,
+            config.generation.max_new_tokens,
+            config.generation.stop_token_ids,
+            budget=config.speculation.budget,
+            branch_k=config.speculation.branch_k,
+            temperature=config.generation.temperature,
+            return_stats=True,
+            branch_filter=branch_filter,
+        )
+        generated = output[0, ids.shape[1] :].tolist()
+        answers.append({"id": identifier, "token_ids": generated, "stats": stats})
+    return {
+        "answers": answers,
+        "model": model_cfg.model_dump(),
+        "valuation": calibration,
+    }
 
 
 def _redline(config):
@@ -167,9 +189,45 @@ def run(config, recipe_path=None):
     destination = Path(config.output_dir)
     if destination.exists():
         raise FileExistsError(f"output already exists: {destination}")
-    if config.method not in {"cast", "redline"}:
+    if config.method not in {
+        "cast",
+        "redline",
+        "ngramrl",
+        "specmem",
+        "rift",
+        "treewy",
+        "arr",
+        "moe_spac",
+        "query_layout",
+    }:
         raise ValueError(f"unsupported research method: {config.method}")
-    result = _cast(config) if config.method == "cast" else _redline(config)
+    if config.method in {"ngramrl", "specmem"}:
+        from .memory_runner import run_memory
+
+        result = run_memory(config)
+    elif config.method == "rift":
+        from .rift import run_rift
+
+        result = run_rift(config)
+    elif config.method == "treewy":
+        from .treewy import run_treewy
+
+        result = run_treewy(config)
+    elif config.method == "arr":
+        from .arr import run_arr
+
+        result = run_arr(config)
+    elif config.method == "moe_spac":
+        from .moe_spac import run_moe_policy
+
+        result = run_moe_policy(config)
+    elif config.method == "query_layout":
+        from .query_layout import run_query_layout
+
+        result = run_query_layout(config)
+    else:
+        result = _cast(config) if config.method == "cast" else _redline(config)
+    memory_state = result.pop("memory_state", None)
     destination.parent.mkdir(parents=True, exist_ok=True)
     scratch = Path(
         tempfile.mkdtemp(prefix=".draftfit-research-", dir=destination.parent)
@@ -179,6 +237,10 @@ def run(config, recipe_path=None):
         (scratch / "result.json").write_text(
             json.dumps(result, indent=2, allow_nan=False) + "\n"
         )
+        if memory_state is not None:
+            (scratch / "memory.json").write_text(
+                json.dumps(memory_state, indent=2, allow_nan=False) + "\n"
+            )
         scratch.rename(destination)
     except BaseException:
         shutil.rmtree(scratch, ignore_errors=True)

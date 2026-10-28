@@ -2,6 +2,11 @@
 
 ## Scope
 
+The later [latest-method integration](../research/latest-speculative-methods.md) adds
+NgramRL, SpecMem, ValuSpec-on-CAST, RIFT and ARR reference execution, plus
+TreeWY numerical, MoE-SpAc policy and query-layout diagnostics. Its separate
+support matrix and recipes state the exact implementation boundaries below.
+
 Integrate additive ALR/IRA target-rollout distillation, Osprey backbone conversion,
 CAST tree decoding, and Redline calibration on the existing Draftfit interfaces.
 The selected source is the read-only September integration worktree's dirty
@@ -34,8 +39,8 @@ python -m draftfit.research -c recipe.json runtime.device=cpu
 ```
 
 Recipes may be JSON or YAML. Dotted overrides are revalidated. Their separate
-schema does not change existing train recipes. Source metadata lists the four
-selected projects and pinned revisions; inherited licenses are retained in
+schema does not change existing train recipes. Source metadata lists the original
+four projects plus the latest-method ledger; inherited licenses are retained in
 `draftfit/research/NOTICE.md` and relevant source headers.
 
 ## ALR/IRA preparation and training

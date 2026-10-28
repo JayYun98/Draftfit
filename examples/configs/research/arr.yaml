@@ -1,0 +1,24 @@
+method: arr
+model:
+  target_model_path: ./models/target
+data:
+  input_path: ./data/questions.jsonl
+refinement:
+  active_roots: 4
+  max_roots: 32
+  replay_width: 32
+  max_processed_positions: 100000
+  root_temperature: 0.7
+  root_top_p: 0.95
+  answer_extractor: last_line
+  revision_template: |
+    Question:
+    {question}
+    Previous solution:
+    {solution}
+    Write a corrected complete solution:
+generation:
+  max_new_tokens: 128
+  stop_token_ids: [2]
+  temperature: 0
+output_dir: outputs/research-arr

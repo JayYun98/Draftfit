@@ -44,6 +44,7 @@ not a blanket compatibility or production-readiness claim.
    :caption: Research methods
 
    research/README
+   research/latest-speculative-methods
    specs/research-methods
 
 .. toctree::

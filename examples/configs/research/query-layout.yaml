@@ -1,0 +1,10 @@
+method: query_layout
+data:
+  input_path: examples/configs/research/data/query-layout.json
+layout:
+  phase_mask: 3
+  atol: 0.00001
+  rtol: 0.0001
+runtime:
+  device: cpu
+output_dir: outputs/research-query-layout
