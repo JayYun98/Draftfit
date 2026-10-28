@@ -1,0 +1,14 @@
+method: moe_spac
+data:
+  input_path: examples/configs/research/data/moe-spac.json
+policy:
+  gamma: 4
+  max_utility: 2
+  smoothing: 0.1
+  target_layers: 1
+  expert_bytes: 64
+  cpu_unit_ms: 1
+  gpu_unit_ms: 1
+  io_unit_ms: 0
+  draft_unit_ms: 0
+output_dir: outputs/research-moe-policy

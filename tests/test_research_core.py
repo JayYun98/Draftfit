@@ -135,7 +135,7 @@ class ResearchCoreTest(unittest.TestCase):
             self.assertFalse(path.exists())
         code = (
             "import sys; from draftfit.research.catalog import source_catalog; "
-            "assert {r['project'] for r in source_catalog()} == {'alr_ira','osprey','cast','redline'}; "
+            "assert {'alr_ira','osprey','cast','redline','ngramrl','specmem','treewy','arr'} <= {r['project'] for r in source_catalog()}; "
             "assert 'torch' not in sys.modules"
         )
         result = subprocess.run(

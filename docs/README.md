@@ -1,13 +1,11 @@
 # Draftfit documentation
 
-**Your workload. Your draft.**
-
 The maintained entry points are [environment setup](ENVIRONMENT.md),
 [public workflow](PUBLIC_WORKFLOW.md) and [support boundaries](PUBLIC_SUPPORT.md).
 Preserve upstream credits when editing inherited material; see
 [source attribution](SOURCE_ATTRIBUTION.md).
 
-## Read the guides
+## Platform guides
 
 | Task | Guide |
 | --- | --- |
@@ -23,10 +21,15 @@ Preserve upstream credits when editing inherited material; see
 | Choose an initial batch and estimate time/cost | [Measured calibration](CALIBRATION.md) |
 | Screen options within one fixed validation objective | [Optional TPE controller](TRAINING_SEARCH.md) |
 | Use a local quantized target or MLX feature preparation | [Quantized capture](specs/quantized-capture.md) |
-| Prepare ALR/IRA, convert Osprey, run CAST or select with Redline | [Research methods](specs/research-methods.md) |
 | Inspect and launch from a local browser | [Optional web workspace](WEB_WORKSPACE.md) |
 | Inspect metrics and preserve exports | [Monitoring](JOINT_MONITORING.md) · [HF publication](HF_PUBLICATION.md) |
 | Contribute and validate | [Release checks](PUBLIC_RELEASE.md) · [Source tools](../tests/VALIDATION.md) |
+
+## Research guides
+
+Use the [research index](research/README.md) for experimental methods and their validation limits.
+ALR/IRA, Osprey, CAST, and Redline have a [separate method guide](specs/research-methods.md).
+Research implementations are not production backends.
 
 ## Documentation languages
 

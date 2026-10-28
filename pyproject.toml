@@ -60,6 +60,7 @@ version = {file = "version.txt"}
 [tool.setuptools.package-data]
 "draftfit.offline_capture" = ["PRISM_RUNTIME_LICENSE"]
 "draftfit.research" = ["NOTICE.md"]
+"draftfit.research._vendor" = ["TREEWY_LICENSE"]
 
 [tool.uv]
 required-version = ">=0.9.18"

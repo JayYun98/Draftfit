@@ -130,6 +130,10 @@ class AssetTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             wheel = next(wheel_dir.glob("*.whl"))
             with zipfile.ZipFile(wheel) as archive:
+                self.assertEqual(
+                    archive.read("draftfit/research/_vendor/TREEWY_LICENSE"),
+                    (root / "draftfit/research/_vendor/TREEWY_LICENSE").read_bytes(),
+                )
                 direct_payload = {
                     name: archive.read(name)
                     for name in archive.namelist()

@@ -50,6 +50,12 @@ runtime modules do not replace or erase the authorship of adapted source.
 
 ## Sync policy
 
+The latest research adapter additionally bundles the Apache-2.0 single-tree
+TreeWY reference from `sneha5gsm/vllm` at
+`b073ed6cacfa1cf5ae23111854729e662a72a6d1`. Its source header, exact scope
+and original-file digest are recorded in `draftfit/research/NOTICE.md`;
+`draftfit/research/_vendor/TREEWY_LICENSE` contains the full license.
+
 Upstream code is copied only when a failing gate identifies a concrete
 requirement. Preserve the upstream license header, record the source commit in
 this table, add a focused contract test, and keep the local adapter boundary

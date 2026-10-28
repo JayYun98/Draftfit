@@ -1,0 +1,19 @@
+method: rift
+model:
+  target_model_path: ./models/target
+  draft_model_path: ./models/small-ar-draft
+data:
+  input_path: ./data/evaluation.jsonl
+cache:
+  context_budget: 128
+  recent_fraction: 0.25
+  observation_window: 64
+  draft_tokens: 8
+generation:
+  max_new_tokens: 128
+diagnostics:
+  compare_ar: true
+  record_acceptance: true
+  warmup: 1
+  repetitions: 3
+output_dir: outputs/research-rift

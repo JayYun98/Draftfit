@@ -1,0 +1,9 @@
+method: treewy
+data:
+  input_path: examples/configs/research/data/treewy.json
+tree:
+  max_nodes: 64
+  use_qk_l2norm: true
+runtime:
+  device: cpu
+output_dir: outputs/research-treewy
