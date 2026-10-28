@@ -275,6 +275,8 @@ Common fields:
 | `training.total_steps` | `null` | Positive optimizer/loss schedule horizon; it does not itself stop an online stream. A finite online disaggregated run may omit both fields: the producer publishes the exact horizon derived from prepared prompts, epochs, DP size, batch size, and accumulation. |
 | `training.batch_size` | `1` | Per-rank microbatch size. P-EAGLE and USP require 1. |
 | `training.accumulation_steps` | `1` | Positive microbatches per optimizer update. |
+| `training.eagle4_stage` | `draft` | EAGLE4 dense training or frozen-draft `candidates` distillation. |
+| `training.eagle4_initialize_candidates` | `false` | Initialize candidate factors with randomized SVD on a candidate-stage warm start; disable for full resume. |
 | `training.fsdp_sharding` | `SHARD_GRAD_OP` | Trainer FSDP mode: `SHARD_GRAD_OP`, `FULL_SHARD`, or `NO_SHARD`. |
 | `training.fsdp_version` | `v1` | Trainer implementation: `v1` (legacy wrapper) or `v2` (composable FSDP2, single-node opt-in). |
 | `training.learning_rate` | `1e-4` | Positive peak learning rate. |

@@ -9,6 +9,7 @@ from draftfit.algorithms.domino.providers import create_registration as domino
 from draftfit.algorithms.dspark.providers import create_registration as dspark
 from draftfit.algorithms.eagle3.providers import create_registration as eagle3
 from draftfit.algorithms.osprey.providers import create_registration as osprey
+from draftfit.algorithms.eagle4.providers import create_registration as eagle4
 from draftfit.algorithms.peagle.providers import create_registration as peagle
 from draftfit.algorithms.registry import AlgorithmRegistry
 
@@ -19,6 +20,7 @@ def builtin_algorithm_registry() -> AlgorithmRegistry:
     return AlgorithmRegistry(
         (
             eagle3(),
+            eagle4(),
             peagle(),
             dflash(),
             dflash2(),

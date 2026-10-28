@@ -150,6 +150,10 @@ class OnlineEagle3Model(Eagle3Model):
             return UspAdapter(self)
         return SdpaLikeAdapter(self)
 
+    def auxiliary_loss(self, hidden, logits, position_mask):
+        """Optional algorithm-owned objective alongside the shared recurrent loss."""
+        return logits.new_zeros(())
+
     def _acc_and_loss(
         self,
         *,
@@ -430,10 +434,11 @@ class OnlineEagle3Model(Eagle3Model):
             )
             acces.append(acc)
             acceptance_rates.append(acceptance_rate)
-            plosses.append(loss)
+            auxiliary = self.auxiliary_loss(hidden_states, logits, state.position_mask)
+            plosses.append(loss + auxiliary)
             metric_corrects.append(correct)
             metric_denoms.append(denom)
-            metric_losses.append(metric_loss)
+            metric_losses.append(metric_loss + auxiliary.detach())
             metric_loss_denoms.append(loss_denom)
 
             if not is_last:

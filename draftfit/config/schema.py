@@ -739,6 +739,9 @@ class TrainingConfig(StrictConfigModel):
     dist_timeout: int = Field(default=10, gt=0)
     #: EAGLE3 objective.
     lk_loss_type: Optional[Literal["lambda", "alpha"]] = None
+    #: EAGLE-4 dense draft training followed by frozen-draft candidate distillation.
+    eagle4_stage: Literal["draft", "candidates"] = "draft"
+    eagle4_initialize_candidates: bool = False
     kl_scale: float = 1.0
     kl_decay: float = 1.0
     #: DFlash-family objective/model knobs.

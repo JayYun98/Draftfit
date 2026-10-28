@@ -73,6 +73,7 @@ and the [reproducible entrypoints](OWNED_GPU_ENVIRONMENT.md).
 | DFlash | Yes | Yes | Yes | Algorithm-compatible hidden features and mask token |
 | DFlash2 | Yes | Yes | Yes | Full vocabulary, grouped convolution/selector; eager/SDPA/flex; bounded CUDA training and serving checks; full serving correctness remains open |
 | EAGLE3 | Yes | Yes | Yes | Fixed one draft layer; shared vocab mapping for disaggregated online |
+| [EAGLE4](specs/eagle4-minicpm.md) | Yes | Yes | Yes | Experimental dense one-layer SDPA training; candidate distillation; optimized serving needs the separate EAGLE-HARNESS engine |
 | PEagle | Yes | No | Yes | Flex attention; algorithm-specific layout and vocabulary contract |
 | Domino | No: explicit draft JSON | Yes | Yes | Compatible draft architecture/config supplied by user |
 

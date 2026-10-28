@@ -536,7 +536,7 @@ def _propose(bundle, features, anchor, count):
     return draft._sample_draft_tokens(target, hidden, block)[:, :count]
 
 
-def _generate(teacher, bundle, prompt, config, *, speculative):
+def _generate(teacher, bundle, prompt, config, *, speculative, proposal_fn=None):
     device = _target_device(teacher)
     bundle_device = next(bundle.model.parameters()).device
     prefix = prompt.to(device).unsqueeze(0)
@@ -579,7 +579,7 @@ def _generate(teacher, bundle, prompt, config, *, speculative):
                     dtype=next(bundle.draft_model.parameters()).dtype
                 ),
             )
-        proposal = _propose(bundle, features, anchor, count)
+        proposal = (proposal_fn or _propose)(bundle, features, anchor, count)
         proposal_seconds += _clock(device, bundle_device) - tick
         del features
         proposed += count
