@@ -134,8 +134,16 @@ def export_to_sglang(
     if strategy == "eagle4":
         if vocab_mapping_path:
             raise ValueError("EAGLE4 serving does not support vocabulary pruning")
-        required += ("efficient_lm_head.weight", "efficient_lm_head_down_proj.weight")
-    model.save_pretrained(output_dir, state_dict=_serving_state(full, weight_map, required))
+        required = (
+            "fc.weight",
+            "norm.weight",
+            "lm_head.weight",
+            "efficient_lm_head.weight",
+            "efficient_lm_head_down_proj.weight",
+        )
+    model.save_pretrained(
+        output_dir, state_dict=_serving_state(full, weight_map, required)
+    )
     apply_legacy_rope_scaling(output_dir)
     return output_dir
 

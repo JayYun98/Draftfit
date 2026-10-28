@@ -187,8 +187,11 @@ class BuiltinProviderContractTest(unittest.TestCase):
         )
         config = SimpleNamespace(training=training)
         draft = SimpleNamespace(
-            config=SimpleNamespace(num_hidden_layers=2, target_num_hidden_layers=12,
-                                   efficient_lm_head_config={"type": "low_rank", "rank": 8}),
+            config=SimpleNamespace(
+                num_hidden_layers=2,
+                target_num_hidden_layers=12,
+                efficient_lm_head_config={"type": "low_rank", "rank": 8},
+            ),
             sliding_window=4096,
             norm_output=True,
             layers=[object(), object()],
@@ -290,7 +293,11 @@ class BuiltinProviderContractTest(unittest.TestCase):
             "alr_ira_target_layer_ids",
         }
         models["eagle4"] = models["eagle3"]
-        expected_keys["eagle4"] = {"eagle4_stage", "eagle4_candidate_head", "eagle4_sliding_window"}
+        expected_keys["eagle4"] = {
+            "eagle4_stage",
+            "eagle4_candidate_head",
+            "eagle4_sliding_window",
+        }
 
         for name in BUILTINS:
             with self.subTest(algorithm=name):

@@ -29,6 +29,7 @@ DOCUMENTS = (
     "docs/specs/training-feature-integration.md",
     "docs/specs/quantized-capture.md",
     "docs/specs/research-methods.md",
+    "docs/specs/eagle4-minicpm.md",
     "docs/research/README.md",
     "docs/research/latest-speculative-methods.md",
     "docs/research/results/latest-methods-effects-20261028.json",

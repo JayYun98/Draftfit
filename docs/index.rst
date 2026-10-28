@@ -33,6 +33,7 @@ not a blanket compatibility or production-readiness claim.
    JOINT_MONITORING
    FAMILY_CAMPAIGN
    HF_PUBLICATION
+   specs/eagle4-minicpm
    specs/training-feature-integration
    CALIBRATION
    TRAINING_SEARCH

@@ -21,23 +21,34 @@ def populate_defaults(payload, target_config, config):
             "rank": min(128, payload["hidden_size"], payload["vocab_size"]),
             "num_candidates": min(128, payload["vocab_size"]),
         },
-        eagle_config={"eagle_aux_hidden_state_layer_ids": (
-            config.model.aux_hidden_state_layer_ids or [1, depth // 2 - 1, depth - 4]
-        )},
+        eagle_config={
+            "eagle_aux_hidden_state_layer_ids": (
+                config.model.aux_hidden_state_layer_ids
+                or [1, depth // 2 - 1, depth - 4]
+            )
+        },
     )
 
 
 def build_draft(config, draft_config):
+    if config.training.compact_teacher:
+        raise ValueError(
+            "EAGLE4 full-vocabulary training does not use compact teacher mode"
+        )
     if config.training.eagle4_stage == "candidates" and not (
         config.model.draft_checkpoint_path or config.training.resume_from
     ):
-        raise ValueError("EAGLE4 candidate training requires a trained dense draft checkpoint")
+        raise ValueError(
+            "EAGLE4 candidate training requires a trained dense draft checkpoint"
+        )
     if config.model.vocab_mapping_path:
         raise ValueError("EAGLE4 does not support vocabulary pruning")
     draft = eagle3.build_draft(config, draft_config)
     if config.training.eagle4_initialize_candidates:
         if config.training.eagle4_stage != "candidates" or config.training.resume_from:
-            raise ValueError("EAGLE4 candidate initialization requires candidate-stage warm start, not full resume")
+            raise ValueError(
+                "EAGLE4 candidate initialization requires candidate-stage warm start, not full resume"
+            )
         draft.initialize_candidate_head(randomized=True)
     draft.set_training_stage(config.training.eagle4_stage)
     return draft
@@ -45,7 +56,11 @@ def build_draft(config, draft_config):
 
 def build_training_model(config, draft_model, draft_config, target_config, tokenizer):
     from draftfit.algorithms.eagle4.model import Eagle4TrainingModel
-    from draftfit.algorithms.model_providers import AlgorithmModelParts, _device, _torch_dtype
+    from draftfit.algorithms.model_providers import (
+        AlgorithmModelParts,
+        _device,
+        _torch_dtype,
+    )
     from draftfit.modeling.target.target_head import TargetHead
 
     model = Eagle4TrainingModel(
@@ -59,13 +74,17 @@ def build_training_model(config, draft_model, draft_config, target_config, token
     needs_head = config.mode == "offline" or (
         config.deployment.mode == "disaggregated" and config.training.role == "consumer"
     )
-    head = TargetHead.from_pretrained(
-        config.model.target_model_path,
-        lm_head_key=config.model.lm_head_key,
-        revision=config.model.target_revision,
-        cache_dir=config.model.cache_dir,
-        trust_remote_code=config.model.trust_remote_code,
-    ) if needs_head else None
+    head = (
+        TargetHead.from_pretrained(
+            config.model.target_model_path,
+            lm_head_key=config.model.lm_head_key,
+            revision=config.model.target_revision,
+            cache_dir=config.model.cache_dir,
+            trust_remote_code=config.model.trust_remote_code,
+        )
+        if needs_head
+        else None
+    )
     return AlgorithmModelParts(model=model, target_head=head)
 
 
@@ -80,8 +99,12 @@ def build_step(wrapped_model, *, target_head=None, **options):
 
 def resume_contract(config, draft_model, training_model):
     return {
-        **{key.replace("eagle3_", "eagle4_", 1): value for key, value in
-           eagle3.resume_contract(config, draft_model, training_model).items()},
+        **{
+            key.replace("eagle3_", "eagle4_", 1): value
+            for key, value in eagle3.resume_contract(
+                config, draft_model, training_model
+            ).items()
+        },
         "eagle4_stage": config.training.eagle4_stage,
         "eagle4_sliding_window": draft_model.sliding_window,
         "eagle4_candidate_head": dict(draft_model.config.efficient_lm_head_config),
@@ -92,9 +115,14 @@ def resume_contract(config, draft_model, training_model):
 def build_offline_reader(hidden_states_path, *, run_id, ttt_length, max_len):
     from draftfit.runtime.data_plane.offline_reader import OfflineManifestReader
 
-    return OfflineManifestReader(hidden_states_path, run_id=run_id, strategy="eagle4",
-                                 ttt_length=ttt_length, max_len=max_len,
-                                 target_repr="hidden_state")
+    return OfflineManifestReader(
+        hidden_states_path,
+        run_id=run_id,
+        strategy="eagle4",
+        ttt_length=ttt_length,
+        max_len=max_len,
+        target_repr="hidden_state",
+    )
 
 
 def resolve_capture_layers(config, draft_config, target_config):
@@ -109,30 +137,44 @@ def create_registration():
     spec = replace(
         base.spec,
         name="eagle4",
-        draft=replace(base.spec.draft, compatible_architectures={ARCHITECTURE},
-                      default_architecture=ARCHITECTURE),
-        capabilities=replace(base.spec.capabilities, attention_backends={"sdpa"},
-                             supports_vocab_mapping=False),
+        draft=replace(
+            base.spec.draft,
+            compatible_architectures={ARCHITECTURE},
+            default_architecture=ARCHITECTURE,
+        ),
+        capabilities=replace(
+            base.spec.capabilities,
+            attention_backends={"sdpa"},
+            supports_vocab_mapping=False,
+            supports_compact_teacher=False,
+        ),
     )
     providers = replace(
         base.providers,
         algorithm_name="eagle4",
-        step=replace(base.providers.step, build=build_step, resume_contract=resume_contract),
+        step=replace(
+            base.providers.step, build=build_step, resume_contract=resume_contract
+        ),
         model=replace(
             base.providers.model,
             draft_config=replace(
                 base.providers.model.draft_config,
                 architecture=ARCHITECTURE,
                 compatible_architectures=frozenset({ARCHITECTURE}),
-                target_defaults=replace(base.providers.model.draft_config.target_defaults,
-                                        draft_vocab_size=None, populate=populate_defaults),
+                target_defaults=replace(
+                    base.providers.model.draft_config.target_defaults,
+                    draft_vocab_size=None,
+                    populate=populate_defaults,
+                ),
             ),
             build_draft=build_draft,
             build_training_model=build_training_model,
             resolve_capture_layers=resolve_capture_layers,
         ),
         vocab_mapping_modes=frozenset(),
-        offline=tuple(replace(provider, build_reader=build_offline_reader)
-                      for provider in base.providers.offline),
+        offline=tuple(
+            replace(provider, build_reader=build_offline_reader)
+            for provider in base.providers.offline
+        ),
     )
     return make_registration(spec, providers)

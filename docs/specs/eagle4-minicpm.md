@@ -33,7 +33,7 @@ not a claim to reproduce the authors' complete training procedure or results.
   randomized truncated SVD on a stage-transition warm start; full resume must
   preserve existing factors.
 - Reuse the EAGLE offline/server feature layout, teacher projection, unroll,
-  compact-teacher option and checkpoint resume boundary. Vocabulary pruning,
+  and checkpoint resume boundary. Vocabulary pruning and compact teacher mode,
   alternate attention blocks, MoE, NoPE and other training attention backends
   are excluded.
 - Export includes `lm_head.weight`, `efficient_lm_head_down_proj.weight` and
@@ -65,8 +65,8 @@ block outputs and normalized final hidden states:
 draftfit target prepare /path/to/target --local-only --strategy eagle4 \
   --hidden-states /path/to/features --output-dir ./eagle4-dense \
   --draft-config configs/minicpm5-1b-eagle4.json \
-  --set training.attention_backend=sdpa --set training.ttt_length=3 \
-  --set training.max_steps=4000 --set training.save_interval=1000
+  --set training.attention_backend=sdpa --set training.ttt_length=7 \
+  --set training.max_steps=5000 --set training.save_interval=1000
 draftfit train -c ./eagle4-dense/train.json --plan
 draftfit train -c ./eagle4-dense/train.json
 ```
@@ -92,26 +92,38 @@ and measure new-model greedy correctness before calibration or performance.
 ## Experiment plan
 
 - Existing shared A100 80GB only; do not stop its vLLM process. Allocator budget
-  5,600 MiB; require an additional 1,536 MiB free before allocation.
+  6,500 MiB for the full training recipes; require an additional 1,536 MiB free before allocation.
 - Target `openbmb/MiniCPM5-1B@87179e5c1f455ef22e6223592d2d61351b525bfc`.
 - Real UltraChat conversations: disjoint `train_sft` and `test_sft`; immutable
   dataset revision and per-feature hashes recorded in `capture.json`.
 - 1,024 training samples, 64 held-out samples, maximum 256 tokens, seed 29,
-  batch 1, BF16, one draft layer, target width, taps `[1,11,20]`.
-- 5,000 optimizer updates each. EAGLE4 uses 4,000 dense + 1,000 candidate
-  updates; DSpark/DFlash2 use 5,000 method-specific updates. AdamW LR 1e-4,
-  gradient clipping 0.5; common sample order. Parallel methods use block 7 and
-  eight uniform anchors; EAGLE4 unrolls three recurrent training steps.
+  batch 1, BF16 and target width. Capture taps `[1,6,11,16,20]`; EAGLE4
+  consumes the `[1,11,20]` subset.
+- Follow the current [family guide](../DFLASH_FAMILY.md) and
+  [MiniCPM recipes](../RECENT_MODEL_EXPERIMENTS.md): five DSpark layers with
+  Markov rank 256, three DFlash2 layers with selector rank 256, block 7 and
+  up to 512 random anchors. All draft backbone parameters train.
+- EAGLE4 keeps its documented single recurrent layer and seven training unrolls.
+  Each method receives 5,000 dense optimizer updates. Candidate distillation
+  adds 1,000 EAGLE4 updates after dense training; it does not replace dense updates.
+  The upstream [two-stage recipe](https://github.com/eagle-hq/EAGLE-4/blob/3b96ef6e1c0b2ef0c698fab74c8e383d8bf8053d/docs/new-model.md)
+  requires a trained dense draft before candidate fitting.
+- Use Draftfit's `BF16Optimizer` with FP32 masters, cosine scheduling and warmup.
+  DSpark/DFlash2 use the example LR 6e-4, warmup 4%, clipping 1.0;
+  EAGLE4 uses default LR 1e-4, warmup 1.5%, clipping 0.5.
+- These are documented starting recipes adapted to MiniCPM5-1B, not tuned
+  optima. The documented official DSpark warm start belongs to MiniCPM5-2B;
+  its geometry cannot initialize MiniCPM5-1B. All three arms start from scratch.
 - Architecture, objective, number of supervised predictions, head ownership
   and trainable parameters differ by design. Total training losses are not a
   common quality metric. One seed is a bounded comparison, not evidence of
   general superiority. Shared GPU compute invalidates isolated speed claims.
 
 ```sh
-python benchmarks/train_eagle4_comparison.py \
+PYTORCH_ALLOC_CONF=expandable_segments:True python benchmarks/train_eagle4_comparison.py \
   --target /path/to/pinned-minicpm5-1b --output /path/to/new-comparison \
-  --steps 5000 --dense-steps 4000 --train-samples 1024 --eval-samples 64 \
-  --max-length 256 --memory-mib 5600
+  --steps 5000 --candidate-steps 1000 --train-samples 1024 --eval-samples 64 \
+  --max-length 256 --memory-mib 6500
 ```
 
 The runner never rents, stops processes or modifies the live serving

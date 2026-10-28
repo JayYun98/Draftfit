@@ -20,10 +20,10 @@ from .dflash2 import (
 )
 from .domino import DominoDraftModel
 from .dspark import DSparkDraftModel
+from .eagle4 import LlamaForCausalLMEagle4
 from .llama3_eagle import LlamaForCausalLMEagle3
 from .osprey_llama import OspreyLlamaDraftModel
 from .osprey_qwen3 import OspreyQwen3DraftModel
-from .eagle4 import LlamaForCausalLMEagle4
 from .peagle import PEagleDraftModel
 from .registry import DRAFT_REGISTRY, available_drafts, register_draft, resolve_draft
 from .taichu_dflash2 import TaichuDFlash2Config, TaichuDFlash2DraftModel
