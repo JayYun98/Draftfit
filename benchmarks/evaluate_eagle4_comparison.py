@@ -147,7 +147,9 @@ def evaluate(args):
         parameters=target.parameters, _compute_logits=target.lm_head
     )
     baseline_bundle = SimpleNamespace(model=projection)
-    eos = tokenizer.eos_token_id
+    eos = target.generation_config.eos_token_id
+    if eos is None:
+        eos = tokenizer.eos_token_id
     stops = [] if eos is None else eos if isinstance(eos, list) else [eos]
     config = dict(
         stop_token_ids=stops,
@@ -276,6 +278,7 @@ def evaluate(args):
             verifier_dtype=args.verifier_dtype,
             decoder="full-prefix greedy chain reference; no optimized engine/tree policy",
             max_new_tokens=args.max_new_tokens,
+            stop_token_ids=stops,
             draft_tokens=6,
             arms=summaries,
             target_reference_seconds=sum(r["seconds"] for r in baseline),
