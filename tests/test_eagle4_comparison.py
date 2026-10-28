@@ -8,19 +8,23 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import torch
-from transformers import LlamaConfig, LlamaForCausalLM
+from transformers import LlamaConfig, LlamaForCausalLM, Qwen3Config
 
 from benchmarks.evaluate_eagle4_comparison import eagle4_propose
 from benchmarks.train_eagle4_comparison import (
     capture_example,
+    digest,
     parameter_hashes,
     warm_start,
     write_json,
 )
 from draftfit.algorithms.eagle4.model import Eagle4TrainingModel
+from draftfit.modeling.draft.dflash2 import DFlash2DraftModel
+from draftfit.modeling.draft.dspark import DSparkDraftModel
 from draftfit.modeling.draft.eagle4 import LlamaForCausalLMEagle4
 from draftfit.offline_capture.transformers import OfflineTransformersCapture
 from draftfit.utils import padding
+from tests.test_dflash2_integration import tiny_config as tiny_dflash2_config
 from tests.test_modeling.test_eagle4 import tiny_config
 
 
@@ -96,6 +100,61 @@ class ComparisonCaptureTest(unittest.TestCase):
                 self.assertTrue(torch.equal(value, expected[key]), key)
             self.assertTrue(fresh.midlayer.self_attn.q_proj.weight.requires_grad)
             self.assertFalse(fresh.efficient_lm_head.weight.requires_grad)
+
+    def test_warm_start_accepts_materialized_default_vocab_but_rejects_changes(self):
+        def make_dspark():
+            config = Qwen3Config(
+                architectures=["DSparkDraftModel"],
+                vocab_size=64,
+                hidden_size=32,
+                intermediate_size=64,
+                num_hidden_layers=2,
+                num_attention_heads=4,
+                num_key_value_heads=2,
+                head_dim=8,
+            )
+            config.num_target_layers = 8
+            config.block_size = 4
+            config.dflash_config = {
+                "target_layer_ids": [1, 5],
+                "block_size": 4,
+                "mask_token_id": 63,
+                "projector_type": "dspark",
+                "markov_rank": 8,
+            }
+            return DSparkDraftModel(config)
+
+        for name, make in (
+            ("dspark", make_dspark),
+            ("dflash2", lambda: DFlash2DraftModel(tiny_dflash2_config())),
+        ):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                source = Path(directory)
+                export = source / name / "export"
+                original = make()
+                self.assertIsNone(getattr(original.config, "draft_vocab_size", None))
+                original.save_pretrained(export)
+                write_json(
+                    source / name / "result.json",
+                    {
+                        "dense_steps": 5000,
+                        "export_sha256": {
+                            p.name: digest(p) for p in export.glob("*.safetensors")
+                        },
+                    },
+                )
+                fresh = make()
+                warm_start(fresh, source, name)
+                for key, value in fresh.state_dict().items():
+                    self.assertTrue(torch.equal(value, original.state_dict()[key]), key)
+                # A genuinely different vocabulary or same-shape RoPE is incompatible.
+                fresh.config.draft_vocab_size = 32
+                with self.assertRaisesRegex(ValueError, "configuration differs"):
+                    warm_start(fresh, source, name)
+                fresh.config.draft_vocab_size = 64
+                fresh.config.rope_parameters["rope_theta"] *= 2
+                with self.assertRaisesRegex(ValueError, "configuration differs"):
+                    warm_start(fresh, source, name)
 
     @torch.inference_mode()
     def test_recurrent_training_logits_match_generation_at_each_depth(self):

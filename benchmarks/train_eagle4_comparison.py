@@ -459,6 +459,10 @@ def warm_start(draft, source, name):
         ignored = {"_name_or_path", "transformers_version", "dtype", "torch_dtype"}
         expected = {k: v for k, v in draft.config.to_dict().items() if k not in ignored}
         actual = {k: v for k, v in loaded.config.to_dict().items() if k not in ignored}
+        # AutoDraftModelConfig materializes the full-vocabulary default on reload.
+        for config in (expected, actual):
+            if config.get("draft_vocab_size") is None:
+                config["draft_vocab_size"] = config["vocab_size"]
         if actual != expected:
             raise ValueError("Warm-start draft configuration differs from this arm")
     draft.load_state_dict(loaded.state_dict())
