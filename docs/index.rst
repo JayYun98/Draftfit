@@ -37,8 +37,14 @@ not a blanket compatibility or production-readiness claim.
    CALIBRATION
    TRAINING_SEARCH
    specs/quantized-capture
-   specs/research-methods
    WEB_WORKSPACE
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Research methods
+
+   research/README
+   specs/research-methods
 
 .. toctree::
    :maxdepth: 1
