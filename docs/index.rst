@@ -34,6 +34,7 @@ not a blanket compatibility or production-readiness claim.
    FAMILY_CAMPAIGN
    HF_PUBLICATION
    specs/eagle4-minicpm
+   research/eagle4-minicpm
    specs/training-feature-integration
    CALIBRATION
    TRAINING_SEARCH

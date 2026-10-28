@@ -49,6 +49,7 @@ Use the [complete workflow](docs/PUBLIC_WORKFLOW.md) for data formats, saved fea
 
 All seven methods support online target capture.
 Six methods also accept saved target features.
+EAGLE4 has a registered online path; its current GPU validation uses saved features.
 
 | Method | Saved features | Requirement |
 | --- | --- | --- |

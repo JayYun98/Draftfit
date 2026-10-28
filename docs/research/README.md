@@ -56,6 +56,10 @@ See the [test protocol and limits](latest-speculative-methods.md#non-oracle-effe
 
 ## Run a recipe
 
+For platform draft training, see the separate
+[MiniCPM DSpark/DFlash2/EAGLE4 comparison](eagle4-minicpm.md).
+It records full dense training, candidate distillation and bounded serving gates.
+
 Select a [research recipe](../../examples/configs/research/README.md).
 Model recipes require compatible local checkpoints.
 Numerical recipes use the included fixtures.

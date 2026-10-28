@@ -43,17 +43,26 @@ not a claim to reproduce the authors' complete training procedure or results.
 
 ## Acceptance and evidence
 
+See the [MiniCPM experiment record](../research/eagle4-minicpm.md) for recipes,
+source identities, execution results and failed or unrun gates.
+
 | Requirement | Criterion decided before execution | Check | Status |
 | --- | --- | --- | --- |
-| Candidate head | Full-head row scores exactly match selected candidate scores | `tests.test_modeling.test_eagle4` | pass, CPU |
+| Candidate head | Full-head row scores exactly match selected candidate scores | `tests.test_modeling.test_eagle4`; held-out coverage | partial: CPU checks pass; BF16 dense-GEMM argmax differs |
 | Attention and padding | Future/out-of-window inputs cannot affect visible queries; padding excluded | Same suite | pass, CPU |
 | Candidate optimization | Only candidate factors update; masked forward KL decreases | Same suite | pass, CPU |
-| Registry and config | CLI lists EAGLE4; full vocab, one layer and SDPA admitted | Registry/config tests and real CLI | pass, bounded CPU |
-| Export | Native candidate tensors survive HF reload and SGLang export | Model/export tests | pass, CPU |
-| Real training | Finite loss/gradient, actual optimizer updates for each method | Bounded MiniCPM CUDA smoke | pending |
-| 5,000-step comparison | Same frozen data, target revision, order, seed and GPU | Source-only comparison runner | pending |
-| Held-out generation | Actual exports generate target-verified tokens on unseen prompts | Generation gate | pending |
-| Optimized serving | Compatible engine loads this exact draft and greedy correctness passes | Separate external runtime | pending |
+| Registry and config | CLI lists EAGLE4; full vocab, one layer and SDPA admitted | Installed-wheel onboarding and actual CUDA CLI | pass, bounded |
+| Export | Native candidate tensors survive HF reload and SGLang export | Model/export tests; actual CLI HF reload | pass, CPU and bounded CUDA |
+| CLI lifecycle | Candidate full resume equals uninterrupted fitting; dense tensors stay frozen | Actual CUDA train/resume/export CLI | pass, tiny target |
+| Real training | Finite loss/gradient, actual optimizer updates for each method | Full MiniCPM CUDA runs | pass |
+| 5,000-step comparison | Same frozen data, target revision, order, seed and GPU | Full dense fitting; EAGLE4 adds 1,000 candidate updates | pass, bounded single seed |
+| Held-out generation | Actual exports generate target-verified tokens on unseen prompts | Generation gate | fail, BF16; FP32 diagnostic control passes 64/64 for every arm |
+| Optimized serving | Compatible engine loads this exact draft and greedy correctness passes | Separate external runtime, both arms CUSTOM attention | fail: load/requests pass; greedy equality 7/8 |
+
+The candidate tests check selected-row scoring against a full FP32 projection
+with numerical tolerance, plus FP32 accumulation for BF16 inputs. They do not
+certify bitwise equivalence with every BF16 dense GEMM. On the real held-out
+states, rescored argmax agreement is 99.118%; see the experiment record.
 
 ## Usage
 
@@ -92,7 +101,8 @@ and measure new-model greedy correctness before calibration or performance.
 ## Experiment plan
 
 - Existing shared A100 80GB only; do not stop its vLLM process. Allocator budget
-  6,500 MiB for the full training recipes; require an additional 1,536 MiB free before allocation.
+  started at 6,500 MiB with a 1,536 MiB initial reserve. After the external
+  workload grew, remaining arms used 6,200 MiB plus a 1,024 MiB reserve.
 - Target `openbmb/MiniCPM5-1B@87179e5c1f455ef22e6223592d2d61351b525bfc`.
 - Real UltraChat conversations: disjoint `train_sft` and `test_sft`; immutable
   dataset revision and per-feature hashes recorded in `capture.json`.
