@@ -1,0 +1,147 @@
+{
+  "cpu_verification": {
+    "affected_tests": 57,
+    "environment": {
+      "device": "CPU",
+      "torch": "2.11.0",
+      "transformers": "5.12.1"
+    },
+    "failures": 0,
+    "log_sha256": "73b2d93ff4066f8d0823522006b30d47af43c97c156b3d8292bdeff409a1ce2f",
+    "new_comparison_tests": 6,
+    "scope": "Actual tiny target/capture/export with CPU substitution for CUDA placement; no MiniCPM GPU resume update",
+    "skipped": 17
+  },
+  "cuda_bf16_target_replay": {
+    "actual_sha256": "41b562e54896e92d8a6a228cb3eb88065542f5d05d82af1de40fcbc86ff54d66",
+    "algorithm": "eagle4",
+    "baseline_sha256": "037245fb2bfe5014e1849a646eb100914983a32aa94312abb1596b5c85a380bf",
+    "block_multiple_head": {
+      "argmax": 7590,
+      "observed_token_logprob": -0.7882420420646667,
+      "reference_token_logprob": -0.9132420420646667,
+      "top_two_gap": 0.125,
+      "top_two_ids": [
+        7590,
+        14585
+      ],
+      "top_two_logits": [
+        16.125,
+        16.0
+      ]
+    },
+    "block_single_head": {
+      "argmax": 7590,
+      "observed_token_logprob": -0.7882420420646667,
+      "reference_token_logprob": -0.9132420420646667,
+      "top_two_gap": 0.125,
+      "top_two_ids": [
+        7590,
+        14585
+      ],
+      "top_two_logits": [
+        16.125,
+        16.0
+      ]
+    },
+    "canonical": {
+      "argmax": 14585,
+      "observed_token_logprob": -0.9176459312438965,
+      "reference_token_logprob": -0.7926459312438965,
+      "top_two_gap": 0.125,
+      "top_two_ids": [
+        14585,
+        7590
+      ],
+      "top_two_logits": [
+        16.125,
+        16.0
+      ]
+    },
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "first_divergence": 26,
+    "head_shape_max_difference": 0.0,
+    "hidden_max_difference": 0.75,
+    "observed_token": 7590,
+    "prefix_tokens": 119,
+    "reference_token": 14585,
+    "same_argmax_across_shapes": false,
+    "sample": 7,
+    "verification_tokens": 125
+  },
+  "extension": {
+    "additional_dense_updates_completed_per_arm": 0,
+    "additional_dense_updates_planned_per_arm": 10000,
+    "all_preserved_records_hash_verified": true,
+    "auto_restart": false,
+    "cumulative_dense_updates_planned_per_arm": 15000,
+    "data_audit": {
+      "end_think_tokens": 107,
+      "samples": 291,
+      "sequence_tokens": 74468,
+      "starts_think": 291,
+      "supervised_positions": 51016
+    },
+    "eagle4_candidate_updates_planned": 1000,
+    "gpu_capture_resume": "not-run; hold remains in effect",
+    "owned_gpu_processes_exited": true,
+    "prefix_manifest_sha256": "daefe2a974291773021b5d6607542cac58d216ed047f04e799f2d00332f26127",
+    "recovery_initialized_cuda": false,
+    "shared_gpu_reservation_returned": true,
+    "status": "paused for coordinated main FinBench GPU use",
+    "test_captured": 0,
+    "test_requested": 64,
+    "train_captured": 291,
+    "train_requested": 1024
+  },
+  "raw_evidence_archive_bytes": 28818,
+  "raw_evidence_archive_sha256": "b305f38d00d53247411aef7b95e423e88965791707a6bdcab8834d14c6ddafa5",
+  "schema_version": 1,
+  "scope": "CUDA numerical diagnosis and partial target-generated capture; extended training has not started",
+  "source_archive_sha256": "8c004a1c78f6a75eb0ed4be67228ff33b307b9b6fe470fc91c253085537a067b",
+  "source_commit": "6eff3f39e456731429683cd45a345a17cdb3dcaf",
+  "source_sha256": {
+    "benchmarks/train_eagle4_comparison.py": "0f6d8cd00b9ba45c66182471e4b59753a3dbba5d0e30a8e51968a7d7f6a1d084",
+    "tests/test_eagle4_comparison.py": "8ba038186888b400a75908942b4f48618d757425dfde9b24b2f92f6e96ad86eb"
+  },
+  "unverified": [
+    "Full corrected MiniCPM capture and new quality measurements",
+    "Additional10000dense updates and export per arm",
+    "CUDA capture resume",
+    "Native first-mismatch logprob replay",
+    "Any isolated latency or throughput improvement"
+  ],
+  "warm_start_gpu_preflight": {
+    "all_passed": true,
+    "arms": {
+      "dflash2": {
+        "export": "dflash2/export",
+        "optimizer": "reset; model warm start, not an optimizer-state resume",
+        "previous_dense_steps": 5000,
+        "weights_sha256": {
+          "model.safetensors": "f4dca7a9d85dcf1144f0f7355c9207e38c3ea1626e9ecfc05ff42cf2fe9a86db"
+        }
+      },
+      "dspark": {
+        "export": "/opt/draftfit-eagle4-run/comparison-native-recipes-gpu/dspark/export",
+        "optimizer": "reset; model warm start, not an optimizer-state resume",
+        "previous_dense_steps": 5000,
+        "weights_sha256": {
+          "model.safetensors": "2e94130acfb5c77cc62858bb45ee44b14b9bcd276fad3267737cb5c983939c6d"
+        }
+      },
+      "eagle4": {
+        "export": "eagle4/dense-export",
+        "optimizer": "reset; model warm start, not an optimizer-state resume",
+        "previous_dense_steps": 5000,
+        "weights_sha256": {
+          "model.safetensors": "59b62128da77e5ad4ae311dc599772709250d010e7d64ac111f8a694bc170c9e"
+        }
+      }
+    },
+    "initial_failure": "Serialized full-vocabulary default materialized from None into130560",
+    "repair": "Canonicalize the documented default; genuine vocabulary and RoPE differences remain rejected",
+    "source_commit": "29bd24f95c9891884cb6ec1a0ea14342f92a54d6"
+  }
+}

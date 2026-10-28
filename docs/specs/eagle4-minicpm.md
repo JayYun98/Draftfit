@@ -56,8 +56,8 @@ source identities, execution results and failed or unrun gates.
 | CLI lifecycle | Candidate full resume equals uninterrupted fitting; dense tensors stay frozen | Actual CUDA train/resume/export CLI | pass, tiny target |
 | Real training | Finite loss/gradient, actual optimizer updates for each method | Full MiniCPM CUDA runs | pass |
 | 5,000-step comparison | Same frozen data, target revision, order, seed and GPU | Full dense fitting; EAGLE4 adds 1,000 candidate updates | pass, bounded single seed |
-| Capture matches generation mode | Train on the selected target's generated continuations | Follow-up data audit and capture regression | fail in original cache; CPU correction passes; new CUDA capture pending |
-| 10,000-update extension | Warm-start every dense draft; new common target-generated cache; separate EAGLE4 candidate fitting | Follow-up run | not-run: shared GPU reservation |
+| Capture matches generation mode | Train on the selected target's generated continuations | Follow-up data audit and capture regression | original mismatch confirmed; 291 corrected CUDA samples verified and preserved; remainder paused |
+| 10,000-update extension | Warm-start every dense draft; new common target-generated cache; separate EAGLE4 candidate fitting | Follow-up run | GPU warm-start preflight passes; zero additional updates; main FinBench GPU hold |
 | Held-out generation | Actual exports generate target-verified tokens on unseen prompts | Generation gate | fail, BF16; FP32 diagnostic control passes 64/64 for every arm |
 | Optimized serving | Compatible engine loads this exact draft and greedy correctness passes | Separate external runtime, both arms CUSTOM attention | fail: load/requests pass; greedy equality 7/8 |
 
@@ -145,4 +145,7 @@ details remain outside the PR. Final evidence belongs in an experiment report.
 The runner now defaults to `--capture-source target`. The original raw-answer
 run used the `reference` protocol. See the
 [follow-up diagnosis and extension command](../research/eagle4-minicpm.md#diagnosis-and-extension)
-for the confirmed mismatch, additional-update contract and current GPU hold.
+for the confirmed mismatch, CUDA numerical replay, additional-update contract
+and current GPU hold. Capture progress now commits per-record hashes so a
+coordinated interruption can reuse verified records. Actual CUDA capture resume
+remains unrun; the real tiny CPU interruption/recovery test passes.

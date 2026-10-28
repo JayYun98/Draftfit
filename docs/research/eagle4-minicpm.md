@@ -5,7 +5,10 @@
 **Follow-up:** the original cache uses raw answers, while MiniCPM generates
 reasoning continuations. See [diagnosis and extension](#diagnosis-and-extension)
 before interpreting the generation acceptance figures. The corrected 10,000-update
-extension has not run; shared GPU measurements currently hold the GPU reservation.
+extension has not trained yet. Corrected capture reached 291/1,024 training
+samples before a coordinated main FinBench GPU hold. The capture files are
+verified and preserved; no automatic restart is active. See the
+[latest receipt](results/eagle4-minicpm-extension-20261029.json).
 
 This record tests Draftfit's EAGLE4 implementation against existing DSpark and
 DFlash2 training. It uses spare memory on an existing shared A100-SXM4-80GB (driver 595.71.05).
@@ -272,8 +275,12 @@ is 0/1, with 3/174 accepted proposals. The first difference is generated token 2
 CPU FP32 replay selects token 7590 for both prefix lengths; its top-two gap is
 0.01267. CPU BF16 rounds tokens 7590 and 14585 to the same logit, 16.125.
 Both CPU BF16 shapes select 7590. These controls show near-tie sensitivity;
-the exact CUDA BF16 flip still needs a GPU replay. Native sample 3 first differs
-at token 13. Native diagnosis also remains pending.
+the later CUDA BF16 replay reproduces the exact flip: the canonical prefix
+selects 14585 and block verification selects 7590. Each top-two gap is 0.125.
+The hidden-state maximum difference is 0.75; changing only the head scoring
+shape gives zero difference. This identifies target prefix-length sensitivity
+for this specific retained failure. Strict greedy equality remains failed.
+Native sample 3 first differs at token 13; its diagnosis remains pending.
 
 Upstream [test results](https://github.com/eagle-hq/EAGLE-4/blob/3b96ef6e1c0b2ef0c698fab74c8e383d8bf8053d/docs/support-matrix.md#how-these-were-measured)
 report exact agreement, near ties and FP32 controls separately. Its near-tie
@@ -296,16 +303,32 @@ start, consistent with the [family guide](../DFLASH_FAMILY.md#existing-draft-ide
 It does not resume the completed schedule at zero learning rate.
 The original dense EAGLE4 optimizer was superseded by candidate fitting.
 
-CPU checks loaded and validated all three actual source exports. Four new
-regressions passed; the affected suite ran 55 tests with 17 skips and no failures.
+GPU preflight loaded all three actual source exports into the fresh production
+model factories. Its first attempt rejected a serialized full-vocabulary default:
+`draft_vocab_size=None` becomes `130560` when loaded. The comparison now
+canonicalizes that documented default; genuine vocabulary and same-shape RoPE
+changes remain rejected. All three GPU warm starts then passed.
+
+Six comparison regressions passed; the affected suite ran 57 tests with 17 skips
+and no failures. Capture interruption/recovery uses a real tiny target on CPU,
+verifies committed record hashes and preserves uncommitted files for diagnosis.
 The raw-answer capture regression failed before the correction and passed after it.
 These checks do not establish extended MiniCPM quality or GPU correctness.
 
-**Not run:** target-generated MiniCPM capture, additional training, new generation
-and native gates. GPU time coordination requires waiting until the other
-measurement task releases its reservation. No training or automatic restart is active.
+Corrected MiniCPM capture produced **291 training samples**. All begin with
+`<think>`; they contain 51,016 supervised positions and 107 `</think>` tokens.
+Every preserved prompt matches the original source, and all masks, feature
+finite values and file hashes passed CPU recovery checks. A separate recovery
+folder retains these records without modifying the interrupted output.
 
-After that explicit release, use a new output directory:
+**Paused:** the main FinBench precision comparison requested temporary GPU use.
+The task's capture and driver exited, GPU memory and the shared reservation were
+returned, and the original service identities were preserved. Additional dense
+updates completed: **zero**. GPU capture resume, remaining capture, additional
+training, new generation and native gates remain unrun. An explicit coordination
+release and fresh service/lease checks are required before restarting.
+
+After that release, use a new output directory or the verified recovery directory:
 
 ```sh
 PYTORCH_ALLOC_CONF=expandable_segments:True python benchmarks/train_eagle4_comparison.py \
@@ -317,3 +340,5 @@ PYTORCH_ALLOC_CONF=expandable_segments:True python benchmarks/train_eagle4_compa
 This produces 15,000 cumulative dense updates per arm. New data and a new
 schedule change together; this extension alone cannot isolate their effects.
 Repeat the reference and native correctness gates before any performance claim.
+The same 64 evaluation prompts have already been inspected; the extension is a
+diagnostic comparison, not a new untouched holdout.
