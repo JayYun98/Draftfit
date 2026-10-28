@@ -1,5 +1,6 @@
 """Real tiny target checks for the comparison's capture and recurrent layout."""
 
+import json
 import tempfile
 import unittest
 from dataclasses import replace
@@ -12,9 +13,12 @@ from transformers import LlamaConfig, LlamaForCausalLM, Qwen3Config
 
 from benchmarks.evaluate_eagle4_comparison import eagle4_propose
 from benchmarks.train_eagle4_comparison import (
+    capture_contract,
     capture_example,
     digest,
+    load_capture_progress,
     parameter_hashes,
+    prepare,
     warm_start,
     write_json,
 )
@@ -80,6 +84,79 @@ class ComparisonCaptureTest(unittest.TestCase):
             capture_example(
                 self.target, self.capture, prompt, [3, 2, 8], 5, source="reference"
             )
+
+    def test_interrupted_capture_reuses_only_committed_records(self):
+        class Tokenizer:
+            def apply_chat_template(self, messages, **kwargs):
+                return [1, 2, 3, 4] if len(messages) == 1 else [1, 2, 3, 4] + [5] * 20
+
+        rows = [
+            {
+                "prompt_id": "sample",
+                "messages": [
+                    {"role": "user", "content": "prompt"},
+                    {"role": "assistant", "content": "reference"},
+                ],
+            }
+        ]
+        # Use the real tiny target/capture but keep this integration on CPU.
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("torch.nn.Module.cuda", lambda model: model),
+            patch(
+                "benchmarks.train_eagle4_comparison.AutoTokenizer.from_pretrained",
+                return_value=Tokenizer(),
+            ),
+            patch(
+                "benchmarks.train_eagle4_comparison.AutoModelForCausalLM.from_pretrained",
+                return_value=self.target,
+            ),
+            patch("datasets.load_dataset", return_value=rows),
+            patch("benchmarks.train_eagle4_comparison.LAYERS", [0, 1, 2]),
+        ):
+            root = Path(directory)
+            args = SimpleNamespace(
+                output=root,
+                target=root,
+                warm_start=None,
+                max_length=40,
+                train_samples=1,
+                eval_samples=1,
+                capture_source="target",
+            )
+            with patch(
+                "benchmarks.train_eagle4_comparison.capture_example",
+                side_effect=[
+                    capture_example(self.target, self.capture, [1, 2, 3, 4], [], 40),
+                    RuntimeError("coordinated hold"),
+                ],
+            ):
+                with self.assertRaisesRegex(RuntimeError, "coordinated hold"):
+                    prepare(args)
+            progress = load_capture_progress(root, capture_contract(args))
+            self.assertEqual(len(progress["splits"]["train_sft"]), 1)
+            self.assertEqual(progress["splits"]["test_sft"], [])
+            self.assertFalse((root / "capture.json").exists())
+            before = digest(root / "train_sft/00000.pt")
+            # A record written before its manifest update must never be trusted.
+            (root / "test_sft/00000.pt").write_bytes(b"uncommitted interrupted write")
+            with patch(
+                "benchmarks.train_eagle4_comparison.capture_example",
+                wraps=capture_example,
+            ) as capture:
+                prepare(args)
+            self.assertEqual(capture.call_count, 1)
+            self.assertEqual(digest(root / "train_sft/00000.pt"), before)
+            self.assertEqual(len(list((root / "test_sft").glob("*.uncommitted.*"))), 1)
+            complete = json.loads((root / "capture.json").read_text())
+            self.assertEqual(len(complete["splits"]["test_sft"]), 1)
+            changed = dict(capture_contract(args), continuation_source="reference")
+            with self.assertRaisesRegex(ValueError, "settings differ"):
+                load_capture_progress(root, changed)
+            with (root / "train_sft/00000.pt").open("ab") as handle:
+                handle.write(b"tampered")
+            with self.assertRaisesRegex(ValueError, "record changed"):
+                load_capture_progress(root, capture_contract(args))
 
     def test_extension_starts_from_dense_export_with_trainable_backbone(self):
         with tempfile.TemporaryDirectory() as directory:

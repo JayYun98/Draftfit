@@ -48,7 +48,9 @@ NAMES = ("dspark", "dflash2", "eagle4")
 
 
 def write_json(path, data):
-    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+    temporary.replace(path)
 
 
 def digest(path):
@@ -120,12 +122,56 @@ def capture_example(
     }
 
 
+def capture_contract(args):
+    return {
+        "dataset": "HuggingFaceH4/ultrachat_200k",
+        "dataset_revision": DATASET_REVISION,
+        "target_revision": TARGET_REVISION,
+        "layers": LAYERS,
+        "max_length": args.max_length,
+        "sample_counts": {
+            "train_sft": args.train_samples,
+            "test_sft": args.eval_samples,
+        },
+        "continuation_source": args.capture_source,
+        "source_capture_sha256": (
+            digest(args.warm_start / "capture.json") if args.warm_start else None
+        ),
+        "generation": (
+            {"do_sample": False, "dtype": "bfloat16", "use_cache": True}
+            if args.capture_source == "target"
+            else None
+        ),
+    }
+
+
+def load_capture_progress(root, contract):
+    """Reuse only committed, hash-verified records from an identical capture."""
+    path = root / "capture-progress.json"
+    if not path.exists():
+        if any(root.glob("*_sft/*.pt")):
+            raise ValueError("Unregistered capture records require explicit recovery")
+        return {**contract, "splits": {"train_sft": [], "test_sft": []}}
+    progress = json.loads(path.read_text())
+    if any(progress.get(key) != value for key, value in contract.items()):
+        raise ValueError("Partial capture settings differ from this comparison")
+    if digest(root / "target-tables.pt") != progress["target_tables_sha256"]:
+        raise ValueError("Partial capture target tables changed")
+    for split in ("train_sft", "test_sft"):
+        for index, identity in enumerate(progress["splits"][split]):
+            if digest(root / split / f"{index:05}.pt") != identity["sha256"]:
+                raise ValueError("Partial capture record changed")
+    return progress
+
+
 def prepare(args):
     from datasets import load_dataset
 
     root = args.output
     if (root / "capture.json").exists():
         return
+    contract = capture_contract(args)
+    progress = load_capture_progress(root, contract)
     previous = (
         json.loads((args.warm_start / "capture.json").read_text())
         if args.warm_start
@@ -155,16 +201,23 @@ def prepare(args):
     )
     capture = OfflineTransformersCapture(target)
     capture.set_capture_layers(LAYERS, capture_method="dspark")
-    torch.save(
-        {
-            "embedding": target.get_input_embeddings().weight.detach().cpu(),
-            "head": target.lm_head.weight.detach().cpu(),
-        },
-        root / "target-tables.pt",
-    )
+    tables = {
+        "embedding": target.get_input_embeddings().weight.detach().cpu(),
+        "head": target.lm_head.weight.detach().cpu(),
+    }
+    table_path = root / "target-tables.pt"
+    if "target_tables_sha256" in progress:
+        old_tables = torch.load(table_path, weights_only=True, map_location="cpu")
+        if any(not torch.equal(tables[k], old_tables[k]) for k in tables):
+            raise ValueError("Partial capture target tensors differ from loaded target")
+        del old_tables
+    else:
+        torch.save(tables, table_path)
+        progress["target_tables_sha256"] = digest(table_path)
+    del tables
+    write_json(root / "capture-progress.json", progress)
     dataset = "HuggingFaceH4/ultrachat_200k"
     revision = DATASET_REVISION
-    identities = {}
     with torch.inference_mode():
         for split, count in (
             ("train_sft", args.train_samples),
@@ -176,6 +229,7 @@ def prepare(args):
                 dataset, split=split, revision=revision, streaming=True, token=False
             )
             selected = []
+            cached = list(progress["splits"][split])
             for row in rows:
                 messages = row["messages"][:2]
                 if (
@@ -218,23 +272,41 @@ def prepare(args):
                     if old["prompt_ids"].tolist() != [prompt]:
                         raise ValueError("Warm-start generation prompt tokens changed")
                     del old
-                record = capture_example(
-                    target,
-                    capture,
-                    prompt,
-                    ids,
-                    args.max_length,
-                    source=args.capture_source,
-                )
                 path = folder / f"{len(selected):05}.pt"
-                torch.save(record, path)
-                selected.append(
-                    {
-                        "sample": sample,
-                        "sha256": digest(path),
-                        "tokens": record["input_ids"].shape[1],
-                    }
-                )
+                if len(selected) < len(cached):
+                    identity = cached[len(selected)]
+                    record = torch.load(path, weights_only=True, mmap=True)
+                    if identity["sample"] != sample or record[
+                        "prompt_ids"
+                    ].tolist() != [prompt]:
+                        raise ValueError("Partial capture source prompt changed")
+                    selected.append(identity)
+                else:
+                    record = capture_example(
+                        target,
+                        capture,
+                        prompt,
+                        ids,
+                        args.max_length,
+                        source=args.capture_source,
+                    )
+                    # Preserve an uncommitted record left between data and manifest writes.
+                    if path.exists():
+                        path.replace(
+                            path.with_suffix(f".pt.uncommitted.{time.time_ns()}")
+                        )
+                    temporary = path.with_suffix(".pt.tmp")
+                    torch.save(record, temporary)
+                    temporary.replace(path)
+                    selected.append(
+                        {
+                            "sample": sample,
+                            "sha256": digest(path),
+                            "tokens": record["input_ids"].shape[1],
+                        }
+                    )
+                    progress["splits"][split] = selected
+                    write_json(root / "capture-progress.json", progress)
                 if len(selected) % 32 == 0:
                     print(
                         json.dumps({"capture": split, "samples": len(selected)}),
@@ -246,29 +318,12 @@ def prepare(args):
                 raise RuntimeError(
                     f"Only {len(selected)} usable {split} samples, expected {count}"
                 )
-            identities[split] = selected
+            progress["splits"][split] = selected
             if previous and len(selected) != len(previous["splits"][split]):
                 raise ValueError("Warm-start source conversation count changed")
     write_json(
         root / "capture.json",
-        {
-            "dataset": dataset,
-            "dataset_revision": revision,
-            "target_revision": TARGET_REVISION,
-            "layers": LAYERS,
-            "target_tables_sha256": digest(root / "target-tables.pt"),
-            "max_length": args.max_length,
-            "continuation_source": args.capture_source,
-            "source_capture_sha256": (
-                digest(args.warm_start / "capture.json") if args.warm_start else None
-            ),
-            "generation": (
-                {"do_sample": False, "dtype": "bfloat16", "use_cache": True}
-                if args.capture_source == "target"
-                else None
-            ),
-            "splits": identities,
-        },
+        progress,
     )
     del target, capture
     gc.collect()
