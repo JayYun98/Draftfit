@@ -12,7 +12,6 @@ import json
 import random
 import sys
 import time
-from contextlib import nullcontext
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -79,28 +78,6 @@ def memory_guard(args):
             f"Insufficient spare VRAM: {free // 2**20} MiB; need budget plus {reserve} MiB reserve"
         )
     torch.cuda.set_per_process_memory_fraction(args.memory_mib * 2**20 / total)
-
-
-def offload_vocab_activations(vocab_size):
-    """Store saved vocabulary rows on CPU without moving model/optimizer tensors.
-
-    Vocabulary losses save B x T x V activations. Two-dimensional tensors
-    stay on GPU, including the transposed head saved by linear backward.
-    Copies are synchronous so saved tensors are safe across CUDA streams.
-    """
-
-    def pack(tensor):
-        if tensor.is_cuda and tensor.ndim == 3 and tensor.shape[-1] == vocab_size:
-            return tensor.device, tensor.detach().to("cpu")
-        return tensor.detach()
-
-    def unpack(saved):
-        if isinstance(saved, tuple):
-            device, tensor = saved
-            return tensor.to(device)
-        return saved
-
-    return torch.autograd.graph.saved_tensors_hooks(pack, unpack)
 
 
 @torch.inference_mode()
@@ -631,13 +608,7 @@ def train(args, name):
             stage = "candidates"
             optimizer = make_optimizer(args, name, draft, stage)
         draft.zero_grad(set_to_none=True)
-        activation_context = (
-            offload_vocab_activations(draft.config.vocab_size)
-            if args.offload_vocab_activations and name == "eagle4" and stage == "draft"
-            else nullcontext()
-        )
-        with activation_context:
-            loss = forward(name, wrapper, strategy, rows[order[step % len(order)]])
+        loss = forward(name, wrapper, strategy, rows[order[step % len(order)]])
         if not torch.isfinite(loss):
             raise RuntimeError(f"Non-finite {name} loss at step {step}")
         loss.backward()
@@ -707,7 +678,6 @@ def train(args, name):
         "changed_dense_parameters": changed_dense,
         "candidate_stage_preserved_dense_parameters": frozen_equal,
         "optimizer_fused": not args.optimizer_cpu_offload,
-        "vocab_activation_cpu_offload": args.offload_vocab_activations,
         "steps": total_steps,
         "dense_steps": args.steps,
         "warm_start": initialized_from,
@@ -746,11 +716,6 @@ def main():
     )
     parser.add_argument("--stop-at-step", type=int)
     parser.add_argument("--optimizer-cpu-offload", action="store_true")
-    parser.add_argument(
-        "--offload-vocab-activations",
-        action="store_true",
-        help="Save EAGLE4 dense-stage vocabulary activations on CPU; keep full GPU optimization",
-    )
     parser.add_argument("--train-samples", type=int, default=1024)
     parser.add_argument("--eval-samples", type=int, default=64)
     parser.add_argument("--max-length", type=int, default=256)

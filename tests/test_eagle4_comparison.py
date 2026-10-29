@@ -1,10 +1,8 @@
 """Real tiny target checks for the comparison's capture and recurrent layout."""
 
-import copy
 import json
 import tempfile
 import unittest
-from contextlib import nullcontext
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,7 +17,6 @@ from benchmarks.train_eagle4_comparison import (
     capture_example,
     digest,
     load_capture_progress,
-    offload_vocab_activations,
     parameter_hashes,
     prepare,
     warm_start,
@@ -58,56 +55,6 @@ class ComparisonCaptureTest(unittest.TestCase):
         )
         self.capture = OfflineTransformersCapture(self.target)
         self.capture.set_capture_layers([0, 1, 2], capture_method="dspark")
-
-    def _check_activation_offload_gradients(self, device):
-        dtype = torch.bfloat16 if device == "cuda" else torch.float32
-        target = self.target.to(device=device, dtype=dtype)
-        ids = torch.tensor([[1, 2, 3, 4, 5, 6, 7, 8]], device=device)
-        features = self.capture.capture(
-            input_ids=ids,
-            attention_mask=torch.ones_like(ids),
-            loss_mask=torch.ones_like(ids),
-        )
-        original = LlamaForCausalLMEagle4(tiny_config()).to(device=device, dtype=dtype)
-        results = []
-        for enabled in (False, True):
-            draft = copy.deepcopy(original)
-            wrapper = Eagle4TrainingModel(draft, length=3)
-            context = offload_vocab_activations(32) if enabled else nullcontext()
-            with context:
-                output = wrapper(
-                    input_ids=padding(ids, left=False),
-                    attention_mask=torch.ones_like(ids),
-                    target=padding(
-                        target.lm_head(features.last_hidden_states), left=False
-                    ),
-                    loss_mask=torch.ones_like(ids)[..., None],
-                    hidden_states=features.hidden_states.clone(),
-                )
-                loss = sum(output[0])
-            loss.backward()
-            results.append(
-                (
-                    loss.detach(),
-                    {
-                        key: p.grad.clone()
-                        for key, p in draft.named_parameters()
-                        if p.grad is not None
-                    },
-                )
-            )
-        self.assertTrue(torch.equal(results[0][0], results[1][0]))
-        self.assertIn("lm_head.weight", results[0][1])
-        self.assertEqual(results[0][1].keys(), results[1][1].keys())
-        for key, grad in results[0][1].items():
-            self.assertTrue(torch.equal(grad, results[1][1][key]), key)
-
-    def test_activation_offload_preserves_cpu_loss_and_gradients(self):
-        self._check_activation_offload_gradients("cpu")
-
-    @unittest.skipUnless(torch.cuda.is_available(), "CUDA required")
-    def test_activation_offload_preserves_cuda_fused_loss_and_gradients(self):
-        self._check_activation_offload_gradients("cuda")
 
     def test_training_continuation_matches_target_generation(self):
         prompt = [1, 2, 3, 4]
