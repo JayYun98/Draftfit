@@ -2,12 +2,14 @@
 
 ## Scope
 
-**Follow-up:** the original cache uses raw answers, while MiniCPM generates
-reasoning continuations. See [diagnosis and extension](#diagnosis-and-extension)
-before interpreting the generation acceptance figures. The corrected 10,000-update
-extension has not trained yet. Corrected capture reached 291/1,024 training
-samples before a coordinated main FinBench GPU hold. The capture files are
-verified and preserved; no automatic restart is active. See the
+**Follow-up:** all three methods completed **10,000 additional dense updates**
+on the corrected target-generated cache, reaching **15,000 cumulative dense
+updates**. EAGLE4 then completed **1,000 candidate updates**. All exports reload
+exactly. The strict BF16 reference fails for every arm. The FP32 control passes
+64/64 for every arm. Native EAGLE4 equality remains 7/8, so required correctness
+gates still fail.
+The original 5,000-update results below remain historical evidence. See
+[diagnosis and extension](#diagnosis-and-extension) and the
 [latest receipt](results/eagle4-minicpm-extension-20261029.json).
 
 This record tests Draftfit's EAGLE4 implementation against existing DSpark and
@@ -23,7 +25,7 @@ acceptance gates and upstream contract. The
 [aggregate receipt](results/eagle4-minicpm-20261029.json) records source and
 artifact identities. Raw conversations, feature tensors and weights are excluded.
 
-## Recipe selection
+## Original recipe selection
 
 The [family guide](../DFLASH_FAMILY.md), [MiniCPM recipes](../RECENT_MODEL_EXPERIMENTS.md)
 and [training search guide](../TRAINING_SEARCH.md) informed these starting recipes.
@@ -62,7 +64,7 @@ training losses cannot rank model quality. This single-seed, short-data run
 does not establish general superiority. Earlier uniform one-layer trials used
 a different optimizer and are excluded from the final comparison.
 
-## Execution and results
+## Original 5,000-update execution and results
 
 All three dense runs completed with finite loss and gradients. HF save/reload
 matched exactly. EAGLE4's dense backbone changed during its 5,000 updates;
@@ -280,18 +282,20 @@ selects 14585 and block verification selects 7590. Each top-two gap is 0.125.
 The hidden-state maximum difference is 0.75; changing only the head scoring
 shape gives zero difference. This identifies target prefix-length sensitivity
 for this specific retained failure. Strict greedy equality remains failed.
-Native sample 3 first differs at token 13; its diagnosis remains pending.
+Native sample 3 first differs at token 13. The later native replay reproduces
+that difference and records a target top-two logprob gap of 0.125.
 
 Upstream [test results](https://github.com/eagle-hq/EAGLE-4/blob/3b96ef6e1c0b2ef0c698fab74c8e383d8bf8053d/docs/support-matrix.md#how-these-were-measured)
 report exact agreement, near ties and FP32 controls separately. Its near-tie
 rule uses a no-speculation logprob gap of at most 0.13. Larger gaps receive
 additional FP32 checks. This policy differs from our strict token-equality gate.
 The upstream's published BF16 shape differences provide a relevant diagnosis
-pattern; they do not classify our unmeasured native mismatch.
+pattern; they do not establish the complete cause of our native mismatch.
 
 The native probe now saves token logprobs and first-mismatch details, following
 the [upstream diagnosis guidance](https://github.com/eagle-hq/EAGLE-4/blob/3b96ef6e1c0b2ef0c698fab74c8e383d8bf8053d/docs/new-model.md#check-generation-before-calibration).
-This updated native probe has not run. Strict equality gates remain unchanged.
+The updated probe has now run on both original and extended exports.
+Strict equality gates remain unchanged.
 
 ### Additional 10,000 dense updates
 
@@ -315,30 +319,119 @@ verifies committed record hashes and preserves uncommitted files for diagnosis.
 The raw-answer capture regression failed before the correction and passed after it.
 These checks do not establish extended MiniCPM quality or GPU correctness.
 
-Corrected MiniCPM capture produced **291 training samples**. All begin with
-`<think>`; they contain 51,016 supervised positions and 107 `</think>` tokens.
-Every preserved prompt matches the original source, and all masks, feature
-finite values and file hashes passed CPU recovery checks. A separate recovery
-folder retains these records without modifying the interrupted output.
+Corrected MiniCPM capture resumed the verified **291-record prefix** on CUDA
+and completed **1,024 training and 64 test records**. The coordinated FinBench
+hold was released before this continuation. Original prompts and source sample
+identities remain fixed. The completed capture manifest SHA256 is
+`4a2d361c6ff3577bcd2fb7e15360db9933d1337d9adba97900b9c6ed04edce9d`.
+The final CPU audit verifies all 1,088 record hashes, original prompts, source
+identities and masks. All 1,024 training and 64 test continuations begin with
+`<think>`. They contain 371 and 15 `</think>` tokens respectively. Supervised
+positions total 179,505 in training and 10,687 in test. Exact prompt sequences
+and source sample IDs have zero overlap between splits.
 
-**Paused:** the main FinBench precision comparison requested temporary GPU use.
-The task's capture and driver exited, GPU memory and the shared reservation were
-returned, and the original service identities were preserved. Additional dense
-updates completed: **zero**. GPU capture resume, remaining capture, additional
-training, new generation and native gates remain unrun. An explicit coordination
-release and fresh service/lease checks are required before restarting.
+### Completed extension training
 
-After that release, use a new output directory or the verified recovery directory:
+| Arm | Additional / cumulative dense updates | Candidate updates | Changed dense tensors | Peak allocated MiB | Export reload |
+| --- | ---: | ---: | ---: | ---: | --- |
+| DSpark | 10,000 / 15,000 | 0 | 62 | 4,981.70 | Exact |
+| DFlash2 | 10,000 / 15,000 | 0 | 51 | 3,977.23 | Exact |
+| EAGLE4 | 10,000 / 15,000 | 1,000 | 16 | 4,044.24 | Exact |
+
+All three runs completed with finite loss and gradients. EAGLE4's dense
+parameters remain unchanged during its candidate stage. DSpark and DFlash2
+use fused GPU FP32 master AdamW. EAGLE4 uses the existing CPU optimizer
+offload: FP32 masters and Adam states reside on CPU; full dense forward and
+backward computation remains on CUDA. Full vocabulary, width, seven recurrent
+unrolls, objective, clipping and learning-rate schedule are unchanged.
+
+The allocator cap stays at **6,200 MiB**. A shared workload increase initially
+left the 1,024 MiB reserve short by 68 MiB before any optimizer update.
+Subsequent runs use a 768 MiB reserve and a separate 512 MiB CUDA startup
+allowance. No shared service was stopped or resized.
+
+EAGLE4's full GPU optimizer exceeded the cap during backward. The first
+bounded repair used CPU optimizer offload and saved a verified 20-update
+checkpoint. An activation-only offload alternative passed exact CUDA BF16
+loss and all-gradient parity, but failed a 766 MiB allocation during the GPU
+optimizer step. That alternative was reverted. The final run resumed the
+verified 20-update CPU-offload checkpoint. Earlier uncheckpointed partial
+updates were discarded; repeated metric segments do not count as completed
+updates. No further memory tuning or automatic restart occurred.
+
+The resumed EAGLE4 process reported 14,856.06 seconds, including candidate
+fitting and export. Its initial 20-update probe and discarded work are separate.
+DSpark and DFlash2 recorded 1,295.47 and 1,464.70 seconds. CPU state placement and shared GPU contention differ, so these times
+do not establish comparative training speed. Executed training source:
+`6eff3f39e456731429683cd45a345a17cdb3dcaf`.
+
+To run EAGLE4's corrected extension in a separate output directory:
 
 ```sh
 PYTORCH_ALLOC_CONF=expandable_segments:True python benchmarks/train_eagle4_comparison.py \
   --target /path/to/minicpm5-1b --output /path/to/new-extension \
   --warm-start /path/to/original-comparison --capture-source target \
-  --steps 10000 --candidate-steps 1000 --memory-mib 6200 --reserve-mib 1024
+  --steps 10000 --candidate-steps 1000 --memory-mib 6200 --reserve-mib 768 \
+  --algorithm eagle4 --optimizer-cpu-offload
 ```
 
-This produces 15,000 cumulative dense updates per arm. New data and a new
-schedule change together; this extension alone cannot isolate their effects.
-Repeat the reference and native correctness gates before any performance claim.
-The same 64 evaluation prompts have already been inspected; the extension is a
-diagnostic comparison, not a new untouched holdout.
+The offload flag changes optimizer placement for every selected arm. The recorded
+DSpark and DFlash2 runs omit it; the EAGLE4 command selects only EAGLE4.
+Use the same verified capture for every arm and the separate patched engine
+for native serving. The completed reference and native measurements follow below.
+
+New data and a new schedule change together. This extension alone cannot
+isolate their effects. The same 64 evaluation prompts have already been
+inspected; this is a diagnostic comparison, not a new untouched holdout.
+
+### Extended-export reference results
+
+All arms generated 4,096 tokens on the same 64 prompts, using up to 64 new
+tokens and six draft proposals. Exact BF16 equality remains a required failed
+gate. The FP32 target control keeps the proposal models in BF16 and passes
+64/64 for every arm. Both target EOS IDs remain enabled.
+
+| Verifier | Arm | Accepted / proposed | Acceptance | Committed tokens / round | Exact greedy prompts |
+| --- | --- | ---: | ---: | ---: | ---: |
+| BF16 | DSpark | 1,505 / 7,448 | 20.207% | 3.110 | 56 / 64 |
+| BF16 | DFlash2 | 1,413 / 7,659 | 18.449% | 3.003 | 56 / 64 |
+| BF16 | EAGLE4 | 219 / 11,096 | 1.974% | 2.096 | 53 / 64 |
+| FP32 | DSpark | 1,475 / 7,508 | 19.646% | 3.080 | 64 / 64 |
+| FP32 | DFlash2 | 1,395 / 7,745 | 18.012% | 2.992 | 64 / 64 |
+| FP32 | EAGLE4 | 227 / 11,065 | 2.052% | 2.101 | 64 / 64 |
+
+The extension improves observed proposal acceptance relative to the original
+checkpoints. EAGLE4 remains substantially below both baselines in this scope;
+this recipe does not establish competitive draft quality. Data and schedule
+changes remain confounded. The numerical control supports precision-path
+sensitivity but does not explain every BF16 difference or certify lossless BF16
+serving. Full-prefix timing is not optimized serving throughput.
+
+The extended candidate set retains the dense argmax at 10,606 of 10,687
+teacher-forced supervised positions (99.242%). Rescoring agrees at 10,513
+positions (98.372%). This high root-state coverage does not establish recurrent
+generation quality. The original raw-answer coverage uses different positions
+and remains a separate historical measurement.
+
+### Extended native serving and retained failure replay
+
+**Fail:** native target-only and extended EAGLE4 each complete eight requests
+and generate 256 tokens. Exact equality remains **7/8**. The actual extended
+export loads its trained candidate factors and native kernels. Static tree,
+CUSTOM attention, eager execution, context 512 and the 128 MiB KV cache stay
+fixed. The complete strict-failure report returns exit 1.
+
+The bounded original-export replay uses sample 3 and up to 16 tokens. It
+reproduces the original first divergence at token index 13. The new eight-prompt,
+32-token run reproduces the same divergence. Target-only logprobs place its
+chosen token first and the speculative token second, separated by 0.125.
+The speculative output reports a tie between its selected token and another
+candidate. This is consistent with numerical sensitivity, but no native FP32
+control establishes the complete cause. The upstream near-tie threshold is
+not used to turn either strict failure into a pass.
+
+No calibration, repeated isolated latency/throughput benchmark, native
+DSpark/DFlash2 comparison or production qualification was performed. The
+extension improves acceptance in this reference workload but does not meet
+the required BF16/native correctness contract or show EAGLE4 quality parity
+with the existing baselines. The PR remains experimental and in draft.
