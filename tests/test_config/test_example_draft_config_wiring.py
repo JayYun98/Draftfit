@@ -88,6 +88,7 @@ class ExampleDraftConfigWiringTest(unittest.TestCase):
                 "qwen2.5-vl-32b-eagle3.json",
                 "minicpm5-2b-dspark.json",
                 "minicpm5-2b-dflash2.json",
+                "minicpm5-1b-eagle4.json",
                 "xing4-29b-a4b-dspark.json",
                 "xing4-29b-a4b-dflash2.json",
                 "zdtaichu5-9b-dspark.json",

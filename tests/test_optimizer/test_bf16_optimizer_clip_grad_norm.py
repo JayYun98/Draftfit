@@ -17,6 +17,23 @@ def _make_optimizer(seed=0, **kwargs):
 
 
 class TestClipGradNormSingleProcess(unittest.TestCase):
+    @unittest.skipUnless(torch.cuda.is_available(), "requires CUDA memory accounting")
+    def test_bfloat16_norm_does_not_allocate_full_float32_gradient_temporaries(self):
+        model = torch.nn.Linear(
+            2048, 2048, bias=False, device="cuda", dtype=torch.bfloat16
+        )
+        optimizer = BF16Optimizer(model, lr=1e-3)
+        model.weight.grad = torch.full_like(model.weight, 0.25)
+        torch.cuda.synchronize()
+        before = torch.cuda.memory_allocated()
+        torch.cuda.reset_peak_memory_stats()
+        norm, _ = optimizer._grad_norm_and_clip_coefficient()
+        torch.cuda.synchronize()
+        extra = torch.cuda.max_memory_allocated() - before
+        self.assertLess(extra, model.weight.grad.numel() * 2)
+        torch.testing.assert_close(norm, torch.tensor(512.0, device="cuda"))
+        self.assertTrue(torch.all(model.weight.grad == 0.25))
+
     def test_matches_torch_reference(self):
         model, optimizer = _make_optimizer()
         grad = torch.randn(8, 8)

@@ -29,6 +29,7 @@ BUILTINS = (
     "domino",
     "dspark",
     "eagle3",
+    "eagle4",
     "osprey",
     "peagle",
 )
@@ -182,10 +183,17 @@ class BuiltinProviderContractTest(unittest.TestCase):
             compact_teacher_chunk_size=1024,
             lambda_base_start=0.75,
             lambda_base_decay_ratio=0.25,
+            eagle4_stage="draft",
         )
         config = SimpleNamespace(training=training)
         draft = SimpleNamespace(
-            config=SimpleNamespace(num_hidden_layers=2, target_num_hidden_layers=12),
+            config=SimpleNamespace(
+                num_hidden_layers=2,
+                target_num_hidden_layers=12,
+                efficient_lm_head_config={"type": "low_rank", "rank": 8},
+            ),
+            sliding_window=4096,
+            norm_output=True,
             layers=[object(), object()],
             norm_before_residual=True,
             target_layer_ids=[3, 7],
@@ -283,6 +291,12 @@ class BuiltinProviderContractTest(unittest.TestCase):
             "alr_ira_hard_label_mix",
             "alr_ira_tail_bucket",
             "alr_ira_target_layer_ids",
+        }
+        models["eagle4"] = models["eagle3"]
+        expected_keys["eagle4"] = {
+            "eagle4_stage",
+            "eagle4_candidate_head",
+            "eagle4_sliding_window",
         }
 
         for name in BUILTINS:
@@ -480,7 +494,7 @@ class BuiltinProviderContractTest(unittest.TestCase):
         code = (
             "import sys; "
             "from draftfit.algorithms.builtin import builtin_algorithm_registry; "
-            "r=builtin_algorithm_registry(); assert len(r)==8; "
+            "r=builtin_algorithm_registry(); assert len(r)==9; "
             "assert 'torch' not in sys.modules; "
             "assert 'draftfit.training.strategies.registry' not in sys.modules"
         )

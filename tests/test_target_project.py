@@ -144,6 +144,7 @@ class TargetProjectTest(unittest.TestCase):
                 "dflash",
                 "dflash2",
                 "eagle3",
+                "eagle4",
                 "peagle",
                 "domino",
                 "alr_ira",

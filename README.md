@@ -47,8 +47,9 @@ Use the [complete workflow](docs/PUBLIC_WORKFLOW.md) for data formats, saved fea
 
 ## Draft methods
 
-All six methods support online target capture.
-Five methods also accept saved target features.
+All seven methods support online target capture.
+Six methods also accept saved target features.
+EAGLE4 has a registered online path; its current GPU validation uses saved features.
 
 | Method | Saved features | Requirement |
 | --- | --- | --- |
@@ -56,6 +57,7 @@ Five methods also accept saved target features.
 | DFlash | Yes | Compatible hidden features and a mask token |
 | DFlash2 | Yes | Full vocabulary, convolution training, and selector training |
 | EAGLE3 | Yes | One draft layer and vocabulary mapping for online training |
+| [EAGLE4](docs/specs/eagle4-minicpm.md) | Yes | Experimental dense training and candidate distillation; separate serving engine |
 | PEagle | No | Flex attention and the required feature layout |
 | Domino | Yes | A compatible draft configuration |
 

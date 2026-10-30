@@ -20,3 +20,4 @@ include draftfit/research/_vendor/TREEWY_LICENSE
 recursive-include docs/research *.md *.json
 include examples/configs/research/README.md
 include benchmarks/native/prism_capture_bridge.cpp
+include docs/specs/eagle4-minicpm.md

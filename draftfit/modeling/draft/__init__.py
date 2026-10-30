@@ -20,6 +20,7 @@ from .dflash2 import (
 )
 from .domino import DominoDraftModel
 from .dspark import DSparkDraftModel
+from .eagle4 import LlamaForCausalLMEagle4
 from .llama3_eagle import LlamaForCausalLMEagle3
 from .osprey_llama import OspreyLlamaDraftModel
 from .osprey_qwen3 import OspreyQwen3DraftModel
@@ -44,6 +45,7 @@ __all__ = [
     "DominoDraftModel",
     "DSparkDraftModel",
     "LlamaForCausalLMEagle3",
+    "LlamaForCausalLMEagle4",
     "PEagleDraftModel",
     "OspreyQwen3DraftModel",
     "OspreyLlamaDraftModel",
