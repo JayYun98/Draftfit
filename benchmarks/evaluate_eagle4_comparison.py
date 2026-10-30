@@ -35,13 +35,15 @@ from draftfit.offline_capture.transformers import OfflineTransformersCapture
 from draftfit.training.joint_verification import _generate, _propose
 
 
-def eagle4_propose(bundle, features, anchor, count):
-    """Greedy chain using the candidate head and recurrent normalized features.
+def eagle4_propose(bundle, features, anchor, count, *, head="candidates"):
+    """Greedy chain using the selected head and recurrent normalized features.
 
     Recompute the single layer over the committed context and appended draft
     ancestors. The committed window stays fixed during this proposal round.
     This avoids depending on engine-specific tree/cache implementations.
     """
+    if head not in {"candidates", "dense"}:
+        raise ValueError("EAGLE4 proposal head must be candidates or dense")
     draft = bundle.draft_model
     hidden = features.hidden_states.reshape(
         *features.hidden_states.shape[:-1], len(LAYERS), -1
@@ -70,8 +72,11 @@ def eagle4_propose(bundle, features, anchor, count):
             attention_mask=mask,
             position_ids=positions[None],
         )[:, -1:]
-        scores, candidates = draft.candidate_logits(output)
-        token = candidates.gather(-1, scores.argmax(-1, keepdim=True)).squeeze(-1)
+        if head == "dense":
+            token = draft.compute_logits(output).argmax(-1)
+        else:
+            scores, candidates = draft.candidate_logits(output)
+            token = candidates.gather(-1, scores.argmax(-1, keepdim=True)).squeeze(-1)
         selected.append(token)
         hidden = torch.cat((hidden, output), dim=1)
         ids = torch.cat((ids, token), dim=1)
@@ -175,7 +180,7 @@ def evaluate(args):
         )
     write_json(destination / "target.json", baseline)
     summaries = {}
-    for name in NAMES:
+    for name in [args.algorithm] if args.algorithm else NAMES:
         export = args.output / name / "export"
         draft = (
             AutoDraftModel.from_pretrained(export, torch_dtype=torch.bfloat16)
@@ -217,9 +222,11 @@ def evaluate(args):
             features = replace(
                 features, hidden_states=features.hidden_states.to(torch.bfloat16)
             )
-            return (eagle4_propose if name == "eagle4" else _propose)(
-                current, features, anchor, count
-            )
+            if name == "eagle4":
+                return eagle4_propose(
+                    current, features, anchor, count, head=args.eagle4_head
+                )
+            return _propose(current, features, anchor, count)
 
         records = []
         for index, prompt in enumerate(prompts):
@@ -276,6 +283,7 @@ def evaluate(args):
         destination / "summary.json",
         dict(
             verifier_dtype=args.verifier_dtype,
+            eagle4_proposal_head=args.eagle4_head,
             decoder="full-prefix greedy chain reference; no optimized engine/tree policy",
             max_new_tokens=args.max_new_tokens,
             stop_token_ids=stops,
@@ -304,4 +312,8 @@ if __name__ == "__main__":
         "--verifier-dtype", choices=("bfloat16", "float32"), default="bfloat16"
     )
     parser.add_argument("--result-dir", default="evaluation")
+    parser.add_argument("--algorithm", choices=NAMES)
+    parser.add_argument(
+        "--eagle4-head", choices=("candidates", "dense"), default="candidates"
+    )
     evaluate(parser.parse_args())

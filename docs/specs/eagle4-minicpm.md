@@ -156,3 +156,27 @@ EAGLE4 uses CPU FP32 optimizer states with full CUDA dense forward/backward,
 cap 6,200 MiB and reserve 768 MiB.
 DSpark and DFlash2 retain fused GPU optimizers. Failed memory probes remain
 in the experiment record; they do not count toward completed training.
+
+## Additional GPU validation and implementation audit
+
+The [2026-10-30 follow-up](../research/eagle4-minicpm.md#further-10000-updates-with-the-gpu-optimizer)
+adds EAGLE4-only dense-head controls and extends its dense draft to 25,000 updates.
+DSpark and DFlash2 retain their earlier 15,000-update results.
+
+| Follow-up requirement | Actual result | Status |
+| --- | --- | --- |
+| Full GPU optimizer and exact resume | FP32 master/fused Adam; step-20 resume; 10,000 dense plus 1,000 candidate updates; all 16 dense tensors change | pass, bounded |
+| Export and stage isolation | Reload exact; candidate fitting preserves all dense tensors | pass |
+| Candidate versus full-head control | Both executed before/after with FP32 and BF16 target verification | pass, bounded; scoring precision differs |
+| Primary acceptance improvement | FP32 candidate acceptance 2.052% → 1.927%; paired interval includes zero | no observed improvement |
+| Strict target-greedy equality | FP32 64/64 before/after; BF16 53/64 before/after | BF16 fail |
+| CUDA loss and gradient parity | One real seven-depth batch; all 16 dense gradients finite/nonzero within predeclared limits | pass, scoped |
+| Official training equivalence | Source audit matches admitted dense model structure; author training revision unavailable; loss normalization and projection precision differ from public TorchSpec | unverified |
+| New native serving and isolated speed | 25,000-update native export and serving benchmark not executed | not-run; earlier native strict failure remains |
+
+The follow-up uses newly available capacity on the same GPU. This task changes
+no shared service. Peak training allocation is 5,903.19 MiB under a 12,000 MiB
+cap. The measured dense interval reaches 7.220 updates/second. This is training
+speed for this recipe and does not establish serving speed or future quality.
+The [aggregate receipt](../research/results/eagle4-minicpm-gpu-followup-20261030.json)
+retains identities, all eight results, diagnostic intervals and audit limits.

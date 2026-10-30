@@ -234,6 +234,42 @@ class ComparisonCaptureTest(unittest.TestCase):
                     warm_start(fresh, source, name)
 
     @torch.inference_mode()
+    def test_dense_proposals_use_the_full_head_at_each_recurrent_depth(self):
+        draft = LlamaForCausalLMEagle4(tiny_config()).eval()
+        prefix = torch.tensor([[1, 2, 3, 4, 5]])
+        features = self.capture.capture(
+            input_ids=prefix,
+            attention_mask=torch.ones_like(prefix),
+            loss_mask=torch.ones_like(prefix),
+        )
+        h0, h1, h2 = features.hidden_states.chunk(3, dim=-1)
+        features = replace(features, hidden_states=torch.cat((h0, h1, h1, h1, h2), -1))
+        anchor = self.target.lm_head(features.last_hidden_states[:, -1]).argmax(-1)
+        predictions = []
+        original = draft.compute_logits
+
+        def collect(hidden):
+            logits = original(hidden)
+            predictions.append(logits.argmax(-1))
+            return logits
+
+        with (
+            patch.object(
+                draft,
+                "candidate_logits",
+                side_effect=AssertionError("candidate head used"),
+            ),
+            patch.object(draft, "compute_logits", side_effect=collect),
+        ):
+            proposals = eagle4_propose(
+                SimpleNamespace(draft_model=draft), features, anchor, 3, head="dense"
+            )
+        self.assertEqual(len(predictions), 3)
+        self.assertTrue(torch.equal(proposals, torch.cat(predictions, dim=1)))
+        with self.assertRaisesRegex(ValueError, "proposal head"):
+            eagle4_propose(None, None, None, 1, head="invalid")
+
+    @torch.inference_mode()
     def test_recurrent_training_logits_match_generation_at_each_depth(self):
         draft = LlamaForCausalLMEagle4(
             tiny_config(
