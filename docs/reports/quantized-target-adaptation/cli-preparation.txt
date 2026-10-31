@@ -1,0 +1,36 @@
+$CHECKOUT/draftfit/modeling/draft/llama3_eagle.py:33: UserWarning: flash_attn is not found, falling back to flex_attention. Please install flash_attn if you want to use the flash attention backend.
+  warnings.warn(
+{
+  "project": "$TEMP",
+  "config": "$TEMP",
+  "manifest": "$TEMP",
+  "validation": {
+    "configuration": "passed",
+    "capture": "not_run",
+    "training": "not_run",
+    "export": "not_run",
+    "serving": "not_run"
+  }
+}
+$CHECKOUT/draftfit/modeling/draft/llama3_eagle.py:33: UserWarning: flash_attn is not found, falling back to flex_attention. Please install flash_attn if you want to use the flash attention backend.
+  warnings.warn(
+Set draft model tie_word_embeddings to False
+
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]
+Writing model shards: 100%|██████████| 1/1 [00:00<00:00, 498.25it/s]
+$CHECKOUT/draftfit/modeling/draft/llama3_eagle.py:33: UserWarning: flash_attn is not found, falling back to flex_attention. Please install flash_attn if you want to use the flash attention backend.
+  warnings.warn(
+{
+  "project": "$TEMP",
+  "config": "$TEMP",
+  "manifest": "$TEMP",
+  "validation": {
+    "configuration": "passed",
+    "capture": "not_run",
+    "training": "not_run",
+    "export": "not_run",
+    "serving": "not_run"
+  }
+}
+FILES ['draft.json', 'train.json', 'manifest.json', 'inspection.json']
+PASS actual fresh and weights-only CLI preparation with saved tiny draft weights

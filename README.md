@@ -101,6 +101,7 @@ These implementations are not production backends.
 | --- | --- |
 | Install a runtime | [Environment](docs/ENVIRONMENT.md) |
 | Prepare, train, resume, and export | [Complete workflow](docs/PUBLIC_WORKFLOW.md) |
+| Adapt a draft for a quantized target | [Quantized targets](docs/QUANTIZED_TARGETS.md) |
 | Add a target or runtime | [Target extension](docs/TARGET_EXTENSION.md) · [Runtime profiles](docs/RUNTIME_PROFILES.md) |
 | Compare inference speed | [Workload evaluation](docs/PERFORMANCE_GATE.md) |
 | Plan training experiments | [Calibration](docs/CALIBRATION.md) · [Training search](docs/TRAINING_SEARCH.md) |

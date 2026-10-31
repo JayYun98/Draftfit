@@ -375,6 +375,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     prepare_target.add_argument("--revision", default="main")
     prepare_target.add_argument("--local-only", action="store_true")
+    prepare_target.add_argument(
+        "--target-quantization",
+        choices=("auto", "bitsandbytes-4bit", "bitsandbytes-8bit"),
+        default="auto",
+        help="preserve checkpoint quantization or quantize a Transformers teacher while loading",
+    )
     prepare_data = prepare_target.add_mutually_exclusive_group(required=True)
     prepare_data.add_argument(
         "--train-data",
@@ -640,6 +646,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     hidden_states=args.hidden_states,
                     draft_config=args.draft_config,
                     draft_checkpoint=args.draft_checkpoint,
+                    target_quantization=args.target_quantization,
                     overrides=args.overrides,
                     target_backend=args.teacher_backend,
                 )

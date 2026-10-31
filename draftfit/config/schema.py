@@ -63,6 +63,11 @@ class ModelConfig(StrictConfigModel):
     draft_block_size: Optional[int] = Field(default=None, gt=0)
     #: Teacher implementation; all backends share the feature transport schema.
     target_backend: Literal["sglang", "transformers", "vllm", "prism_gguf"] = "sglang"
+    #: Preserve checkpoint quantization, or quantize a floating Transformers teacher.
+    #: The trainable draft stays floating point.
+    target_quantization: Literal["auto", "bitsandbytes-4bit", "bitsandbytes-8bit"] = (
+        "auto"
+    )
     #: Exact local GGUF capture for the in-process joint family runner only.
     prism_capture_bridge: Optional[str] = None
     target_gguf_sha256: Optional[str] = Field(
@@ -197,6 +202,10 @@ class ModelConfig(StrictConfigModel):
 
     @model_validator(mode="after")
     def _validate_input_modality(self):
+        if self.target_quantization != "auto" and self.target_backend != "transformers":
+            raise ValueError(
+                "explicit target_quantization recipes require target_backend=transformers"
+            )
         if (
             not self.input_modality
             or self.input_modality.strip() != self.input_modality

@@ -1,0 +1,45 @@
+test_independent_sylvester_reference_readout_gradient_and_embedding_export (tests.test_quantized_target_parts.QuantizedTargetPartsTest.test_independent_sylvester_reference_readout_gradient_and_embedding_export) ... ok
+test_reject_bad_signs_kind_and_missing_readout (tests.test_quantized_target_parts.QuantizedTargetPartsTest.test_reject_bad_signs_kind_and_missing_readout) ... ok
+test_invalid_inputs_fail_without_importing_an_mlx_runtime (tests.test_quantized_capture_boundaries.MLXInputValidationCPU.test_invalid_inputs_fail_without_importing_an_mlx_runtime) ... ok
+test_empty_data_missing_weights_and_custom_code_fail_before_output (tests.test_quantized_capture_boundaries.MLXPreparationCPU.test_empty_data_missing_weights_and_custom_code_fail_before_output) ... ok
+test_existing_output_is_preserved (tests.test_quantized_capture_boundaries.MLXPreparationCPU.test_existing_output_is_preserved) ... ok
+test_fingerprint_geometry_taps_and_dataset_errors (tests.test_quantized_capture_boundaries.MLXPreparationCPU.test_fingerprint_geometry_taps_and_dataset_errors) ... ok
+test_manifest_recheck_rejects_changed_weights_and_dataset (tests.test_quantized_capture_boundaries.MLXPreparationCPU.test_manifest_recheck_rejects_changed_weights_and_dataset) ... ok
+test_real_dry_run_records_exact_weights_and_writes_no_features (tests.test_quantized_capture_boundaries.MLXPreparationCPU.test_real_dry_run_records_exact_weights_and_writes_no_features) ... ok
+test_staging_failure_and_input_drift_publish_no_partial_directory (tests.test_quantized_capture_boundaries.MLXPreparationCPU.test_staging_failure_and_input_drift_publish_no_partial_directory) ... ok
+test_embedding_rejects_negative_out_of_range_and_float_ids (tests.test_quantized_capture_boundaries.PackedReadoutBoundaries.test_embedding_rejects_negative_out_of_range_and_float_ids) ... ok
+test_fp16_affine_overflow_rejected_for_head_and_embedding_only (tests.test_quantized_capture_boundaries.PackedReadoutBoundaries.test_fp16_affine_overflow_rejected_for_head_and_embedding_only) ... ok
+test_head_autocast_preserves_fp16_contract_and_gradient (tests.test_quantized_capture_boundaries.PackedReadoutBoundaries.test_head_autocast_preserves_fp16_contract_and_gradient) ... ok
+test_invalid_pack_schema_geometry_and_records_raise_value_error (tests.test_quantized_capture_boundaries.PackedReadoutBoundaries.test_invalid_pack_schema_geometry_and_records_raise_value_error) ... ok
+test_normal_hf_checkpoint_keeps_original_loader_behavior (tests.test_quantized_capture_boundaries.PackedReadoutBoundaries.test_normal_hf_checkpoint_keeps_original_loader_behavior) ... ok
+test_real_cpu_optimizer_step_through_frozen_packed_head (tests.test_quantized_capture_boundaries.PackedReadoutBoundaries.test_real_cpu_optimizer_step_through_frozen_packed_head) ... ok
+test_bounded_malformed_header_rejected_before_tensor_allocation (tests.test_gguf_parts.GGUFPartsTest.test_bounded_malformed_header_rejected_before_tensor_allocation) ... ok
+test_cpu_dispatch_fallback_and_accelerator_route (tests.test_gguf_parts.GGUFPartsTest.test_cpu_dispatch_fallback_and_accelerator_route) ... ok
+test_cpu_numpy_exact_bits_chunk_boundary_strides_and_owned_output (tests.test_gguf_parts.GGUFPartsTest.test_cpu_numpy_exact_bits_chunk_boundary_strides_and_owned_output) ... ok
+test_cpu_numpy_loader_readout_gradient_and_frozen_precision (tests.test_gguf_parts.GGUFPartsTest.test_cpu_numpy_loader_readout_gradient_and_frozen_precision) ... ok
+test_cpu_numpy_rejects_same_nonfinite_scales_and_overflow (tests.test_gguf_parts.GGUFPartsTest.test_cpu_numpy_rejects_same_nonfinite_scales_and_overflow) ... ok
+test_exact_profile_rejects_tiny_vocab_without_override (tests.test_gguf_parts.GGUFPartsTest.test_exact_profile_rejects_tiny_vocab_without_override) ... ok
+test_frozen_precision_device_cast_autocast_and_empty_ids (tests.test_gguf_parts.GGUFPartsTest.test_frozen_precision_device_cast_autocast_and_empty_ids) ... ok
+test_header_and_exact_codec (tests.test_gguf_parts.GGUFPartsTest.test_header_and_exact_codec) ... ok
+test_independent_head_inverse_embedding_and_gradient (tests.test_gguf_parts.GGUFPartsTest.test_independent_head_inverse_embedding_and_gradient) ... ok
+test_nonfinite_and_fp16_overflow_scales_fail (tests.test_gguf_parts.GGUFPartsTest.test_nonfinite_and_fp16_overflow_scales_fail) ... ok
+test_quantized_loader_preserves_nonlocal_and_non_gguf_route (tests.test_gguf_parts.GGUFPartsTest.test_quantized_loader_preserves_nonlocal_and_non_gguf_route) ... ok
+test_quantized_loader_rejects_invalid_gguf_without_fallback (tests.test_gguf_parts.GGUFPartsTest.test_quantized_loader_rejects_invalid_gguf_without_fallback) ... ok
+test_quantized_loader_routes_local_gguf_without_hf_model_import (tests.test_gguf_parts.GGUFPartsTest.test_quantized_loader_routes_local_gguf_without_hf_model_import) ... ok
+test_reject_bad_tensor_spans_types_duplicates_and_truncation (tests.test_gguf_parts.GGUFPartsTest.test_reject_bad_tensor_spans_types_duplicates_and_truncation) ... ok
+test_reject_mismatched_missing_or_unknown_transform_metadata (tests.test_gguf_parts.GGUFPartsTest.test_reject_mismatched_missing_or_unknown_transform_metadata) ... ok
+test_bundle_geometry_comes_from_local_gguf (tests.test_gguf_target_geometry.GGUFGeometryTest.test_bundle_geometry_comes_from_local_gguf) ... ok
+test_malformed_gguf_does_not_fall_back_to_hub (tests.test_gguf_target_geometry.GGUFGeometryTest.test_malformed_gguf_does_not_fall_back_to_hub) ... ok
+test_incorrect_head_shape_is_rejected_before_copy_broadcast (tests.test_target_head_loading.TargetHeadLoadingTest.test_incorrect_head_shape_is_rejected_before_copy_broadcast) ... ok
+test_unsharded_projection_matches_target_at_requested_dtype (tests.test_target_head_loading.TargetHeadLoadingTest.test_unsharded_projection_matches_target_at_requested_dtype) ... Loading ['model.embed_tokens.weight', 'lm_head.weight'] from model.safetensors...
+ -> Loaded Embeddings
+ -> Loaded LM Head
+
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]
+Writing model shards: 100%|██████████| 1/1 [00:00<00:00, 1050.68it/s]
+ok
+
+----------------------------------------------------------------------
+Ran 34 tests in 1.221s
+
+OK

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "$GPU_CHECKOUT/tests/gpu/quantized_target.py", line 17, in <module>
+    from transformers import LlamaConfig, LlamaForCausalLM, Qwen3Config, Qwen3ForCausalLM
+ModuleNotFoundError: No module named 'transformers'
+
+Worker exit_code=1, elapsed_seconds=2.2228673
+No model construction or optimizer update occurred.
+Repair 1: expected parent package path was absent; no GPU worker launched.
+Repair 2: isolated dependency download/extraction failed with ENOSPC.
+Repair bound exhausted; no automatic retry.
+Shared service identities unchanged; Neo4j HTTP 200.
+Owned validation artifacts backed up with size/SHA256/read verification; only the new validation root was removed.

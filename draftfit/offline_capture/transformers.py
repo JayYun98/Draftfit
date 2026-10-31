@@ -93,14 +93,38 @@ class OfflineTransformersCapture:
         device="cpu",
         cache_dir=None,
         attn_implementation="sdpa",
+        quantization="auto",
     ):
-        from transformers import AutoModel
+        from transformers import AutoConfig, AutoModel, BitsAndBytesConfig
+
+        from draftfit.modeling.target.quantization import target_quantization_identity
 
         source = pretrained_model_name_or_path
         load_kwargs = {}
         if trust_remote_code and (cached := _cached_hub_snapshot(source, revision)):
             source, revision, cache_dir = cached
             load_kwargs["local_files_only"] = True
+        config = AutoConfig.from_pretrained(
+            source,
+            revision=revision,
+            trust_remote_code=trust_remote_code,
+            cache_dir=cache_dir,
+            **load_kwargs,
+        )
+        identity = target_quantization_identity(config, quantization)
+        options = {}
+        if identity is not None:
+            # Packed modules must be placed by their loader, never moved later.
+            options["device_map"] = {"": str(device)}
+        if quantization != "auto":
+            options["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=quantization == "bitsandbytes-4bit",
+                load_in_8bit=quantization == "bitsandbytes-8bit",
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch_dtype or torch.bfloat16,
+                llm_int8_skip_modules=["lm_head"],
+            )
+
         model = AutoModel.from_pretrained(
             source,
             revision=revision,
@@ -109,8 +133,11 @@ class OfflineTransformersCapture:
             cache_dir=cache_dir,
             attn_implementation=attn_implementation,
             **load_kwargs,
+            **options,
         )
-        return cls(model.to(device))
+        instance = cls(model if identity is not None else model.to(device))
+        instance.quantization_identity = identity
+        return instance
 
     def set_capture_layers(self, layer_ids=None, *, capture_method="eagle3"):
         if capture_method not in {"eagle3", "dflash", "dspark"}:

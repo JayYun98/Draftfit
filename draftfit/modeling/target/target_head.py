@@ -111,7 +111,9 @@ class TargetHead(nn.Module):
             raise ValueError(
                 f"Target head shape mismatch: expected {tuple(self.fc.weight.shape)}, got {tuple(lm_head.shape)}"
             )
-        self.fc.weight.copy_(lm_head)
+        from draftfit.modeling.target.quantization import require_floating_target_weight
+
+        self.fc.weight.copy_(require_floating_target_weight(lm_head, lm_head_key))
 
     def freeze_weights(self):
         for param in self.fc.parameters():

@@ -65,6 +65,7 @@ def build_capture_manifest(
     draft_config: Mapping[str, Any] | None = None,
     capture_backend: str | None = None,
     capture_settings: Mapping[str, Any] | None = None,
+    target_quantization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a deterministic, JSON-serializable capture contract."""
 
@@ -121,6 +122,9 @@ def build_capture_manifest(
         },
         "contract": contract,
     }
+    if target_quantization is not None:
+        manifest["target"]["quantization"] = dict(target_quantization)
+        contract["target_quantization"] = dict(target_quantization)
     if capture_backend is not None:
         manifest["producer"] = {
             "backend": _non_empty(capture_backend, "capture_backend")

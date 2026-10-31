@@ -156,6 +156,33 @@ class TargetProjectTest(unittest.TestCase):
             "target_last_hidden_states", dspark["features"][0]["required_tensors"]
         )
 
+    def test_quantized_teacher_fresh_and_existing_draft_projects(self):
+        fresh = self.prepare(
+            "quantized-fresh",
+            hidden_states=str(self.root / "features"),
+            target_backend="transformers",
+            target_quantization="bitsandbytes-4bit",
+        )
+        manifest = json.loads(Path(fresh["manifest"]).read_text())
+        self.assertEqual(manifest["initialization"], "from_scratch")
+        self.assertEqual(manifest["target_quantization"]["recipe"], "bitsandbytes-4bit")
+        # A config-bearing source keeps architecture metadata authoritative.
+        existing = self.prepare(
+            "quantized-existing",
+            hidden_states=str(self.root / "new-features"),
+            target_backend="transformers",
+            target_quantization="bitsandbytes-8bit",
+            draft_checkpoint=str(Path(fresh["project"])),
+            draft_config=str(Path(fresh["project"]) / "draft.json"),
+        )
+        cfg = Config.from_file(existing["config"])
+        self.assertEqual(cfg.model.target_quantization, "bitsandbytes-8bit")
+        self.assertIsNone(cfg.training.resume_from)
+        self.assertEqual(
+            json.loads(Path(existing["manifest"]).read_text())["initialization"],
+            "weights_only",
+        )
+
     def test_metadata_only_dspark_and_dflash_build_real_small_draft_models(self):
         from draftfit.modeling.auto import AutoDraftModel
         from draftfit.training.model_loading import load_draft_config_source

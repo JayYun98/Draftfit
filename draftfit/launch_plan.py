@@ -544,6 +544,8 @@ def _managed_local_services(
                 cfg.model.target_model_path,
                 "--dtype",
                 cfg.model.torch_dtype,
+                "--target-quantization",
+                cfg.model.target_quantization,
                 "--capture-method",
                 contract.method,
                 "--aux-layer-ids",

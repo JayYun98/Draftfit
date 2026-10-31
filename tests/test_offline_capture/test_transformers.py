@@ -33,7 +33,7 @@ class TransformersCaptureTest(unittest.TestCase):
                 / revision
             )
             snapshot.mkdir(parents=True)
-            (snapshot / "config.json").write_text("{}")
+            self.model().config.to_json_file(snapshot / "config.json")
             with patch(
                 "transformers.AutoModel.from_pretrained", return_value=self.model()
             ) as load:

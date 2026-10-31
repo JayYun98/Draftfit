@@ -1,0 +1,81 @@
+{
+  "integration_base_branch": "dev",
+  "integration_base_commit": "bfe0bbe0dda0c0a1d2cca3ec93cdb1a963122145",
+  "feature_parent_commit": "2864cbe3c54e5e5e505440946b243ad7f9e61729",
+  "tested_state": "resolved integration working tree; documentation-only evidence added after execution",
+  "files_sha256": {
+    "draftfit/cli.py": "f7fca5a1931accbd1740246516235c5ec31d64da1e632702547343552fc5303b",
+    "draftfit/config/schema.py": "e1f26208a3e8bba06284de7e162ccacb799a202faca9e69d879d63d82d80a66e",
+    "draftfit/export/checkpoint_io.py": "a745ca48891ae1bfe6c58328e913a0ca77a69d56412181f453c82b1175c54ae4",
+    "draftfit/inference/capture_manifest.py": "30f3e39fc71dfd12c73969c138b4af76c63dcefce7a3b49a40b39ffec045772e",
+    "draftfit/inference/teacher_server.py": "175d6a77ab040263a63a0a5307a4e1237782531c20a53178d84fca70d3409458",
+    "draftfit/launch_plan.py": "aa41809e8328c7b4091bc81a6476e66c8cbf3ebcb7fdd6ab633ba975930f7a4f",
+    "draftfit/modeling/draft/base.py": "eb3d6bb56993b9cc0a2edbc6ffaf944522e300577eb080e1c572f68b94b9470b",
+    "draftfit/modeling/target/quantization.py": "44d5667005017dd2bc1be0056dc331bbc5248449b00ee9b4902301e0dd365d2a",
+    "draftfit/modeling/target/target_head.py": "c9566267f32270fd1d286d18016ba03d31546c3baa3fa0805b11fc269ec48399",
+    "draftfit/modeling/target/target_utils.py": "0120b1e4703b7ab2a1436c510804784cfdd4efc0815ade4072c575477a838771",
+    "draftfit/offline_capture/prepare.py": "6aea143c748445d05e907195082d97b36f34dd633ecea19718e870005d6464a0",
+    "draftfit/offline_capture/transformers.py": "27ae356e1c6f5b0a47f2c6e0b1cbec27f499d2a392fda5e8177ffcd406097b7e",
+    "draftfit/offline_capture/vllm.py": "efc42021682d670fe704be3e9052b80611795bbf4f9e5638f47f2066a7de843c",
+    "draftfit/target_project.py": "6daddb9e89aa08fd9b57c1334e5783f307b3e57e5ade93106f7d05ddd8fb4aae",
+    "draftfit/training/assembly.py": "f13e9dc089af6147922c83becd7f6be1eef05422d799b49e856cf0948de04e76",
+    "draftfit/training/provenance.py": "823bf7139862067fe8d48496d73b39cd684fd3c125c4f4833f8f1672edb4eeee",
+    "pyproject.toml": "8f77d2798ee86997f76e98d3a6dbb52f23c01d7b135674406f7a4cd118b00049",
+    "requirements-cpu.lock": "f88db34dcc99c2f0305a5838f5fc07a523cb6265b1257d8455f699323de58c71",
+    "tests/gpu/quantized_target.py": "4d6d58068255a87ad178c69d90375bfaf43d95aac32e5b1ae9c2e634c287b21b",
+    "tests/public_cpu.py": "f02044ca85dd0cfd3e04f8696d5f3bb4a19ca9e3fb56fbc07468f1d31bc8bd86",
+    "tests/test_offline_capture/test_transformers.py": "3e7a044ab40df3b4fa2e204243197ef78e48dcdaf228108926605e6b58535123",
+    "tests/test_quantized_target.py": "d3a2e0052072140ba74842738ea6681cbbdc36d459b03c8f471c29af041ff6fe",
+    "tests/test_target_project.py": "58772708c334502d9b8b3d6c903f611b1a35dee453d16b0b7686e6bedb835fd7"
+  },
+  "code_fingerprint_sha256": "58ad4b78d8311f392f28e97313ac9e289f542f53f603d6841196a07e562bdefc",
+  "environment": {
+    "python": "3.12.8",
+    "torch": "2.11.0",
+    "transformers": "5.12.1",
+    "accelerate": "1.15.0",
+    "platform": "macOS arm64 CPU",
+    "dependencies": "dev requirements-cpu.lock; --require-hashes; standard PyPI index"
+  },
+  "public_cpu": {
+    "command": "python -m tests.public_cpu",
+    "total": 786,
+    "passed": 733,
+    "skipped": 53,
+    "skipped_cuda": 32,
+    "skipped_optional_optuna": 21,
+    "exit_code": 0,
+    "seconds": 174.632
+  },
+  "existing_packed_regressions": {
+    "command": "python -m unittest tests.test_quantized_target_parts tests.test_quantized_capture_boundaries tests.test_gguf_parts tests.test_gguf_target_geometry tests.test_target_head_loading -v",
+    "total": 34,
+    "passed": 34,
+    "exit_code": 0
+  },
+  "installed_wheel": {
+    "command": "python -I tests/packaging/check_public_install.py",
+    "status": "PASS",
+    "exit_code": 0,
+    "scope": "actual installed-wheel CLI metadata onboarding; no GPU execution",
+    "sha256": "645598dbdc376bb62029f1d3f1d3aa98579c1da3013b8e65a63c9c0ce6e26023"
+  },
+  "repository_hooks": {
+    "status": "PASS",
+    "earlier_failure": "black reformatted the merged config schema; final changed-file hooks passed"
+  },
+  "review": {
+    "type": "self-review",
+    "base": "bfe0bbe0dda0c0a1d2cca3ec93cdb1a963122145",
+    "scope": "feature diff and dev conflict resolutions; EAGLE4, cached Hub loading, metadata-only preparation, and explicit Prism/GGUF readouts retained",
+    "additional_confirmed_defects": 0
+  },
+  "gpu_quantized_execution": "NOT_RUN",
+  "gpu_resume": "NOT_RUN",
+  "serving_correctness": "NOT_RUN",
+  "acceptance": "NOT_RUN",
+  "speed": "NOT_RUN",
+  "prior_gpu_failure": "Initial main-based attempt failed before model construction; isolated dependency repair failed with ENOSPC. No new GPU attempt during dev integration.",
+  "release_scope": "experimental integration into dev; no main promotion or package publication",
+  "log_sanitization": "Filesystem paths replaced with placeholders; verdicts and skip reasons retained."
+}

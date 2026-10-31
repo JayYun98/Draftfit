@@ -5,6 +5,11 @@ explicitly approved operation; a Git version tag does not imply a PyPI release.
 
 ## Unreleased
 
+- Train fresh drafts or adapt existing drafts from quantized-target features.
+  Add optional Transformers NF4/INT8 target loading, cache identity checks,
+  and quantization provenance. Draft weights remain floating point.
+  GPU execution, serving quality, and speed remain unverified.
+
 - Keep maintained data/capture/validation tools in `scripts/`, with a purpose
   index; archive the private Ling 1K campaign and unused shell gate helper.
 

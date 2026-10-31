@@ -39,6 +39,7 @@ include = ["draftfit*"]
 exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
 
 [project.optional-dependencies]
+quantization = ["bitsandbytes==0.50.2; sys_platform == 'linux'"]
 data = ["openai"]
 # Optional standalone CPU controller; not required by training.
 search = ["optuna==4.5.0"]

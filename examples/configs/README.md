@@ -183,6 +183,7 @@ should make their training strategy and topology explicit.
 | `model.draft_num_hidden_layers` | `null` | Positive fresh-architecture override where the strategy permits it. EAGLE3 remains one layer; P-EAGLE and DFlash may override their generated defaults. |
 | `model.draft_block_size` | `null` | Positive DFlash block-size override; generated DFlash configs default to 16. |
 | `model.target_backend` | `sglang` | `sglang`, `transformers`, `vllm`, or explicit local `prism_gguf`. Native HF/vLLM online teachers use the owned loopback capture service, currently text TP1. Prism is restricted to in-process joint-family capture with the pinned native bridge. Retired `hf`/`custom` names fail. Offline consumers do not instantiate a teacher. |
+| `model.target_quantization` | `auto` | Preserve checkpoint quantization. `bitsandbytes-4bit` and `bitsandbytes-8bit` quantize a floating Transformers teacher at load time. Draft weights stay floating. See [quantized targets](../../docs/QUANTIZED_TARGETS.md). |
 | `model.prism_capture_bridge` | `null` | Local pinned native capture bridge; required for `prism_gguf`. See [quantized capture](../../docs/specs/quantized-capture.md) for the native build and ABI contract. |
 | `model.target_gguf_sha256` | `null` | Exact lowercase 64-character SHA256 of the local target GGUF; required for Prism capture and checked before loading. |
 | `model.gguf_context_size` | `1024` | Native Prism context limit, from 64 through 8192; must cover training and verification sequences. |
