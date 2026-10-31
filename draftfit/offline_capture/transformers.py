@@ -39,8 +39,31 @@ class OfflineTransformersCapture:
         device="cpu",
         cache_dir=None,
         attn_implementation="sdpa",
+        quantization="auto",
     ):
-        from transformers import AutoModel
+        from transformers import AutoConfig, AutoModel, BitsAndBytesConfig
+
+        from draftfit.modeling.target.quantization import target_quantization_identity
+
+        config = AutoConfig.from_pretrained(
+            pretrained_model_name_or_path,
+            revision=revision,
+            trust_remote_code=trust_remote_code,
+            cache_dir=cache_dir,
+        )
+        identity = target_quantization_identity(config, quantization)
+        options = {}
+        if identity is not None:
+            # Packed modules must be placed by their loader, never moved later.
+            options["device_map"] = {"": str(device)}
+        if quantization != "auto":
+            options["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=quantization == "bitsandbytes-4bit",
+                load_in_8bit=quantization == "bitsandbytes-8bit",
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch_dtype or torch.bfloat16,
+                llm_int8_skip_modules=["lm_head"],
+            )
 
         model = AutoModel.from_pretrained(
             pretrained_model_name_or_path,
@@ -49,8 +72,11 @@ class OfflineTransformersCapture:
             torch_dtype=torch_dtype,
             cache_dir=cache_dir,
             attn_implementation=attn_implementation,
+            **options,
         )
-        return cls(model.to(device))
+        instance = cls(model if identity is not None else model.to(device))
+        instance.quantization_identity = identity
+        return instance
 
     def set_capture_layers(self, layer_ids=None, *, capture_method="eagle3"):
         if capture_method not in {"eagle3", "dflash", "dspark"}:

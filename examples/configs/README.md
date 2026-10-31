@@ -160,6 +160,7 @@ should make their training strategy and topology explicit.
 | `model.draft_num_hidden_layers` | `null` | Positive fresh-architecture override where the strategy permits it. EAGLE3 remains one layer; P-EAGLE and DFlash may override their generated defaults. |
 | `model.draft_block_size` | `null` | Positive DFlash block-size override; generated DFlash configs default to 16. |
 | `model.target_backend` | `sglang` | `sglang`, `transformers`, or `vllm`. Native HF/vLLM online teachers use the owned loopback capture service, currently text TP1. Retired `hf`/`custom` names fail. Offline consumers do not instantiate a teacher. |
+| `model.target_quantization` | `auto` | Preserve checkpoint quantization. `bitsandbytes-4bit` and `bitsandbytes-8bit` quantize a floating Transformers teacher at load time. Draft weights stay floating. See [quantized targets](../../docs/QUANTIZED_TARGETS.md). |
 | `model.hf_attn_implementation` | `sdpa` | Owned Transformers teacher attention: `sdpa` or `eager`. Nondefault settings require the Transformers online backend. |
 | `model.vllm_gpu_memory_utilization` | `0.8` | Owned vLLM teacher GPU memory fraction, strictly between zero and one. Nondefault settings require the vLLM online backend. |
 | `model.input_modality` | `text` | The provider modality. The unified runtime supports text only; VLM modalities such as `qwen2_5_vl` are rejected. |

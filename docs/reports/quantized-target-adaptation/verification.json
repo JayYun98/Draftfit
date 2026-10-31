@@ -1,0 +1,62 @@
+{
+  "base_commit": "8d17a4032750e664ae432c10e6ea289f3ef81789",
+  "code_fingerprint_sha256": "fb94433a501420385780f858be161c9b889f3d3fa9e3df85e24d245d2c09119d",
+  "files_sha256": {
+    "draftfit/cli.py": "21094986f21db87316caf482af39a4ec46add586fa940700fbee8ce166c82d18",
+    "draftfit/config/schema.py": "5bf3e9bd98d6498c8079183da73284fac021041c63d97d86e9e496f68b41763e",
+    "draftfit/export/checkpoint_io.py": "a745ca48891ae1bfe6c58328e913a0ca77a69d56412181f453c82b1175c54ae4",
+    "draftfit/inference/capture_manifest.py": "1fddf196b8ad2879cd4133c8c3b6665e74bd99bffcec33cc3efca7f14761435c",
+    "draftfit/inference/teacher_server.py": "175d6a77ab040263a63a0a5307a4e1237782531c20a53178d84fca70d3409458",
+    "draftfit/launch_plan.py": "aa41809e8328c7b4091bc81a6476e66c8cbf3ebcb7fdd6ab633ba975930f7a4f",
+    "draftfit/modeling/draft/base.py": "eb3d6bb56993b9cc0a2edbc6ffaf944522e300577eb080e1c572f68b94b9470b",
+    "draftfit/modeling/target/quantization.py": "44d5667005017dd2bc1be0056dc331bbc5248449b00ee9b4902301e0dd365d2a",
+    "draftfit/modeling/target/target_head.py": "aac069e363d2f27b46fd7099e0ca68baf2e8e07912d3386849ba5f9831a8e46d",
+    "draftfit/modeling/target/target_utils.py": "b80e065806c79897b7487993181b36fbf66e3c89507d54c3068af572303f8470",
+    "draftfit/offline_capture/prepare.py": "6aea143c748445d05e907195082d97b36f34dd633ecea19718e870005d6464a0",
+    "draftfit/offline_capture/transformers.py": "916b44796f1150c31067e23f3cc94384471364b6e19dc3f4365472589a253c05",
+    "draftfit/offline_capture/vllm.py": "efc42021682d670fe704be3e9052b80611795bbf4f9e5638f47f2066a7de843c",
+    "draftfit/target_project.py": "6f8e768697098104683a02010b46a7a7953b3c6b23ee52734af7ed03341d5e00",
+    "draftfit/training/assembly.py": "cec56b757c7a4f34b8c62b4787c7ab69d82a100f0f4fd624f57072f7c16c65db",
+    "draftfit/training/provenance.py": "823bf7139862067fe8d48496d73b39cd684fd3c125c4f4833f8f1672edb4eeee",
+    "pyproject.toml": "09ca62e9c185c0b1a443a6c252e031d0d30d0d179ef05258649ff417980a142e",
+    "tests/gpu/quantized_target.py": "4d6d58068255a87ad178c69d90375bfaf43d95aac32e5b1ae9c2e634c287b21b",
+    "tests/public_cpu.py": "ea7cd47f2fd6c4766ffe6dec0f75db98d706653b1ed89d4fa3e89b5005e72b29",
+    "tests/test_quantized_target.py": "d3a2e0052072140ba74842738ea6681cbbdc36d459b03c8f471c29af041ff6fe",
+    "tests/test_target_project.py": "69edaf261b6dd63f50c009a9400826acaaf580af1e49b02b6598a133bb8d5704"
+  },
+  "python": "3.12.8",
+  "torch": "2.11.0",
+  "transformers": "5.8.1",
+  "platform": "macOS arm64 CPU",
+  "cpu_tests": {
+    "total": 390,
+    "passed": 382,
+    "skipped_cuda": 8,
+    "exit_code": 0
+  },
+  "actual_cli_preparation": {
+    "fresh": "PASS",
+    "weights_only": "PASS",
+    "target": "tiny local Qwen3 metadata",
+    "recipe": "bitsandbytes-4bit",
+    "weights": "random tiny draft saved locally",
+    "quantized_execution": false
+  },
+  "installed_wheel": {
+    "status": "PASS",
+    "scope": "isolated installed-wheel metadata onboarding"
+  },
+  "gpu_smoke": {
+    "status": "NOT_RUN",
+    "worker_exit_code": 1,
+    "model_constructed": false,
+    "reason": "ModuleNotFoundError: transformers before model construction; dependency repair exhausted instance disk",
+    "repairs": "parent package path absent; isolated dependency installation failed with ENOSPC",
+    "real_quantized_updates": 0,
+    "shared_services_preserved": true
+  },
+  "serving_correctness": "NOT_RUN",
+  "acceptance": "NOT_RUN",
+  "speed": "NOT_RUN",
+  "log_sanitization": "Local filesystem paths replaced with placeholders. Test names, verdicts and error text retained."
+}

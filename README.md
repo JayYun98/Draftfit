@@ -109,6 +109,7 @@ configuration alone cannot add an unsupported capture or serving backend.
 | --- | --- |
 | Install or select a teacher backend | [Environment setup](docs/ENVIRONMENT.md) |
 | Prepare data, train, fine-tune, resume and export | [Complete workflow](docs/PUBLIC_WORKFLOW.md) |
+| Adapt an existing draft or train a new draft for a quantized target | [Quantized targets](docs/QUANTIZED_TARGETS.md) |
 | Configure a new target or runtime | [Target extension](docs/TARGET_EXTENSION.md) · [Runtime profiles](docs/RUNTIME_PROFILES.md) |
 | Compare target-only and draft-enabled inference | [Workload evaluation](docs/PERFORMANCE_GATE.md) |
 | Check supported and unverified combinations | [Support matrix](docs/PUBLIC_SUPPORT.md) |

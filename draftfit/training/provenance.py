@@ -272,7 +272,7 @@ def _compute_model_resume_provenance(
         "_name_or_path",
         None,
     )
-    return {
+    provenance = {
         MODEL_SOURCE_IDENTITY_FORMAT_FIELD: MODEL_SOURCE_IDENTITY_FORMAT,
         "target_model": model_source_identity(cfg.model.target_model_path),
         "target_revision": getattr(target_config, "_commit_hash", None)
@@ -291,6 +291,17 @@ def _compute_model_resume_provenance(
         "input_modality": cfg.model.input_modality,
         "torch_dtype": cfg.model.torch_dtype,
     }
+    from draftfit.modeling.target.quantization import target_quantization_identity
+
+    identity = target_quantization_identity(
+        target_config, getattr(cfg.model, "target_quantization", "auto")
+    )
+    if identity is not None:
+        provenance["target_quantization"] = identity
+        provenance["quantized_target_backend"] = cfg.model.target_backend
+        if cfg.model.target_backend == "transformers":
+            provenance["quantized_target_attention"] = cfg.model.hf_attn_implementation
+    return provenance
 
 
 def model_resume_provenance(

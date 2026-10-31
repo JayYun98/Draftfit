@@ -257,6 +257,11 @@ class TargetEmbeddingsAndHead(nn.Module):
 
         loaded_keys = set()
         for k, tensor in state_dict_part.items():
+            from draftfit.modeling.target.quantization import (
+                require_floating_target_weight,
+            )
+
+            require_floating_target_weight(tensor, k)
             if k == target_embed_key:
                 if tensor.shape != self.embed_tokens.weight.shape:
                     raise RuntimeError(

@@ -41,6 +41,7 @@ def load_tests(loader, tests, pattern):
         "tests.test_offline_capture.test_transformers",
         "tests.test_offline_capture.test_vllm",
         "tests.test_teacher_training",
+        "tests.test_quantized_target",
         "tests.test_scripts.test_prepare_hidden_states",
         "tests.test_capture_manifest",
         "tests.test_runtime.test_teacher_server",

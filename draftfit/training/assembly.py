@@ -199,6 +199,16 @@ def build_model_bundle(cfg: Config, *, algorithm: AlgorithmRegistration) -> Mode
         cache_dir=cfg.model.cache_dir,
         trust_remote_code=cfg.model.trust_remote_code,
     )
+    from draftfit.modeling.target.quantization import target_quantization_identity
+
+    quantization = target_quantization_identity(
+        target_config, cfg.model.target_quantization
+    )
+    if quantization is not None:
+        # Deployment metadata only: never mark the floating draft as packed.
+        draft_config.draftfit_target_quantization = quantization
+    elif hasattr(draft_config, "draftfit_target_quantization"):
+        delattr(draft_config, "draftfit_target_quantization")
     text_config = target_text_config(target_config)
     target_hidden_size = int(text_config.hidden_size)
     target_vocab_size = resolve_target_vocab_size(target_config)
@@ -586,6 +596,20 @@ def build_training_run(
             "resolved algorithm does not match training.strategy: "
             f"{algorithm.name!r} != {cfg.training.strategy!r}"
         )
+
+    if cfg.mode == "offline":
+        from draftfit.modeling.target.quantization import (
+            validate_quantized_feature_source,
+        )
+        from draftfit.modeling.target.target_utils import load_target_config
+
+        target_config = load_target_config(
+            cfg.model.target_model_path,
+            revision=cfg.model.target_revision,
+            cache_dir=cfg.model.cache_dir,
+            trust_remote_code=cfg.model.trust_remote_code,
+        )
+        validate_quantized_feature_source(cfg, target_config)
 
     t = cfg.training
     if t.role != "producer":

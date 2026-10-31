@@ -113,6 +113,12 @@ def parse_args(argv=None):
     model_group.add_argument("--target-model-path", type=str, required=True)
     model_group.add_argument("--target-revision", type=str, default=None)
     model_group.add_argument(
+        "--target-quantization",
+        choices=("auto", "bitsandbytes-4bit", "bitsandbytes-8bit"),
+        default="auto",
+        help="preserve checkpoint quantization, or quantize a Transformers teacher at load time",
+    )
+    model_group.add_argument(
         "--target-backend",
         choices=("sglang", "transformers", "vllm"),
         default="sglang",
@@ -441,6 +447,14 @@ def build_capture_plan_manifest(
         "num_samples": getattr(args, "num_samples", None),
         "data_sha256": None,
     }
+    from draftfit.modeling.target.quantization import target_quantization_identity
+
+    recipe = getattr(args, "target_quantization", "auto")
+    if recipe != "auto" and backend != "transformers":
+        raise ValueError(
+            "explicit target quantization requires --target-backend transformers"
+        )
+    quantization = target_quantization_identity(target_model_config, recipe)
     data_path = getattr(args, "data_path", None)
     if data_path is not None and Path(data_path).is_file():
         with open(data_path, "rb") as stream:
@@ -474,6 +488,7 @@ def build_capture_plan_manifest(
         draft_config=draft_payload,
         capture_backend=backend,
         capture_settings=settings,
+        target_quantization=quantization,
     )
 
 
@@ -487,6 +502,11 @@ def build_target_model(
     backend = getattr(args, "target_backend", "sglang")
     if backend not in ("sglang", "transformers", "vllm"):
         raise ValueError(f"unsupported offline teacher backend: {backend!r}")
+    recipe = getattr(args, "target_quantization", "auto")
+    if recipe != "auto" and backend != "transformers":
+        raise ValueError(
+            "explicit target quantization requires --target-backend transformers"
+        )
     if backend != "sglang" and getattr(args, "tp_size", 1) != 1:
         raise ValueError(f"{backend} offline capture currently requires --tp-size 1")
     if backend == "vllm" and int(os.environ.get("WORLD_SIZE", "1")) != 1:
@@ -512,6 +532,8 @@ def build_target_model(
             gpu_memory_utilization=args.vllm_gpu_memory_utilization,
             cache_dir=getattr(args, "cache_dir", None),
         )
+    if backend != "sglang":
+        kwargs["quantization"] = recipe
     target_model = load_offline_capture(
         args.target_model_path,
         backend=backend,

@@ -53,6 +53,11 @@ class ModelConfig(StrictConfigModel):
     draft_block_size: Optional[int] = Field(default=None, gt=0)
     #: Teacher implementation; all backends share the feature transport schema.
     target_backend: Literal["sglang", "transformers", "vllm"] = "sglang"
+    #: Preserve prequantized checkpoint metadata, or quantize a floating teacher
+    #: while loading it with Transformers. The trainable draft stays floating.
+    target_quantization: Literal["auto", "bitsandbytes-4bit", "bitsandbytes-8bit"] = (
+        "auto"
+    )
     hf_attn_implementation: Literal["eager", "sdpa"] = "sdpa"
     vllm_gpu_memory_utilization: float = Field(default=0.8, gt=0.0, le=1.0)
     #: Retained for offline/config migration only. The server-only online path
@@ -133,6 +138,10 @@ class ModelConfig(StrictConfigModel):
 
     @model_validator(mode="after")
     def _validate_input_modality(self):
+        if self.target_quantization != "auto" and self.target_backend != "transformers":
+            raise ValueError(
+                "explicit target_quantization recipes require target_backend=transformers"
+            )
         if (
             not self.input_modality
             or self.input_modality.strip() != self.input_modality

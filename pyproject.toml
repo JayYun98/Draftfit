@@ -39,6 +39,7 @@ include = ["draftfit*"]
 exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
 
 [project.optional-dependencies]
+quantization = ["bitsandbytes==0.50.2; sys_platform == 'linux'"]
 data = ["openai"]
 # Stock backend only. Custom capture images must preserve their own build.
 sglang = ["sglang==0.5.14; sys_platform == 'linux'"]

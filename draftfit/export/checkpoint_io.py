@@ -158,6 +158,14 @@ def materialize_draft(
     from draftfit.modeling.auto import AutoDraftModel, AutoDraftModelConfig
 
     draft_config = AutoDraftModelConfig.from_file(draft_config_path)
+    from draftfit.algorithms.common.providers import MODEL_PROVENANCE_CONTRACT_KEY
+
+    provenance = dict(state.get(MODEL_PROVENANCE_CONTRACT_KEY) or ())
+    quantization = provenance.get("target_quantization")
+    if quantization is not None:
+        draft_config.draftfit_target_quantization = quantization
+    elif hasattr(draft_config, "draftfit_target_quantization"):
+        delattr(draft_config, "draftfit_target_quantization")
     model = AutoDraftModel.from_config(draft_config, torch_dtype=torch.bfloat16)
     missing, unexpected = model.load_state_dict(state["draft_state_dict"], strict=False)
     if unexpected:

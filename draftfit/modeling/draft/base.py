@@ -146,6 +146,8 @@ class Eagle3DraftModel(PreTrainedModel, ABC):
             model_path (str): Path to the target model. Can be either a Hugging Face
             repository ID or a local directory path containing the model files.
         """
+        from draftfit.modeling.target.quantization import require_floating_target_weight
+
         if os.path.exists(model_path):
             # model_path is a local directory
             # check if there is file ending with index.json
@@ -157,13 +159,21 @@ class Eagle3DraftModel(PreTrainedModel, ABC):
                 safetensors_path = os.path.join(model_path, "model.safetensors")
                 if os.path.exists(safetensors_path):
                     with safe_open(safetensors_path, framework="pt") as f:
-                        self.embed_tokens.weight.copy_(f.get_tensor(embedding_key))
+                        self.embed_tokens.weight.copy_(
+                            require_floating_target_weight(
+                                f.get_tensor(embedding_key), embedding_key
+                            )
+                        )
                     return
 
                 pytorch_model_path = os.path.join(model_path, "pytorch_model.bin")
                 if os.path.exists(pytorch_model_path):
                     state_dict = torch.load(pytorch_model_path, map_location="cpu")
-                    self.embed_tokens.weight.copy_(state_dict[embedding_key])
+                    self.embed_tokens.weight.copy_(
+                        require_floating_target_weight(
+                            state_dict[embedding_key], embedding_key
+                        )
+                    )
                     return
 
                 raise FileNotFoundError(
@@ -187,7 +197,9 @@ class Eagle3DraftModel(PreTrainedModel, ABC):
             else:
                 state_dict = torch.load(os.path.join(model_path, ckpt_file))
                 emb_tokens = state_dict[embedding_key]
-            self.embed_tokens.weight.copy_(emb_tokens)
+            self.embed_tokens.weight.copy_(
+                require_floating_target_weight(emb_tokens, embedding_key)
+            )
         else:
             # this is the case where model_path is a huggingface repository
             # we first need to locate its local cache

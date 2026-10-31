@@ -216,6 +216,11 @@ def main(argv=None):
     )
     parser.add_argument("--model-path", required=True)
     parser.add_argument("--revision")
+    parser.add_argument(
+        "--target-quantization",
+        choices=("auto", "bitsandbytes-4bit", "bitsandbytes-8bit"),
+        default="auto",
+    )
     parser.add_argument("--cache-dir")
     parser.add_argument("--trust-remote-code", action="store_true")
     parser.add_argument(
@@ -254,6 +259,7 @@ def main(argv=None):
         cache_dir=args.cache_dir,
         trust_remote_code=args.trust_remote_code,
         torch_dtype=getattr(torch, args.dtype),
+        quantization=args.target_quantization,
     )
     if args.target_backend == "transformers":
         from draftfit.offline_capture.transformers import OfflineTransformersCapture

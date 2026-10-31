@@ -77,6 +77,7 @@ class OfflineVLLMCapture:
         max_model_len=None,
         gpu_memory_utilization=0.8,
         cache_dir=None,
+        quantization="auto",
     ):
         from transformers import AutoConfig
 
@@ -86,11 +87,16 @@ class OfflineVLLMCapture:
             trust_remote_code=trust_remote_code,
             cache_dir=cache_dir,
         )
-        if config.model_type not in {"llama", "qwen2", "qwen3"} or getattr(
-            config, "quantization_config", None
-        ):
+        from draftfit.modeling.target.quantization import target_quantization_identity
+
+        if quantization != "auto":
             raise ValueError(
-                "vLLM offline capture supports unquantized llama/qwen2/qwen3 text models only"
+                "vLLM requires a prequantized checkpoint and quantization=auto"
+            )
+        identity = target_quantization_identity(config, quantization)
+        if config.model_type not in {"llama", "qwen2", "qwen3"}:
+            raise ValueError(
+                "vLLM offline capture supports llama/qwen2/qwen3 text models only"
             )
         if torch_dtype not in (None, torch.float16, torch.bfloat16, torch.float32):
             raise ValueError("capture dtype must be float16, bfloat16, or float32")
@@ -107,6 +113,7 @@ class OfflineVLLMCapture:
             raise ValueError("invalid final norm epsilon")
         instance = cls()
         instance.config = config
+        instance.quantization_identity = identity
         revision = getattr(config, "_commit_hash", None) or revision
         instance._norm = _load_norm(
             pretrained_model_name_or_path, config, revision, cache_dir

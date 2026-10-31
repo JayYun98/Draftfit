@@ -99,7 +99,9 @@ class TargetHead(nn.Module):
         else:
             state_dict = torch.load(os.path.join(self.model_path, ckpt_file))
             lm_head = state_dict[lm_head_key]
-        self.fc.weight.copy_(lm_head)
+        from draftfit.modeling.target.quantization import require_floating_target_weight
+
+        self.fc.weight.copy_(require_floating_target_weight(lm_head, lm_head_key))
 
     def freeze_weights(self):
         for param in self.fc.parameters():

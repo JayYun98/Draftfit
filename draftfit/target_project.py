@@ -57,6 +57,7 @@ def prepare_project(
     draft_checkpoint=None,
     overrides=(),
     target_backend="sglang",
+    target_quantization="auto",
 ):
     """Validate metadata/configs first, then write into a NEW project directory.
 
@@ -108,6 +109,7 @@ def prepare_project(
     raw = spec.scaffold_config(strategy=strategy)
     model = raw["model"]
     model["target_backend"] = target_backend
+    model["target_quantization"] = target_quantization
     if target_backend != "sglang":
         for key in list(model):
             if key.startswith("sglang_"):
@@ -191,6 +193,11 @@ def prepare_project(
     data_rows = validate_project_data(cfg.data, inspection) if train_data else None
     resolved = resolve_run(cfg)
     target = PretrainedConfig.from_dict(text_metadata)
+    from draftfit.modeling.target.quantization import target_quantization_identity
+
+    quantization_identity = target_quantization_identity(
+        PretrainedConfig.from_dict(metadata), cfg.model.target_quantization
+    )
     draft = resolve_draft_config(
         cfg, provider=registration.providers.model.draft_config, target_config=target
     )
@@ -230,6 +237,7 @@ def prepare_project(
         "capture_layers": layers,
         "required_features": sorted(contract.required_tensors),
         "initialization": "weights_only" if checkpoint_source else "from_scratch",
+        "target_quantization": quantization_identity,
         "input_validation": {
             "conversation_rows": data_rows,
             "tokenizer_masks": "not_run",
