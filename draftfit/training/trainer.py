@@ -367,6 +367,33 @@ class Trainer:
                     "provider_allowed_missing="
                     f"{sorted(allowed_missing_checkpoint_keys)}"
                 )
+            # Backend.load_state_dict also serves partial weight-only restores.
+            # Trainer resume must not silently reset optimizer or RNG while
+            # retaining an already-consumed data cursor. Agree across ranks
+            # before entering the model preparation collectives.
+            backend_state = state.get("backend")
+            missing_state = []
+            if state.get("global_step", 0) > 0:
+                missing_state = [
+                    key
+                    for key in ("optimizer", "rng")
+                    if not isinstance(backend_state, dict)
+                    or backend_state.get(key) is None
+                ]
+            rank_missing = [missing_state]
+            if world_size > 1:
+                rank_missing = [None] * world_size
+                dist.all_gather_object(rank_missing, missing_state)
+            failures = [
+                f"rank {rank}: {', '.join(keys)}"
+                for rank, keys in enumerate(rank_missing)
+                if keys
+            ]
+            if failures:
+                raise ValueError(
+                    f"checkpoint {resume_from} is missing required resume state "
+                    + "; ".join(failures)
+                )
             # Mid-epoch position persists in SAMPLES (batch-size independent);
             # Offline refs are rebuilt for the saved epoch before seek; a local
             # online queue arrives prepositioned from its deterministic prompt

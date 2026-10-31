@@ -12,6 +12,16 @@ relabel them under a single new blanket notice.
 | AngelSpec / Tencent | `d3412bed231025ea85d35dbf5e0af44f1ac62a5b` | Apache-2.0 with third-party exceptions in its LICENSE | Anchor/FSDP design references, not wholesale trainer import |
 | mlx-dspark / ARahim3 | `4143092` | MIT, copyright 2026 erahim3 | Inference/renderer reference, not packaged distributed trainer |
 | SGLang Ling backend | `8ba213fc67550aea80dfbd5ef66f4574ec25e653` | Preserve upstream and patch headers | Separate pinned backend patch, not bundled in the Python wheel |
+| ALR-IRA / js-lee-AI | `fa473642d48ea2667675d706ca8f16a74111183e` | MIT, copyright 2026 Jungseob Lee | Explicit rollout preparation and sparse KD adapter |
+| Osprey / LeanModels | `f62cd48844b03f3cb929543da25c15756e1f1095` | MIT, copyright 2025 sgl-project | Qwen3/Llama draft conversion and model adapters |
+| CAST / js-lee-AI | `2eed73f38f9210f1d5ddf01de8059cf3ffb43c19` | MIT, copyright 2026 Jungseob Lee | Batch-one reference tree decoding |
+| Redline / js-lee-AI | `d78ede9b035420f3c8c8c63c185ed55be5ea038f` | MIT, copyright 2026 Jungseob Lee | Paired correctness-risk selection kernel |
+| MLX packed target adapter | Local capture port; native Prism API reference `e3de715222b2667c54a267441159a5729f11155e` | Apple MIT notice retained, copyright 2023 Apple Inc. | Optional packed target capture/readout; external native runtime not redistributed |
+
+Full selected research notices ship in `draftfit/research/NOTICE.md`; the packed
+adapter notice ships in `draftfit/offline_capture/PRISM_RUNTIME_LICENSE`. Native
+Prism builds require separate dependency and patch provenance as described in
+[quantized capture](specs/quantized-capture.md).
 
 This inventory records the prior implementation ledger and local license files.
 It does not assert that every upstream line or transitive dependency has been

@@ -1,0 +1,11 @@
+flowchart LR
+    T["Target GPU pool: capture features"] --> M[(Feature store or offline files)]
+    M --> R["Trainer rank 0: distribute work"]
+    R --> G["Trainer ranks: draft forward and backward"]
+    G --> S["DP/FSDP synchronization"]
+    S --> K["Checkpoint and training metrics"]
+    O[(Disjoint offline held-out files)] --> V["Offline all-rank evaluation"]
+    G --> V
+    V --> E["Reduced held-out metrics"]
+    K --> X["Export and separate serving A/B"]
+    E --> X

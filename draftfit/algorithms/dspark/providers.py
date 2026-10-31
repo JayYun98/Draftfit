@@ -51,7 +51,7 @@ def build_step(wrapped_model, *, target_head=None, **_options):
 def resume_contract(_config, draft_model, training_model):
     """Persist resolved DSpark model, sampling, and objective semantics."""
 
-    return {
+    contract = {
         "dspark_draft_num_hidden_layers": int(draft_model.config.num_hidden_layers),
         "dspark_target_layer_ids": tuple(
             int(layer_id) for layer_id in draft_model.target_layer_ids
@@ -70,12 +70,35 @@ def resume_contract(_config, draft_model, training_model):
             training_model.dspark_confidence_head_alpha
         ),
     }
+    if getattr(training_model, "dspark_acceptance_loss_alpha", 0.0):
+        contract["dspark_acceptance_loss"] = training_model.dspark_acceptance_loss
+        contract["dspark_acceptance_loss_alpha"] = float(
+            training_model.dspark_acceptance_loss_alpha
+        )
+        contract["dspark_acceptance_temperature"] = float(
+            training_model.dspark_acceptance_temperature
+        )
+    if getattr(_config.training, "dspark_head_only", False):
+        contract["dspark_head_only"] = True
+    if not getattr(training_model, "sample_from_anchor", True):
+        contract["dspark_sample_from_anchor"] = False
+    return contract
 
 
 def build_draft(config, draft_config):
     from draftfit.algorithms.model_providers import build_registered_draft
 
-    return build_registered_draft(config, draft_config)
+    draft = build_registered_draft(config, draft_config)
+    if config.training.dspark_head_only:
+        draft.requires_grad_(False)
+        for head in (draft.markov_head, draft.confidence_head):
+            if head is not None:
+                head.requires_grad_(True)
+        if not any(parameter.requires_grad for parameter in draft.parameters()):
+            raise ValueError(
+                "DSpark head-only training requires a Markov or confidence head"
+            )
+    return draft
 
 
 def build_training_model(config, draft_model, draft_config, target_config, tokenizer):

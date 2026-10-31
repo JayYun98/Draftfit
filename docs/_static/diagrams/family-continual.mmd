@@ -1,0 +1,25 @@
+flowchart LR
+    X["Existing draft or training checkpoint"] --> K{"What is it?"}
+    K -->|DSpark| S["DSpark weights"]
+    K -->|DFlash| F["DFlash weights"]
+    K -->|DFlash2| F2["DFlash2 weights"]
+    K -->|Other method or target MTP| U["No family conversion<br/>use that method's own path"]
+    S -->|same method| W["Weights-only warm start<br/>new optimizer and schedule"]
+    F -->|same method| W
+    F2 -->|same method| W
+    S -->|anchor source: DFlash / DFlash2| A["Set retrain_anchor_alignment=true<br/>copy compatible weights; retrain label alignment"]
+    S -->|non-anchor source: DFlash / DFlash2| H["Checked cross-method handoff<br/>new method-specific heads initialized"]
+    F -->|to DSpark / DFlash2| H
+    F2 -->|to DSpark / DFlash| H
+    A --> N["New independent training run"]
+    H --> N
+    W --> N
+    X -->|resume the same interrupted run| R["training.resume_from<br/>restore optimizer, counters and RNG"]
+    N --> V["Held-out evaluation → export → exact serving checks"]
+    R --> V
+    classDef source fill:#e8f2ff,stroke:#4477aa,color:#16283c
+    classDef path fill:#ecf8ef,stroke:#408456,color:#173923
+    classDef caution fill:#fff2dd,stroke:#b7771d,color:#4b310d
+    class X,S,F,F2 source
+    class W,H,N,R path
+    class K,A,U,V caution

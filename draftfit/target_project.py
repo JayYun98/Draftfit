@@ -134,7 +134,9 @@ def prepare_project(
     if len(heads) == 1:
         model["lm_head_key"] = heads[0]
     metadata = inspection["config"]
-    text_metadata = metadata.get("text_config", metadata)
+    from draftfit.modeling.target.target_utils import target_text_config
+
+    text_metadata = target_text_config(metadata)
     if not heads and len(embeddings) == 1 and text_metadata.get("tie_word_embeddings"):
         model["lm_head_key"] = embeddings[0]
     raw["output_dir"] = str(destination / "checkpoints")
@@ -192,11 +194,16 @@ def prepare_project(
         )
     data_rows = validate_project_data(cfg.data, inspection) if train_data else None
     resolved = resolve_run(cfg)
-    target = PretrainedConfig.from_dict(text_metadata)
+    # Metadata only: generic Transformers initialization can normalize YaRN
+    # before target-specific fields exist. Preserve the inspected values.
+    target = PretrainedConfig()
+    target.update(text_metadata)
     from draftfit.modeling.target.quantization import target_quantization_identity
 
+    full_target = PretrainedConfig()
+    full_target.update(metadata)
     quantization_identity = target_quantization_identity(
-        PretrainedConfig.from_dict(metadata), cfg.model.target_quantization
+        full_target, cfg.model.target_quantization
     )
     draft = resolve_draft_config(
         cfg, provider=registration.providers.model.draft_config, target_config=target

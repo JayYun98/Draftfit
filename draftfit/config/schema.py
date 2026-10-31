@@ -20,6 +20,7 @@ import copy
 import json
 import math
 import os
+from pathlib import Path
 from typing import List, Literal, Optional
 from urllib.parse import urlparse
 
@@ -46,18 +47,38 @@ class ModelConfig(StrictConfigModel):
     #: Load draft weights only. Unlike training.resume_from, this never restores
     #: optimizer/scheduler state, counters, data position, or RNG state.
     draft_checkpoint_path: Optional[str] = None
+    #: Source auxiliary-state indexing for generic nested speculators checkpoints.
+    #: block_output uses zero-based post-block IDs; embedding_inclusive maps
+    #: positive hidden-state slot i to block i-1 and rejects embedding slot 0.
+    #: None requires an explicit declaration in the source config. Saved source
+    #: IDs and indexing must agree with this declaration on reload/warm start.
+    #: Verified native/Taichu defaults remain unchanged.
+    draft_capture_layer_indexing: Optional[
+        Literal["block_output", "embedding_inclusive"]
+    ] = None
     #: Optional architecture override. Auto-generated defaults preserve the
     #: former trainers: EAGLE3=1, P-EAGLE=4, DFlash=1.
     draft_num_hidden_layers: Optional[int] = Field(default=None, gt=0)
     #: Optional DFlash block-size override (auto-generated default: 16).
     draft_block_size: Optional[int] = Field(default=None, gt=0)
     #: Teacher implementation; all backends share the feature transport schema.
-    target_backend: Literal["sglang", "transformers", "vllm"] = "sglang"
-    #: Preserve prequantized checkpoint metadata, or quantize a floating teacher
-    #: while loading it with Transformers. The trainable draft stays floating.
+    target_backend: Literal["sglang", "transformers", "vllm", "prism_gguf"] = "sglang"
+    #: Preserve checkpoint quantization, or quantize a floating Transformers teacher.
+    #: The trainable draft stays floating point.
     target_quantization: Literal["auto", "bitsandbytes-4bit", "bitsandbytes-8bit"] = (
         "auto"
     )
+    #: Exact local GGUF capture for the in-process joint family runner only.
+    prism_capture_bridge: Optional[str] = None
+    target_gguf_sha256: Optional[str] = Field(
+        default=None,
+        strict=True,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    gguf_context_size: int = Field(default=1024, strict=True, ge=64, le=8192)
+    gguf_chunk_size: int = Field(default=32, strict=True, gt=0, le=512)
     hf_attn_implementation: Literal["eager", "sdpa"] = "sdpa"
     vllm_gpu_memory_utilization: float = Field(default=0.8, gt=0.0, le=1.0)
     #: Retained for offline/config migration only. The server-only online path
@@ -137,6 +158,49 @@ class ModelConfig(StrictConfigModel):
     )
 
     @model_validator(mode="after")
+    def _validate_prism_capture(self):
+        fields = (
+            "prism_capture_bridge",
+            "target_gguf_sha256",
+            "gguf_context_size",
+            "gguf_chunk_size",
+        )
+        if self.target_backend != "prism_gguf":
+            changed = [
+                name
+                for name in fields
+                if getattr(self, name) != type(self).model_fields[name].default
+            ]
+            if changed:
+                raise ValueError(
+                    f"model.{changed} requires model.target_backend=prism_gguf"
+                )
+            return self
+        target = Path(self.target_model_path).expanduser()
+        if not target.is_file() or target.suffix.lower() != ".gguf":
+            raise ValueError(
+                "prism_gguf requires an explicit local .gguf target_model_path"
+            )
+        if (
+            not self.prism_capture_bridge
+            or not Path(self.prism_capture_bridge).expanduser().is_file()
+        ):
+            raise ValueError("prism_gguf requires a local prism_capture_bridge file")
+        if self.target_gguf_sha256 is None:
+            raise ValueError("prism_gguf requires target_gguf_sha256")
+        if (
+            self.input_modality != "text"
+            or not self.draft_model_config
+            or not self.draft_model_config.strip()
+        ):
+            raise ValueError(
+                "prism_gguf requires text and an explicit draft_model_config"
+            )
+        if self.trust_remote_code:
+            raise ValueError("prism_gguf requires trust_remote_code=false")
+        return self
+
+    @model_validator(mode="after")
     def _validate_input_modality(self):
         if self.target_quantization != "auto" and self.target_backend != "transformers":
             raise ValueError(
@@ -177,7 +241,7 @@ class DataConfig(StrictConfigModel):
     prompts_path: str = ""
     #: offline mode — directory of precomputed hidden-state .ckpt files.
     hidden_states_path: str = ""
-    #: Reserved migration field. Online evaluation is unsupported; keep empty.
+    #: Tokenized held-out JSONL for joint_online_capture; unsupported by server training.
     eval_data_path: str = ""
     #: offline evaluation — directory of precomputed hidden-state .ckpt files.
     eval_hidden_states_path: str = ""
@@ -563,7 +627,96 @@ class DeploymentConfig(StrictConfigModel):
         return self
 
 
+class JointControlConfig(StrictConfigModel):
+    policy: dict
+    budget_path: str = Field(min_length=1)
+    preset: str = Field(default="default", min_length=1)
+    allow_reference_timings: bool = False
+
+
+class JointVerificationConfig(StrictConfigModel):
+    """Bounded, in-process reference greedy decoding at joint milestones."""
+
+    interval: int = Field(default=1000, gt=0)
+    max_prompts: int = Field(default=2, gt=0)
+    max_new_tokens: int = Field(default=8, gt=0)
+    draft_tokens: int = Field(default=2, gt=0)
+    trials: int = Field(default=1, gt=0)
+    offload_optimizer: bool = True
+    # Comparison references only; never phase initialization or eligible arms.
+    existing_drafts: dict[str, str] = Field(default_factory=dict)
+
+    @staticmethod
+    def validate_existing_drafts(value):
+        """Reject unsupported/local-missing references during config planning."""
+        from collections.abc import Mapping
+
+        if not isinstance(value, Mapping):
+            raise ValueError(
+                "existing_drafts must map arm names to local HF export directories"
+            )
+        paths = {}
+        supported = {"DSparkDraftModel", "DFlashDraftModel", "DFlash2DraftModel"}
+        for name, source in value.items():
+            if (
+                not isinstance(name, str)
+                or not name.strip()
+                or not isinstance(source, str)
+                or not source.strip()
+            ):
+                raise ValueError(
+                    "existing_drafts requires nonempty arm names and local paths"
+                )
+            path = Path(source).expanduser().resolve()
+            try:
+                payload = json.loads((path / "config.json").read_text())
+            except (OSError, ValueError) as exc:
+                raise ValueError(
+                    f"existing_drafts[{name!r}] requires a local HF export with config.json"
+                ) from exc
+            architectures = (
+                payload.get("architectures") if isinstance(payload, dict) else None
+            )
+            if (
+                not isinstance(architectures, list)
+                or len(architectures) != 1
+                or not isinstance(architectures[0], str)
+                or architectures[0] not in supported
+            ):
+                raise ValueError(
+                    f"unsupported existing draft architecture: {architectures!r}"
+                )
+            if not any(
+                (path / filename).is_file()
+                for filename in (
+                    "model.safetensors",
+                    "model.safetensors.index.json",
+                    "pytorch_model.bin",
+                    "pytorch_model.bin.index.json",
+                )
+            ):
+                raise ValueError(f"existing_drafts[{name!r}] has no local HF weights")
+            paths[name] = str(path)
+        return paths
+
+    @model_validator(mode="after")
+    def _existing_references(self):
+        self.existing_drafts = self.validate_existing_drafts(self.existing_drafts)
+        if self.existing_drafts and not self.offload_optimizer:
+            raise ValueError("existing_drafts requires offload_optimizer=true")
+        return self
+
+
 class TrainingConfig(StrictConfigModel):
+    #: In-process Transformers capture for family --joint; no feature files.
+    joint_online_capture: bool = False
+    #: Optional explicit device for the frozen joint teacher; the draft stays on LOCAL_RANK.
+    joint_target_device: Optional[str] = None
+    #: CPU feature bytes, including leased accumulation windows; zero disables.
+    joint_feature_queue_bytes: int = Field(default=0, ge=0)
+    joint_feature_queue_batches: int = Field(default=2, gt=0)
+    joint_verification: Optional[JointVerificationConfig] = None
+    joint_control: Optional[JointControlConfig] = None
     # Keep this extensible for externally registered algorithms; the immutable
     # algorithm registry performs the supported-name validation at resolution.
     strategy: str = "eagle3"
@@ -595,6 +748,9 @@ class TrainingConfig(StrictConfigModel):
     dist_timeout: int = Field(default=10, gt=0)
     #: EAGLE3 objective.
     lk_loss_type: Optional[Literal["lambda", "alpha"]] = None
+    #: EAGLE-4 dense draft training followed by frozen-draft candidate distillation.
+    eagle4_stage: Literal["draft", "candidates"] = "draft"
+    eagle4_initialize_candidates: bool = False
     kl_scale: float = 1.0
     kl_decay: float = 1.0
     #: DFlash-family objective/model knobs.
@@ -617,6 +773,16 @@ class TrainingConfig(StrictConfigModel):
     dspark_ce_loss_alpha: float = 0.1
     dspark_l1_loss_alpha: float = 0.9
     dspark_confidence_head_alpha: float = 1.0
+    dspark_acceptance_loss: Optional[Literal["eal", "wtv"]] = None
+    dspark_acceptance_loss_alpha: float = Field(default=0.0, ge=0.0)
+    dspark_acceptance_temperature: float = Field(default=1.0, gt=0.0)
+    dspark_head_only: bool = False
+    #: Explicitly re-align an anchor-sampling DSpark backbone for DFlash/DFlash2.
+    retrain_anchor_alignment: bool = False
+    #: Sparse target KD on prepared target rollouts; ordinary DFlash is unchanged.
+    alr_topk: int = Field(default=8, gt=0)
+    alr_hard_label_mix: float = Field(default=0.0, ge=0.0, le=1.0, allow_inf_nan=False)
+    alr_tail_bucket: bool = True
     dflash2_selector_loss_alpha: float = Field(default=1.0, gt=0.0)
     #: P-EAGLE COD sampling/model knobs.
     num_depths: int = Field(default=8, gt=0)
@@ -646,6 +812,16 @@ class TrainingConfig(StrictConfigModel):
 
     @model_validator(mode="after")
     def _validate_training_shape(self):
+        if not math.isfinite(self.dspark_acceptance_loss_alpha) or not math.isfinite(
+            self.dspark_acceptance_temperature
+        ):
+            raise ValueError(
+                "training.dspark_acceptance_loss_alpha and temperature must be finite"
+            )
+        if self.dspark_acceptance_loss_alpha and self.dspark_acceptance_loss is None:
+            raise ValueError(
+                "training.dspark_acceptance_loss is required when its alpha is positive"
+            )
         if not math.isfinite(self.dflash2_selector_loss_alpha):
             raise ValueError("training.dflash2_selector_loss_alpha must be finite")
         if not 0.0 <= self.dpace_alpha <= 1.0:
@@ -773,7 +949,64 @@ class Config(StrictConfigModel):
         deployment = self.deployment.mode
         role = self.training.role
 
-        if mode == "online" and deployment != "disaggregated":
+        joint_online = self.training.joint_online_capture
+        target_device = self.training.joint_target_device
+        if self.model.target_backend == "prism_gguf":
+            if not joint_online:
+                raise ValueError(
+                    "prism_gguf requires training.joint_online_capture=true"
+                )
+            if target_device not in (None, "cuda:0"):
+                raise ValueError("Prism capture supports CPU or cuda:0 only")
+            verification = self.training.joint_verification
+            required_context = self.data.max_length + (
+                verification.max_new_tokens if verification else 0
+            )
+            if self.model.gguf_context_size < required_context:
+                raise ValueError(
+                    "model.gguf_context_size must cover data.max_length + joint verification max_new_tokens"
+                )
+        if target_device is not None and (
+            not joint_online
+            or not isinstance(target_device, str)
+            or not target_device.startswith("cuda:")
+            or not target_device[5:].isascii()
+            or not target_device[5:].isdecimal()
+            or str(int(target_device[5:])) != target_device[5:]
+        ):
+            raise ValueError(
+                "joint_target_device requires joint_online_capture and an explicit cuda:N device"
+            )
+        if self.training.joint_control and not self.training.joint_verification:
+            raise ValueError("joint_control requires joint_verification")
+        if (
+            self.training.joint_feature_queue_bytes or self.training.joint_verification
+        ) and not joint_online:
+            raise ValueError(
+                "joint feature queue/verification requires joint_online_capture"
+            )
+        if (
+            self.training.joint_feature_queue_bytes
+            and self.training.joint_feature_queue_batches
+            < self.training.accumulation_steps
+        ):
+            raise ValueError(
+                "joint queue batches must hold a complete accumulation window"
+            )
+        if joint_online and (
+            mode != "online"
+            or deployment != "local_colocated"
+            or self.model.target_backend not in {"transformers", "prism_gguf"}
+            or self.model.input_modality != "text"
+            or not self.data.prompts_path
+            or not self.data.eval_data_path
+            or self.data.eval_hidden_states_path
+            or self.training.strategy not in {"dspark", "dflash", "dflash2"}
+        ):
+            raise ValueError(
+                "joint_online_capture requires colocated Transformers or Prism GGUF family training with tokenized prompts_path and eval_data_path"
+            )
+        if mode == "online" and deployment != "disaggregated" and not joint_online:
             raise ValueError(
                 "online training requires deployment.mode=disaggregated; "
                 "colocated online training is no longer supported"
@@ -823,17 +1056,43 @@ class Config(StrictConfigModel):
                 "model.draft_checkpoint_path (weights-only warm start) and "
                 "training.resume_from (full resume) are mutually exclusive"
             )
+        if self.training.dspark_head_only and (
+            self.training.strategy != "dspark"
+            or not (self.model.draft_checkpoint_path or self.training.resume_from)
+        ):
+            raise ValueError(
+                "training.dspark_head_only requires strategy=dspark and "
+                "model.draft_checkpoint_path or training.resume_from"
+            )
+        if (
+            self.training.dspark_acceptance_loss_alpha > 0
+            and self.training.strategy != "dspark"
+        ):
+            raise ValueError(
+                "training.dspark_acceptance_loss_alpha requires strategy=dspark"
+            )
+        if self.training.retrain_anchor_alignment and (
+            self.training.strategy not in ("dflash", "dflash2")
+            or not self.model.draft_checkpoint_path
+        ):
+            raise ValueError(
+                "training.retrain_anchor_alignment requires a DFlash/DFlash2 "
+                "weights-only draft checkpoint"
+            )
         if self.training.role == "producer" and self.profiling.enabled:
             raise ValueError(
                 "profiling.enabled applies to trainer roles, not a capture-only "
                 "producer"
             )
-        if self.data.eval_data_path:
+        if self.data.eval_data_path and not joint_online:
             raise ValueError(
                 "data.eval_data_path is unsupported; online evaluation is not "
                 "supported by the server-only capture path"
             )
-        has_eval_source = bool(self.data.eval_hidden_states_path)
+        has_eval_source = bool(
+            self.data.eval_hidden_states_path
+            or (joint_online and self.data.eval_data_path)
+        )
         has_eval_interval = self.training.eval_interval > 0
         if has_eval_source != has_eval_interval:
             raise ValueError(

@@ -11,6 +11,21 @@ from draftfit.target_inspector import inspect_target
 
 
 class TargetInspectorTest(unittest.TestCase):
+    def test_llm_config_controls_taichu_text_metadata(self):
+        result = self._inspect(
+            {
+                "model_type": "zdtaichu5_0",
+                "llm_config": {
+                    "model_type": "qwen3_5_text",
+                    "num_hidden_layers": 32,
+                    "layer_types": ["linear_attention", "full_attention"] * 16,
+                },
+                "vision_config": {"num_hidden_layers": 99},
+            }
+        )
+        self.assertEqual(result["facts"]["num_hidden_layers"], 32)
+        self.assertEqual(result["facts"]["state_kind"], "linear_plus_kv")
+
     def _inspect(self, config, tokenizer=None):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

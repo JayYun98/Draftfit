@@ -6,15 +6,16 @@ repos:
     hooks:
     -   id: autoflake
         args: [--remove-all-unused-imports, --in-place]
+        exclude: ^draftfit/research/_vendor/treewy\.py$
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: check-symlinks
       - id: destroyed-symlinks
       - id: trailing-whitespace
-        exclude: \.patch$  # stripping context-line whitespace breaks git apply
+        exclude: (\.patch$|^draftfit/research/_vendor/treewy\.py$)
       - id: end-of-file-fixer
-        exclude: \.patch$
+        exclude: (\.patch$|^draftfit/research/_vendor/treewy\.py$)
       - id: check-yaml
         args: [--allow-multiple-documents]
       - id: check-toml
@@ -29,6 +30,7 @@ repos:
     rev: 5.13.2
     hooks:
       - id: isort
+        exclude: ^draftfit/research/_vendor/treewy\.py$
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.10
     hooks:
@@ -40,6 +42,7 @@ repos:
     rev: 24.10.0
     hooks:
       - id: black-jupyter
+        exclude: ^draftfit/research/_vendor/treewy\.py$
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v18.1.8
     hooks:

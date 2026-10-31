@@ -763,7 +763,8 @@ def process_token_dict_to_mappings(
     used_tokens.sort()
 
     d2t = [used_tokens[i] - i for i in range(len(used_tokens))]
-    t2d = [i in used_tokens for i in range(target_vocab_size)]
+    used_token_set = set(used_tokens)
+    t2d = [i in used_token_set for i in range(target_vocab_size)]
     d2t = torch.tensor(d2t)
     t2d = torch.tensor(t2d)
 

@@ -23,6 +23,19 @@ import torch.distributed as dist
 from draftfit.runtime.contracts import TrainBatch
 from draftfit.training.strategies.base import StepOutput
 
+_FAMILY_EVAL_RATIOS = (
+    "ce_loss",
+    "l1_loss",
+    "confidence_loss",
+    "confidence_abs_error",
+    "teacher_agreement",
+    "teacher_top1_prob",
+    "draft_top1_prob",
+    "tau_probabilistic",
+    "selector_loss",
+    "acceptance_regret",
+)
+
 
 class Evaluator:
     """Aggregate a full eval pass into ``eval/*`` metrics.
@@ -47,7 +60,8 @@ class Evaluator:
         # pp rows: [correct, denom, acceptance_rate*w, ploss*w] per TTT
         # position, float64 so counts stay exact past 2**24.
         pp = None
-        # [loss*w, w, scalar_acc*denom, scalar_denom, n_batches, ar_w, pl_w]
+        # [loss*w, w, scalar_acc*denom, scalar_denom, n_batches, ar_w, pl_w,
+        #  followed by numerator/denominator pairs for family diagnostics]
         sums = None
 
         with torch.no_grad():
@@ -61,7 +75,11 @@ class Evaluator:
                     else torch.tensor(float(out.loss), dtype=torch.float64)
                 )
                 if sums is None:
-                    sums = torch.zeros(7, dtype=torch.float64, device=loss.device)
+                    sums = torch.zeros(
+                        7 + 2 * len(_FAMILY_EVAL_RATIOS),
+                        dtype=torch.float64,
+                        device=loss.device,
+                    )
                 tokens = self._token_count(batch, m, device=sums.device)
                 if out.loss_terms is None:
                     sums[0] += loss.to(sums.device) * tokens
@@ -71,6 +89,11 @@ class Evaluator:
                     sums[0] += self._sum64(loss_numerator, sums.device)
                     sums[1] += self._sum64(loss_denominator, sums.device)
                 sums[4] += 1.0
+                for index, name in enumerate(_FAMILY_EVAL_RATIOS):
+                    if name in out.ratio_metrics:
+                        numerator, denominator = out.ratio_metrics[name]
+                        sums[7 + 2 * index] += self._sum64(numerator, sums.device)
+                        sums[8 + 2 * index] += self._sum64(denominator, sums.device)
 
                 if "acc_corrects" in m and "acc_denoms" in m:
                     correct = self._stack(m["acc_corrects"])
@@ -117,7 +140,9 @@ class Evaluator:
         if world_size > 1:
             device = self._comm_device()
             sums = (
-                sums if sums is not None else torch.zeros(7, dtype=torch.float64)
+                sums
+                if sums is not None
+                else torch.zeros(7 + 2 * len(_FAMILY_EVAL_RATIOS), dtype=torch.float64)
             ).to(device)
             dist.all_reduce(sums, op=dist.ReduceOp.SUM)
             local_len = pp.size(1) if pp is not None else 0
@@ -136,8 +161,14 @@ class Evaluator:
             # would poison best-checkpoint tracking.
             return {}
 
-        loss_x_w, loss_w, acc_sum, acc_w, _n, ar_w, pl_w = sums.tolist()
+        values = sums.tolist()
+        loss_x_w, loss_w, acc_sum, acc_w, _n, ar_w, pl_w = values[:7]
         avg_loss = loss_x_w / max(loss_w, 1.0)
+        family_metrics = {
+            f"eval/{name}": values[7 + 2 * index] / values[8 + 2 * index]
+            for index, name in enumerate(_FAMILY_EVAL_RATIOS)
+            if values[8 + 2 * index] > 0
+        }
 
         if pp is not None:
             pp = pp.cpu()
@@ -154,6 +185,7 @@ class Evaluator:
             if pl_w > 0:
                 for i, v in enumerate((pp[3] / pl_w).tolist()):
                     metrics[f"eval/ploss_{i}"] = v
+            metrics.update(family_metrics)
             return metrics
 
         avg_acc = acc_sum / acc_w if acc_w else 0.0
@@ -161,6 +193,7 @@ class Evaluator:
             "eval/avg_loss": avg_loss,
             "eval/avg_acc": avg_acc,
             "eval/simulated_acc_len": avg_acc,
+            **family_metrics,
         }
 
     @staticmethod

@@ -2,128 +2,119 @@
 
 [English](README.md) | [한국어](README.ko.md)
 
-**Train speculative decoding drafts for your model, your workload, your data.**
+Draftfit trains draft models for speculative decoding.
+Use JSON configuration files to select the target model, draft method, and training settings.
 
-**DSpark · DFlash · DFlash2 · EAGLE3 · PEagle · Domino**
+The target model remains fixed during training.
+The draft model proposes tokens.
+The target model checks the proposals.
 
-[Quick start](#quick-start) · [Draft methods](#draft-methods) · [Backends](#backends) · [Example models](#example-models) · [Documentation](docs/README.md)
-
-Draftfit helps individual developers and agent builders train a smaller draft
-for the tasks their LLM actually handles. Start with your conversations, choose
-a target and draft method, then train, export and benchmark through one CLI.
-Inference teams and researchers can use the same workflow to compare methods.
-
-Your target stays frozen. The draft proposes tokens; the target verifies them.
-**Your workload. Your draft.**
-
-Source release **0.2.0** · [Changelog](CHANGELOG.md) · [Upcoming work](plans/README.md)
-
-https://github.com/user-attachments/assets/ba787371-e71f-4413-aa03-d697090ccbb1
-
-[Watch the 29-second workflow overview](https://github.com/JayYun98/Draftfit/releases/download/v0.2.0/draftfit-system-demo-en.mp4) — an illustrated workflow, not a measured speedup demo.
-
-## Why Draftfit?
-
-- **Use your own data.** Prepare reviewed conversation exports with a separate holdout set.
-- **Make the draft yours.** Configure the target, draft method, depth, feature layers and block size; fine-tune a compatible existing draft or train a new one.
-- **Choose how to train.** Reuse offline target features or stream them to separate training workers. Recover interrupted runs and export the result.
-- **Measure what matters.** Compare end-to-end throughput on your workload—not just training loss or token acceptance. Speedup is measured, not promised.
-
-```text
-Your conversations → Prepare → Capture → Train → Export → Benchmark
-                              teacher    draft            vs target only
-```
+Source version **0.2.0** · [Changelog](CHANGELOG.md) · [Plans](plans/README.md)
 
 ## Quick start
 
-[Install the matching uv environment](docs/ENVIRONMENT.md) first. In a provisioned
-runtime, prepare your reviewed conversations and a DSpark training project:
+Install the [required environment](docs/ENVIRONMENT.md).
+This online example uses GPU 0 for target capture and GPU 1 for draft training.
+`/path/to/target` is the local target model directory.
 
-~~~sh
-draftfit data prepare --input ./my-conversations.jsonl \
-  --output ./data/train.jsonl --split-eval --eval-output ./data/holdout.jsonl
+1. Prepare the training data and a separate holdout set.
 
-draftfit target prepare /path/to/target --local-only \
-  --strategy dspark --train-data ./data/train.jsonl --output-dir ./my-draft
+   ```sh
+   draftfit data prepare --input ./my-conversations.jsonl \
+     --output ./data/train.jsonl --split-eval --eval-output ./data/holdout.jsonl
+   ```
 
-draftfit train -c ./my-draft/train.json --plan
-draftfit train -c ./my-draft/train.json
-~~~
+2. Create a DSpark training configuration.
 
-This online example defaults to GPU 0 for the teacher and GPU 1 for training.
-For saved-feature training, existing-draft fine-tuning, recovery and export,
-follow the [complete workflow](docs/PUBLIC_WORKFLOW.md).
+   ```sh
+   draftfit target prepare /path/to/target --local-only \
+     --strategy dspark --train-data ./data/train.jsonl --output-dir ./my-draft
+   ```
+
+3. Check the training plan.
+
+   ```sh
+   draftfit train -c ./my-draft/train.json --plan
+   ```
+
+4. Start training.
+
+   ```sh
+   draftfit train -c ./my-draft/train.json
+   ```
+
+Use the [complete workflow](docs/PUBLIC_WORKFLOW.md) for data formats, saved features, fine-tuning, recovery, and export.
 
 ## Draft methods
 
-| Method | Offline features | Online capture | Key requirement |
-| --- | --- | --- | --- |
-| DSpark | Yes | Yes | Auxiliary taps and final target hidden states |
-| DFlash | Yes | Yes | Compatible hidden features and mask token |
-| DFlash2 | Yes | Yes | Full vocabulary; convolution and selector training |
-| EAGLE3 | Yes | Yes | One draft layer; vocabulary mapping for online training |
-| PEagle | No | Yes | Flex attention and method-specific feature layout |
-| Domino | Yes | Yes | Explicit compatible draft configuration |
+All seven methods support online target capture.
+Six methods also accept saved target features.
+EAGLE4 has a registered online path; its current GPU validation uses saved features.
+
+| Method | Saved features | Requirement |
+| --- | --- | --- |
+| DSpark | Yes | Auxiliary features and final target hidden states |
+| DFlash | Yes | Compatible hidden features and a mask token |
+| DFlash2 | Yes | Full vocabulary, convolution training, and selector training |
+| EAGLE3 | Yes | One draft layer and vocabulary mapping for online training |
+| [EAGLE4](docs/specs/eagle4-minicpm.md) | Yes | Experimental dense training and candidate distillation; separate serving engine |
+| PEagle | No | Flex attention and the required feature layout |
+| Domino | Yes | A compatible draft configuration |
+
+Select compatible target and draft configurations from the [model recipes](examples/configs/README.md).
+
+## Joint training and unattended runs
+
+Joint training shares one backbone and target features across compatible DSpark, DFlash, and DFlash2 models.
+The trainer exports each method separately.
+Use the [family guide](docs/DFLASH_FAMILY.md) to configure the methods and their initial weights.
+Use the [joint training guide](docs/JOINT_ONLINE.md) to run the manifest.
+
+For automatic runs, configure the [unattended controller](docs/UNATTENDED_NATIVE.md).
+Set run limits and training phases before the run.
+The controller selects only from the phases that you define.
 
 ## Backends
 
-All teachers feed the same **PyTorch draft trainer**. These levels describe
-implementation and retained evidence—not universal production certification.
-
-| Component | Role | Support level | Validation scope |
-| --- | --- | --- | --- |
-| PyTorch | Draft trainer | Core | Training, same-world resume and export; FSDP1 default, FSDP2 opt-in |
-| SGLang | Offline / online teacher | Maintained, validated configurations | Real Ling capture, training and bounded pinned serving/state checks |
-| Hugging Face Transformers | Offline / online teacher | Native, bounded GPU validation | Qwen3-0.6B BF16 feature parity; DSpark/DFlash2 train/resume/export |
-| vLLM | Offline / online teacher | Native, experimental | Qwen3-0.6B FP32 parity and train/resume/export; **BF16 parity failed** |
-| TensorRT-LLM / TokenSpeed | Teacher | Not implemented | No integration in this release |
-
-Native HF/vLLM capture currently targets single-device Llama/Qwen2/Qwen3 text
-decoders. Teacher support does not imply exported-draft serving support;
-DFlash2 live serving remains unverified.
-[Backend requirements and method limits →](docs/PUBLIC_SUPPORT.md)
+PyTorch trains all draft models.
+Select a target capture backend from the [support matrix](docs/PUBLIC_SUPPORT.md).
+Validation applies to specific model and runtime configurations.
+Qwen3-0.6B vLLM FP32 checks passed.
+Its BF16 parity check failed.
+Capture tests do not establish exported draft correctness in a serving engine.
 
 ## Example models
 
-Examples are starting configurations—not a promise that every model × method
-combination works. “Real-weight” below means bounded functional checks, not
-production or speedup certification.
+See the [model recipes](examples/configs/README.md) and [target specifications](configs/target_specs/) for examples.
+A configuration alone does not establish target or backend support.
+Check the [model validation records](docs/MODEL_VALIDATION.md) before you select a model.
 
-| Target type | Current example | Available evidence |
-| --- | --- | --- |
-| Dense + KV | [Qwen3-8B](configs/qwen3-8b-dspark.json), [Llama3-8B](configs/llama3-8B-eagle3.json) | Config recipes; separate Qwen3-0.6B real-weight DSpark/DFlash2 train/resume/export checks |
-| MoE + KV | [Qwen3-30B-A3B](configs/qwen3-30B-A3B-eagle3.json) | Config recipe; prior TP2 MoE capture used dummy weights |
-| MoE / conv hybrid | [Ling-3.0-tiny](configs/ling-3.0-tiny-dspark.json) | Real-weight DSpark capture/train/export and bounded pinned serving/replay |
-| Linear + KV hybrid | [Qwen3.5-4B](configs/qwen3.5-4b-dflash.json) | Config recipe; full target workflow not certified |
-| Conv + KV | [LFM2.5-1.2B-Instruct](configs/lfm2.5-1.2b-instruct-dflash.json) | Real-weight load/chat smoke only; draft workflow pending |
-| Recurrent | [RWKV7-1.5B](configs/target_specs/rwkv7-1.5b.json) | Metadata/state fixture only; requires a compatible backend |
+## Research
 
-See [all recipes](examples/configs/README.md), [exact validation scope](docs/MODEL_VALIDATION.md),
-and [planned recent-model experiments](plans/README.md).
-Add models through [target configuration and adapters](docs/TARGET_EXTENSION.md);
-configuration alone cannot add an unsupported capture or serving backend.
+Research implementations use separate recipes and validation limits.
+Use the [research guide](docs/research/README.md) for those methods and experiment results.
+These implementations are not production backends.
 
 ## Documentation
 
-| I want to… | Guide |
+| Task | Guide |
 | --- | --- |
-| Install or select a teacher backend | [Environment setup](docs/ENVIRONMENT.md) |
-| Prepare data, train, fine-tune, resume and export | [Complete workflow](docs/PUBLIC_WORKFLOW.md) |
-| Adapt an existing draft or train a new draft for a quantized target | [Quantized targets](docs/QUANTIZED_TARGETS.md) |
-| Configure a new target or runtime | [Target extension](docs/TARGET_EXTENSION.md) · [Runtime profiles](docs/RUNTIME_PROFILES.md) |
-| Compare target-only and draft-enabled inference | [Workload evaluation](docs/PERFORMANCE_GATE.md) |
-| Check supported and unverified combinations | [Support matrix](docs/PUBLIC_SUPPORT.md) |
-| Develop or reproduce validation | [Documentation index](docs/README.md) · [Source tools](tests/VALIDATION.md) |
+| Install a runtime | [Environment](docs/ENVIRONMENT.md) |
+| Prepare, train, resume, and export | [Complete workflow](docs/PUBLIC_WORKFLOW.md) |
+| Adapt a draft for a quantized target | [Quantized targets](docs/QUANTIZED_TARGETS.md) |
+| Add a target or runtime | [Target extension](docs/TARGET_EXTENSION.md) · [Runtime profiles](docs/RUNTIME_PROFILES.md) |
+| Compare inference speed | [Workload evaluation](docs/PERFORMANCE_GATE.md) |
+| Plan training experiments | [Calibration](docs/CALIBRATION.md) · [Training search](docs/TRAINING_SEARCH.md) |
+| Inspect jobs and results | [Web workspace](docs/WEB_WORKSPACE.md) · [Monitoring](docs/JOINT_MONITORING.md) |
+| Reproduce validation | [Source tools](tests/VALIDATION.md) |
 
-Automatic trace ingestion and continual deployment are [future work](plans/README.md).
-A longer accepted draft is not necessarily faster: measure end-to-end throughput
-on held-out requests and verify correctness separately.
+See the [documentation index](docs/README.md) for all guides.
+Watch the [workflow overview](https://github.com/JayYun98/Draftfit/releases/download/v0.2.0/draftfit-system-demo-en.mp4) for an illustration of the process.
+The video does not show measured performance.
 
 ## Acknowledgments
 
-Draftfit ships its own maintained training runtime derived from
-[SpecForge](https://github.com/sgl-project/SpecForge), with attributed adaptations
-and references from [TorchSpec](https://github.com/lightseekorg/TorchSpec),
-[AngelSpec](https://github.com/Tencent/AngelSpec) and DSpark-related projects.
-See [code ownership](docs/CODE_OWNERSHIP.md), [third-party notices](THIRDPARTY_NOTICES.md)
-and [license](LICENSE).
+Draftfit maintains a training runtime derived from [SpecForge](https://github.com/sgl-project/SpecForge).
+It includes attributed adaptations from [TorchSpec](https://github.com/lightseekorg/TorchSpec), [AngelSpec](https://github.com/Tencent/AngelSpec), and DSpark-related projects.
+
+See [code ownership](docs/CODE_OWNERSHIP.md), [third-party notices](THIRDPARTY_NOTICES.md), and the [license](LICENSE).

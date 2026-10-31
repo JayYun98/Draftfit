@@ -40,6 +40,7 @@ class TargetHead(nn.Module):
         cache_dir: Optional[str] = None,
         trust_remote_code: bool = False,
         revision: Optional[str] = None,
+        dtype: torch.dtype = torch.bfloat16,
     ) -> "TargetHead":
         target_head = cls(
             model_path,
@@ -54,9 +55,7 @@ class TargetHead(nn.Module):
             cache_dir=cache_dir,
         )
         target_head.freeze_weights()
-        target_head = target_head.eval().to(
-            device=get_local_device(), dtype=torch.bfloat16
-        )
+        target_head = target_head.eval().to(device=get_local_device(), dtype=dtype)
         return target_head
 
     @torch.no_grad()
@@ -79,17 +78,22 @@ class TargetHead(nn.Module):
         glob_path = os.path.join(self.model_path, "*.index.json")
         index_json_path = glob.glob(glob_path)
 
-        if len(index_json_path) == 0:
-            raise FileNotFoundError(f"No index.json file found in {self.model_path}")
         if len(index_json_path) > 1:
             raise FileNotFoundError(
                 f"Multiple index.json files found in {self.model_path}"
             )
-        index_json_path = index_json_path[0]
-
-        with open(index_json_path, "r") as f:
-            index_json = json.load(f)
-        ckpt_file = index_json["weight_map"][lm_head_key]
+        if index_json_path:
+            with open(index_json_path[0], "r") as f:
+                index_json = json.load(f)
+            ckpt_file = index_json["weight_map"][lm_head_key]
+        else:
+            candidates = glob.glob(os.path.join(self.model_path, "*.safetensors"))
+            candidates += glob.glob(os.path.join(self.model_path, "*.bin"))
+            if len(candidates) != 1:
+                raise FileNotFoundError(
+                    f"Expected one unsharded target weight file or an index in {self.model_path}"
+                )
+            ckpt_file = os.path.basename(candidates[0])
 
         if ckpt_file.endswith(".safetensors"):
             with safe_open(
@@ -97,8 +101,16 @@ class TargetHead(nn.Module):
             ) as f:
                 lm_head = f.get_tensor(lm_head_key)
         else:
-            state_dict = torch.load(os.path.join(self.model_path, ckpt_file))
+            state_dict = torch.load(
+                os.path.join(self.model_path, ckpt_file),
+                map_location="cpu",
+                weights_only=True,
+            )
             lm_head = state_dict[lm_head_key]
+        if lm_head.shape != self.fc.weight.shape:
+            raise ValueError(
+                f"Target head shape mismatch: expected {tuple(self.fc.weight.shape)}, got {tuple(lm_head.shape)}"
+            )
         from draftfit.modeling.target.quantization import require_floating_target_weight
 
         self.fc.weight.copy_(require_floating_target_weight(lm_head, lm_head_key))

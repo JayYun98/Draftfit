@@ -13,6 +13,20 @@ from draftfit.target_project import algorithm_catalog, prepare_project
 
 
 class TargetProjectTest(unittest.TestCase):
+    def test_yarn_metadata_preparation_preserves_scaling(self):
+        self.metadata["rope_theta"] = 10000
+        self.metadata["rope_scaling"] = {
+            "type": "yarn",
+            "factor": 64.0,
+            "original_max_position_embeddings": 2048,
+        }
+        (self.target / "config.json").write_text(json.dumps(self.metadata))
+        result = self.prepare(hidden_states=str(self.root / "features"))
+        draft = json.loads((Path(result["project"]) / "draft.json").read_text())
+        rope = draft.get("rope_parameters") or draft["rope_scaling"]
+        self.assertEqual(rope["factor"], 64.0)
+        self.assertEqual(rope["original_max_position_embeddings"], 2048)
+
     def test_owned_teacher_preparation_does_not_inherit_sglang_tuning(self):
         for backend in ("transformers", "vllm"):
             result = self.prepare(
@@ -125,7 +139,17 @@ class TargetProjectTest(unittest.TestCase):
         catalog = algorithm_catalog()
         self.assertEqual(
             {x["algorithm"] for x in catalog},
-            {"dspark", "dflash", "dflash2", "eagle3", "peagle", "domino"},
+            {
+                "dspark",
+                "dflash",
+                "dflash2",
+                "eagle3",
+                "eagle4",
+                "peagle",
+                "domino",
+                "alr_ira",
+                "osprey",
+            },
         )
         dspark = next(x for x in catalog if x["algorithm"] == "dspark")
         self.assertIn(

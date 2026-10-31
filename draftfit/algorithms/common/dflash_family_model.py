@@ -53,9 +53,12 @@ def create_dflash_sdpa_mask(
     device,
     is_causal: Optional[bool] = None,
     sliding_window: Optional[int] = None,
+    context_window_origin: str = "query",
 ):
     """Construct a full or sliding dense boolean DFlash mask."""
 
+    if context_window_origin not in {"query", "anchor"}:
+        raise ValueError("context_window_origin must be query or anchor")
     if sliding_window is not None and sliding_window <= 0:
         raise ValueError("sliding_window must be > 0")
     B, N = anchor_positions.shape
@@ -87,9 +90,13 @@ def create_dflash_sdpa_mask(
         kv_block_offsets = (kv_indices - S) % block_size
         mask_draft = mask_draft & (kv_block_offsets <= q_block_offsets)
     if sliding_window is not None:
-        context_lower_bound = anchor_expanded + q_block_offsets - (sliding_window - 1)
+        context_lower_bound = (
+            anchor_expanded - sliding_window
+            if context_window_origin == "anchor"
+            else anchor_expanded + q_block_offsets - (sliding_window - 1)
+        )
         mask_context = mask_context & (kv_indices >= context_lower_bound)
-        if is_causal is not None:
+        if is_causal is not None and context_window_origin == "query":
             query_position = anchor_expanded + q_block_offsets
             mask_context = mask_context & (
                 (query_position - kv_indices) < sliding_window
@@ -115,9 +122,12 @@ def create_dflash_block_mask(
     flex_block_size=None,
     is_causal: Optional[bool] = None,
     sliding_window: Optional[int] = None,
+    context_window_origin: str = "query",
 ):
     """Construct a full or sliding Flex Attention mask for DFlash training."""
 
+    if context_window_origin not in {"query", "anchor"}:
+        raise ValueError("context_window_origin must be query or anchor")
     if sliding_window is not None and sliding_window <= 0:
         raise ValueError("sliding_window must be > 0")
 
@@ -139,9 +149,13 @@ def create_dflash_block_mask(
             kv_block_offset = (kv_idx - S) % block_size
             mask_draft = mask_draft & (kv_block_offset <= q_block_offset)
         if sliding_window is not None:
-            context_lower_bound = anchor_pos + q_block_offset - (sliding_window - 1)
+            context_lower_bound = (
+                anchor_pos - sliding_window
+                if context_window_origin == "anchor"
+                else anchor_pos + q_block_offset - (sliding_window - 1)
+            )
             mask_context = mask_context & (kv_idx >= context_lower_bound)
-            if is_causal is not None:
+            if is_causal is not None and context_window_origin == "query":
                 query_position = anchor_pos + q_block_offset
                 mask_context = mask_context & (
                     (query_position - kv_idx) < sliding_window
@@ -227,14 +241,49 @@ class OnlineDFlashModel(nn.Module):
     def _block_mask_options(self) -> Dict[str, object]:
         """Return mask options; specialized DFlash families may override."""
 
-        # Keep legacy DFlash/DSpark mask semantics.  DFlash2 overrides this
-        # with explicit ``is_causal`` and ``sliding_window`` options.
-        return {}
+        semantics = getattr(
+            self.draft_model.config, "speculators_attention_semantics", None
+        )
+        if semantics is None:
+            return {}
+        if semantics != "anchor_relative":
+            raise ValueError(
+                f"unsupported speculators attention semantics: {semantics}"
+            )
+        # Published speculators keeps a fixed prefix window for every query
+        # in an anchor block. Full-attention layers remain non-causal.
+        return {"context_window_origin": "anchor"}
+
+    def _sliding_block_mask_options(self) -> Dict[str, object]:
+        options = {
+            k: v for k, v in self._block_mask_options().items() if k != "sliding_window"
+        }
+        if options.get("context_window_origin") == "anchor":
+            method = getattr(self.draft_model.config, "dflash_config", None) or {}
+            options["is_causal"] = not method.get("sliding_window_non_causal", False)
+        return options
 
     def _compute_logits(self, hidden: torch.Tensor) -> torch.Tensor:
         """Project draft hidden states through the frozen target LM head."""
 
-        return self.lm_head(hidden)
+        config = self.draft_model.config
+        nested = getattr(config, "dflash_config", None) or {}
+        multiplier = float(
+            nested.get("output_multiplier", getattr(config, "output_multiplier", 1.0))
+        )
+        softcap = nested.get(
+            "final_logit_softcapping", getattr(config, "final_logit_softcapping", None)
+        )
+        if callable(getattr(self.lm_head, "project_logits", None)):
+            return self.lm_head.project_logits(
+                hidden, multiplier=multiplier, softcap=softcap
+            )
+        logits = self.lm_head(hidden)
+        if multiplier != 1.0:
+            logits = logits * multiplier
+        if softcap is not None and softcap > 0:
+            logits = torch.tanh(logits / softcap) * softcap
+        return logits
 
     def _extra_training_loss(
         self,
@@ -432,7 +481,7 @@ class OnlineDFlashModel(nn.Module):
                 "sliding_attention": mask_builder(
                     **mask_args,
                     sliding_window=sliding_window,
-                    **{k: v for k, v in mask_options.items() if k != "sliding_window"},
+                    **self._sliding_block_mask_options(),
                 ),
             }
 
@@ -505,13 +554,28 @@ class OnlineDFlashModel(nn.Module):
                 ((predicted_ids == target_ids) & (weight_mask > 0.5)).sum().float()
             )
             accuracy_den = weight_mask.sum()
+            position_den = weight_mask.sum(dim=(0, 1))
+            position_correct = (
+                (predicted_ids == target_ids).float() * weight_mask
+            ).sum(dim=(0, 1))
+            position_ce = (neg_log_q.detach() * weight_mask).sum(dim=(0, 1))
         extra_num, extra_den = self._extra_training_loss(
             hidden,
             logits,
             target_ids,
             objective_weights,
         )
-        return loss_num, loss_den, correct_num, accuracy_den, extra_num, extra_den
+        return (
+            loss_num,
+            loss_den,
+            correct_num,
+            accuracy_den,
+            extra_num,
+            extra_den,
+            position_correct,
+            position_ce,
+            position_den,
+        )
 
     def forward(
         self,
@@ -577,6 +641,9 @@ class OnlineDFlashModel(nn.Module):
             accuracy_denom,
             extra_num,
             extra_den,
+            position_correct,
+            position_ce,
+            position_den,
         ) = checkpointed_chunk_reduce(
             self._dflash_objective_chunk_terms,
             hidden_4d,
@@ -589,6 +656,8 @@ class OnlineDFlashModel(nn.Module):
         loss_num = loss_num + extra_num
         ratio_metrics = {
             "acc": (correct_num.detach(), accuracy_denom.detach()),
+            "accuracy_position": (position_correct, position_den),
+            "ce_position": (position_ce, position_den),
         }
         extra_loss_name = getattr(self, "extra_loss_name", None)
         if extra_loss_name:
@@ -611,6 +680,7 @@ class OnlineDFlashModel(nn.Module):
 class OnlineDFlash2Model(OnlineDFlashModel):
     """DFlash2 objective: DFlash CE plus candidate-selector CE."""
 
+    supports_mixed_attention = True
     extra_loss_name = "selector_loss"
 
     def __init__(
@@ -666,7 +736,7 @@ class OnlineDFlash2Model(OnlineDFlashModel):
             raise ValueError(
                 f"Unsupported DFlash2 layer types: {sorted(attention_types)}"
             )
-        if len(attention_types) > 1:
+        if len(attention_types) > 1 and not self.supports_mixed_attention:
             raise ValueError(
                 "DFlash2 training does not support mixed full and sliding layers"
             )
@@ -689,18 +759,28 @@ class OnlineDFlash2Model(OnlineDFlashModel):
             )
 
     def _block_mask_options(self) -> Dict[str, object]:
+        if (
+            getattr(self.draft_model.config, "speculators_attention_semantics", None)
+            is not None
+        ):
+            return super()._block_mask_options()
+        if len(set(self.draft_model.layer_types)) > 1:
+            # None gives each layer its published default; the sliding
+            # options below separately enforce causality and the window.
+            explicit = getattr(self.draft_model.config, "is_causal", None)
+            return {"is_causal": False if explicit is None else bool(explicit)}
         return {
             "is_causal": self.attention_is_causal,
             "sliding_window": self.sliding_window,
         }
 
-    def _compute_logits(self, hidden: torch.Tensor) -> torch.Tensor:
-        logits = super()._compute_logits(hidden)
-        logits = logits * float(self.draft_model.config.output_multiplier)
-        softcap = self.draft_model.config.final_logit_softcapping
-        if softcap is not None and softcap > 0:
-            logits = torch.tanh(logits / softcap) * softcap
-        return logits
+    def _sliding_block_mask_options(self) -> Dict[str, object]:
+        if (
+            getattr(self.draft_model.config, "speculators_attention_semantics", None)
+            is not None
+        ):
+            return super()._sliding_block_mask_options()
+        return {"is_causal": self.attention_is_causal}
 
     def _extra_training_loss(
         self,
@@ -709,14 +789,14 @@ class OnlineDFlash2Model(OnlineDFlashModel):
         target_ids: torch.Tensor,
         objective_weights: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        selector = getattr(self.draft_model, "candidate_selector", None)
-        if selector is None:
+        score_candidates = getattr(self.draft_model, "score_candidates", None)
+        if not callable(score_candidates):
             raise TypeError("DFlash2 training requires a candidate_selector")
         hidden = hidden[..., 1:, :]
         unary_logits = logits[..., 1:, :]
         predecessor_ids = target_ids[..., :-1]
         successor_ids = target_ids[..., 1:]
-        scores, candidate_ids = selector.score_candidates(
+        scores, candidate_ids = score_candidates(
             hidden,
             unary_logits,
             predecessor_ids,
@@ -1008,8 +1088,13 @@ class OnlineDSparkModel(OnlineDFlashModel):
         dspark_ce_loss_alpha: float = 0.1,
         dspark_l1_loss_alpha: float = 0.9,
         dspark_confidence_head_alpha: float = 1.0,
+        dspark_acceptance_loss: Optional[str] = None,
+        dspark_acceptance_loss_alpha: float = 0.0,
+        dspark_acceptance_temperature: float = 1.0,
         objective_chunk_blocks: int = 128,
         anchor_sampling: str = "random",
+        sample_from_anchor: bool = True,
+        hard_targets: bool = False,
     ):
         super().__init__(
             draft_model=draft_model,
@@ -1030,10 +1115,25 @@ class OnlineDSparkModel(OnlineDFlashModel):
             raise ValueError("dspark_l1_loss_alpha must be >= 0")
         if dspark_confidence_head_alpha < 0:
             raise ValueError("dspark_confidence_head_alpha must be >= 0")
+        if dspark_acceptance_loss not in (None, "eal", "wtv"):
+            raise ValueError("dspark_acceptance_loss must be eal or wtv")
+        if dspark_acceptance_loss_alpha < 0 or (
+            dspark_acceptance_loss_alpha and dspark_acceptance_loss is None
+        ):
+            raise ValueError(
+                "dspark_acceptance_loss_alpha requires a nonnegative configured objective"
+            )
+        if dspark_acceptance_temperature <= 0:
+            raise ValueError("dspark_acceptance_temperature must be positive")
         self.loss_type = "dspark"
         self.dspark_ce_loss_alpha = float(dspark_ce_loss_alpha)
         self.dspark_l1_loss_alpha = float(dspark_l1_loss_alpha)
         self.dspark_confidence_head_alpha = float(dspark_confidence_head_alpha)
+        self.dspark_acceptance_loss = dspark_acceptance_loss
+        self.dspark_acceptance_loss_alpha = float(dspark_acceptance_loss_alpha)
+        self.dspark_acceptance_temperature = float(dspark_acceptance_temperature)
+        self.sample_from_anchor = sample_from_anchor
+        self.hard_targets = hard_targets
 
     def _build_dspark_labels_and_mask(
         self,
@@ -1044,9 +1144,10 @@ class OnlineDSparkModel(OnlineDFlashModel):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         seq_len = input_ids.shape[1]
         device = input_ids.device
-        label_offsets = torch.arange(1, self.block_size + 1, device=device).view(
-            1, 1, -1
-        )
+        label_start = 1 if self.sample_from_anchor else 0
+        label_offsets = torch.arange(
+            label_start, self.block_size + label_start, device=device
+        ).view(1, 1, -1)
         label_indices = anchor_positions.unsqueeze(-1) + label_offsets
         safe_label_indices = label_indices.clamp(max=seq_len - 1)
         safe_label_indices = torch.where(
@@ -1069,6 +1170,8 @@ class OnlineDSparkModel(OnlineDFlashModel):
         eval_mask = target_valid & (target_loss_mask > 0.5)
         eval_mask = eval_mask & block_keep_mask.unsqueeze(-1)
         eval_mask = eval_mask.to(torch.int32).cumprod(dim=-1).bool()
+        if not self.sample_from_anchor:
+            eval_mask[..., 0] = False
         return target_ids, eval_mask, safe_label_indices
 
     def _dspark_loss_weight_mask(
@@ -1140,11 +1243,23 @@ class OnlineDSparkModel(OnlineDFlashModel):
         draft_top1_num = zero
         tau_num = zero
         tau_den = zero
+        acceptance_regret_num = zero
         accept_probability = None
 
         draft_probabilities = None
         teacher_ids = None
-        if aligned_target_hidden is not None:
+        target_logits = None
+        if self.hard_targets:
+            draft_probabilities = torch.softmax(draft_logits.float(), dim=-1)
+            teacher_ids = target_ids
+            point_mass_probability = draft_probabilities.gather(
+                -1, target_ids.unsqueeze(-1)
+            ).squeeze(-1)
+            l1_per_token = 2.0 * (1.0 - point_mass_probability)
+            accept_probability = point_mass_probability
+            if self.dspark_l1_loss_alpha > 0:
+                l1_num = (l1_per_token * loss_weights).sum()
+        elif aligned_target_hidden is not None:
             with torch.no_grad():
                 target_logits = self.lm_head(
                     aligned_target_hidden.reshape(
@@ -1162,6 +1277,40 @@ class OnlineDSparkModel(OnlineDFlashModel):
             accept_probability = (1.0 - 0.5 * l1_per_token).clamp(0.0, 1.0)
             if self.dspark_l1_loss_alpha > 0:
                 l1_num = (l1_per_token * loss_weights).sum()
+        if self.dspark_acceptance_loss_alpha > 0 and teacher_ids is not None:
+            if self.hard_targets:
+                if self.dspark_acceptance_loss == "wtv":
+                    temperature = self.dspark_acceptance_temperature
+                    step_accept = (
+                        torch.softmax(draft_logits.float() / temperature, dim=-1)
+                        .gather(-1, target_ids.unsqueeze(-1))
+                        .squeeze(-1)
+                    )
+                else:
+                    step_accept = accept_probability
+            else:
+                if self.dspark_acceptance_loss == "eal":
+                    step_accept = draft_probabilities.gather(
+                        -1, teacher_ids.unsqueeze(-1)
+                    ).squeeze(-1)
+                else:
+                    assert target_logits is not None
+                    temperature = self.dspark_acceptance_temperature
+                    target_at_temperature = torch.softmax(
+                        target_logits.float() / temperature, dim=-1
+                    )
+                    draft_at_temperature = torch.softmax(
+                        draft_logits.float() / temperature, dim=-1
+                    )
+                    step_accept = torch.minimum(
+                        target_at_temperature, draft_at_temperature
+                    ).sum(dim=-1)
+            # The anchor at slot zero is already committed in DFlash alignment.
+            start = 0 if self.sample_from_anchor else 1
+            proposal_mask = eval_mask[..., start:].float()
+            valid_prefix = proposal_mask.cumprod(dim=-1)
+            accepted_prefix = (step_accept[..., start:] * proposal_mask).cumprod(dim=-1)
+            acceptance_regret_num = (valid_prefix - accepted_prefix).sum()
 
         confidence_pred = self.draft_model.predict_confidence(
             hidden,
@@ -1224,6 +1373,7 @@ class OnlineDSparkModel(OnlineDFlashModel):
             draft_top1_num,
             tau_num,
             tau_den,
+            acceptance_regret_num,
         )
 
     def _compute_dspark_loss(
@@ -1247,15 +1397,19 @@ class OnlineDSparkModel(OnlineDFlashModel):
         )
         loss_weights = self._dspark_loss_weight_mask(eval_mask)
         local_loss_den = loss_weights.sum()
-        need_target = self.dspark_l1_loss_alpha > 0 or (
-            self.dspark_confidence_head_alpha > 0
-            and getattr(self.draft_model, "confidence_head", None) is not None
+        need_target = (
+            self.dspark_l1_loss_alpha > 0
+            or self.dspark_acceptance_loss_alpha > 0
+            or (
+                self.dspark_confidence_head_alpha > 0
+                and getattr(self.draft_model, "confidence_head", None) is not None
+            )
         )
         aligned_target_hidden = None
-        if need_target:
+        if need_target and not self.hard_targets:
             if target_last_hidden_states is None:
                 raise ValueError(
-                    "DSpark L1/confidence loss requires target_last_hidden_states"
+                    "DSpark L1/confidence/acceptance loss requires target_last_hidden_states"
                 )
             aligned_target_hidden = self._aligned_target_hidden(
                 target_last_hidden_states,
@@ -1289,6 +1443,7 @@ class OnlineDSparkModel(OnlineDFlashModel):
             draft_top1_num,
             tau_num,
             tau_den,
+            acceptance_regret_num,
         ) = totals
 
         global_loss_den = local_loss_den.detach().clone()
@@ -1307,6 +1462,7 @@ class OnlineDSparkModel(OnlineDFlashModel):
                 self.dspark_ce_loss_alpha * ce_num
                 + self.dspark_l1_loss_alpha * l1_num
                 + self.dspark_confidence_head_alpha * confidence_num
+                + self.dspark_acceptance_loss_alpha * acceptance_regret_num
             )
             / global_loss_den
         )
@@ -1326,6 +1482,11 @@ class OnlineDSparkModel(OnlineDFlashModel):
             "ce_position": (ce_position_num, position_den),
             "accuracy_position": (correct_position_num, position_den),
         }
+        if self.dspark_acceptance_loss_alpha > 0:
+            ratio_metrics["acceptance_regret"] = (
+                acceptance_regret_num.detach(),
+                local_loss_den.detach(),
+            )
         if aligned_target_hidden is not None:
             ratio_metrics.update(
                 {

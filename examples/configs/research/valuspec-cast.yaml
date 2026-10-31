@@ -1,0 +1,20 @@
+method: cast
+model:
+  target_model_path: ./models/target
+  draft_checkpoint_path: ./models/dflash-draft
+data:
+  input_path: ./data/evaluation.jsonl
+speculation:
+  budget: 63
+  branch_k: 8
+valuation:
+  scorer:
+    target_model_path: ./models/small-ar-scorer
+  calibration:
+    input_path: ./data/disjoint-calibration.jsonl
+    max_samples: 32
+  delta: 0.05
+generation:
+  max_new_tokens: 128
+  temperature: 0
+output_dir: outputs/research-valuspec-cast

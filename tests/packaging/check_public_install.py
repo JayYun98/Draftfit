@@ -59,6 +59,21 @@ def main():
                 assert result.returncode == 0, result.stdout + result.stderr
             return result.stdout
 
+        result = subprocess.run(
+            [sys.executable, "-I", "-m", "draftfit.training.search", "--help"],
+            cwd=root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        from draftfit.assets import export_assets, list_assets
+
+        assert "docs/TRAINING_SEARCH.md" in list_assets()
+        export_assets(root / "exported-assets")
+        assert (root / "exported-assets/docs/TRAINING_SEARCH.md").is_file()
+
         target = root / "target"
         target.mkdir()
         raw_data = root / "messages.jsonl"
@@ -117,12 +132,16 @@ def main():
             "dflash",
             "dflash2",
             "eagle3",
+            "eagle4",
             "peagle",
             "domino",
+            "alr_ira",
+            "osprey",
         }
         cli("target", "inspect", target, "--local-only")
-        for strategy in ("dspark", "dflash", "dflash2"):
+        for strategy in ("dspark", "dflash", "dflash2", "eagle4"):
             project = root / strategy
+            layers = 1 if strategy == "eagle4" else 2
             args = (
                 "target",
                 "prepare",
@@ -135,8 +154,10 @@ def main():
                 "--output-dir",
                 project,
                 "--set",
-                "model.draft_num_hidden_layers=2",
+                f"model.draft_num_hidden_layers={layers}",
             )
+            if strategy == "eagle4":
+                args += ("--set", "training.attention_backend=sdpa")
             cli(*args)
             config = project / "train.json"
             before = config.read_bytes()
@@ -148,7 +169,7 @@ def main():
             )
             assert (
                 json.loads((project / "draft.json").read_text())["num_hidden_layers"]
-                == 2
+                == layers
             )
             cli("train", "-c", config, "--plan")
             cli(*args, error="refusing to overwrite")
@@ -182,7 +203,7 @@ def main():
             {
                 "passed": True,
                 "scope": "installed-wheel CPU metadata onboarding",
-                "algorithms_prepared": ["dspark", "dflash", "dflash2"],
+                "algorithms_prepared": ["dspark", "dflash", "dflash2", "eagle4"],
                 "gpu_started": False,
             }
         )

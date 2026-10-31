@@ -1,4 +1,4 @@
-"""Convert supported text training datasets to SpecForge conversation JSONL.
+"""Convert supported text training datasets to Draftfit conversation JSONL.
 
 All presets produce rows with a stable id and a conversations list. Heavy
 dataset dependencies stay behind loader functions so row conversion helpers and
@@ -11,7 +11,10 @@ import argparse
 import hashlib
 import json
 import random
+import sys
+import urllib.request
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +23,7 @@ SUPPORTED_DATASETS = (
     "sharegpt",
     "eaglechat",
     "perfectblend",
+    "perfectblend-dedup",
     "perfectblend-llama3.1-8b-instruct",
     "perfectblend-llama3.3-70b-instruct",
     "perfectblend-llama4-scout-instruct",
@@ -31,6 +35,11 @@ SUPPORTED_DATASETS = (
     "math_qa",
     "codealpaca-20k",
     "opencodeinstruct",
+    "apigen-mt",
+    "nemotron-agentic",
+    "baseline",
+    "agent-aware",
+    "mix",
     "magicoder-evol-instruct",
     "sciq",
     "camel",
@@ -44,6 +53,16 @@ OPC_SUBSETS = (
     "filtered_infinity_instruct",
     "realuser_instruct",
 )
+MIX_SOURCES = (
+    "perfectblend-dedup",
+    "opencodeinstruct",
+    "apigen-mt",
+    "nemotron-agentic",
+)
+MIX_PRESETS = {
+    "baseline": (80, 20, 0, 0),
+    "agent-aware": (70, 10, 10, 10),
+}
 
 ROLE_MAPPING = {
     "human": "user",
@@ -59,7 +78,7 @@ RowProcessor = Callable[[Mapping[str, Any], str | None], ProcessedRow]
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Prepare a supported SpecForge training dataset."
+        description="Prepare a supported Draftfit training dataset."
     )
     parser.add_argument(
         "--dataset",
@@ -81,7 +100,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--sample-size",
         type=int,
-        help="Maximum number of source rows to process.",
+        help="Number of output rows for mixtures; source row cap for single presets.",
+    )
+    parser.add_argument(
+        "--ratios",
+        help="Override mixture weights, e.g. perfectblend-dedup=70,opencodeinstruct=10,apigen-mt=10,nemotron-agentic=10 (sum 100).",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Mixture sampling seed (default: 42)."
     )
     parser.add_argument(
         "--split-eval",
@@ -108,8 +134,56 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             parser.error("--data-path must point to a .json or .jsonl file")
     if args.sample_size is not None and args.sample_size <= 0:
         parser.error("--sample-size must be greater than zero")
+    if args.dataset in (*MIX_PRESETS, "mix"):
+        if args.sample_size is None:
+            parser.error("mixtures require --sample-size")
+        if args.dataset == "mix" and args.ratios is None:
+            parser.error("--dataset mix requires --ratios")
+        try:
+            args.ratios = (
+                parse_ratios(args.ratios) if args.ratios else MIX_PRESETS[args.dataset]
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        if args.data_path is not None or args.opc_subset != OPC_SUBSETS[0]:
+            parser.error("--data-path and --opc-subset are unavailable for mixtures")
+    elif args.ratios is not None:
+        parser.error("--ratios requires --dataset baseline, agent-aware, or mix")
+    if args.dataset in {"apigen-mt", "nemotron-agentic"} and args.sample_size is None:
+        parser.error(f"--dataset {args.dataset} requires --sample-size")
 
     return args
+
+
+def parse_ratios(value: str) -> tuple[Decimal, ...]:
+    """Validate explicit percentages in any order; omitted sources receive zero."""
+    ratios: dict[str, Decimal] = {}
+    for part in value.split(","):
+        name, sep, weight = part.partition("=")
+        name = name.strip()
+        if not sep or name not in MIX_SOURCES or name in ratios:
+            raise ValueError(f"invalid or repeated mixture source: {part!r}")
+        try:
+            ratios[name] = Decimal(weight.strip())
+        except InvalidOperation as exc:
+            raise ValueError(f"invalid mixture weight: {part!r}") from exc
+        if not ratios[name].is_finite() or ratios[name] < 0:
+            raise ValueError("mixture weights must be finite and nonnegative")
+    if sum(ratios.values()) != 100:
+        raise ValueError("mixture weights must sum to 100")
+    return tuple(ratios.get(name, Decimal(0)) for name in MIX_SOURCES)
+
+
+def mixture_counts(size: int, ratios: Sequence[Decimal | int]) -> tuple[int, ...]:
+    """Largest-remainder allocation with stable source-order tie breaks."""
+    exact = [Decimal(size) * Decimal(weight) / 100 for weight in ratios]
+    counts = [int(number) for number in exact]
+    remainder = size - sum(counts)
+    for index in sorted(range(len(counts)), key=lambda i: (-(exact[i] - counts[i]), i))[
+        :remainder
+    ]:
+        counts[index] += 1
+    return tuple(counts)
 
 
 def _load_hf_dataset(*args: Any, **kwargs: Any) -> Any:
@@ -234,6 +308,79 @@ def process_opencodeinstruct_row(
     del dataset_name
     row_id = row.get("id") or _stable_id(row["input"], row["output"])
     return _conversation_row(row_id, row["input"], row["output"]), 0
+
+
+def process_apigen_mt_row(
+    row: Mapping[str, Any], dataset_name: str | None = None
+) -> ProcessedRow:
+    del dataset_name
+    messages = []
+    call_number = 0
+    for message in row["conversations"]:
+        role, content = message["from"], message["value"]
+        if role == "function_call":
+            call_number += 1
+            call = json.loads(content)
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [
+                        {
+                            "id": f"call_{call_number}",
+                            "type": "function",
+                            "function": {
+                                "name": call["name"],
+                                "arguments": call["arguments"],
+                            },
+                        }
+                    ],
+                }
+            )
+        elif role == "observation":
+            if not call_number:
+                raise ValueError("APIGen observation has no preceding tool call")
+            messages.append(
+                {
+                    "role": "tool",
+                    "content": content,
+                    "tool_call_id": f"call_{call_number}",
+                }
+            )
+        else:
+            mapped_role = ROLE_MAPPING.get(role)
+            if mapped_role is None:
+                raise ValueError(f"unsupported APIGen role: {role!r}")
+            messages.append({"role": mapped_role, "content": content})
+    if row.get("system"):
+        messages.insert(0, {"role": "system", "content": row["system"]})
+    tools = row.get("tools") or "[]"
+    return {
+        "id": _stable_id(json.dumps(messages, sort_keys=True)),
+        "conversations": messages,
+        "tools": json.loads(tools) if isinstance(tools, str) else tools,
+    }, 0
+
+
+def process_nemotron_agentic_row(
+    row: Mapping[str, Any], dataset_name: str | None = None
+) -> ProcessedRow:
+    del dataset_name
+    messages = []
+    raw_messages = row["messages"]
+    if isinstance(raw_messages, str):
+        raw_messages = json.loads(raw_messages)
+    for message in raw_messages:
+        normalized = {"role": message["role"], "content": message.get("content") or ""}
+        for field in ("tool_calls", "tool_call_id", "reasoning_content"):
+            if message.get(field):
+                normalized[field] = message[field]
+        messages.append(normalized)
+    return {
+        "id": str(row["uuid"]),
+        "conversations": messages,
+        "tools": row.get("tools") or [],
+    }, 0
 
 
 def process_magicoder_evol_instruct_row(
@@ -363,11 +510,23 @@ def _indexed(dataset: Any) -> Any:
     return dataset.map(add_index, with_indices=True)
 
 
+def _iter_nemotron_rows() -> Iterable[dict[str, Any]]:
+    # The hosted builder currently fails on inconsistent nested tool schemas.
+    url = (
+        "https://huggingface.co/datasets/nvidia/Nemotron-Agentic-v1/"
+        "resolve/main/data/interactive_agent.jsonl"
+    )
+    with urllib.request.urlopen(url, timeout=60) as response:
+        for line in response:
+            yield json.loads(line)
+
+
 def load_dataset_preset(
     dataset_name: str,
     *,
     data_path: Path | None = None,
     opc_subset: str = OPC_SUBSETS[0],
+    streaming: bool = False,
 ) -> tuple[Any, RowProcessor | None]:
     """Load one named preset and return its row processor."""
     if dataset_name in UNSUPPORTED_VLM_DATASETS:
@@ -399,6 +558,31 @@ def load_dataset_preset(
         return (
             _indexed(_train_split("mlabonne/open-perfectblend")),
             process_sharegpt_row,
+        )
+    if dataset_name == "perfectblend-dedup":
+        return (
+            _indexed(
+                _load_hf_dataset(
+                    "tepirale/open-perfectblend-deduplicate-mlabonne",
+                    split="train",
+                    streaming=streaming,
+                )
+            ),
+            process_sharegpt_row,
+        )
+    if dataset_name == "apigen-mt":
+        return (
+            _load_hf_dataset(
+                "Salesforce/APIGen-MT-5k", split="train", streaming=streaming
+            ),
+            process_apigen_mt_row,
+        )
+    if dataset_name == "nemotron-agentic":
+        from datasets import IterableDataset
+
+        return (
+            IterableDataset.from_generator(_iter_nemotron_rows),
+            process_nemotron_agentic_row,
         )
 
     regenerated_presets = {
@@ -471,7 +655,7 @@ def load_dataset_preset(
         )
     if dataset_name == "opencodeinstruct":
         return (
-            _train_split("nvidia/OpenCodeInstruct", trust_remote_code=True),
+            _train_split("nvidia/OpenCodeInstruct", streaming=streaming),
             process_opencodeinstruct_row,
         )
     if dataset_name == "magicoder-evol-instruct":
@@ -583,8 +767,119 @@ def process_and_save_ds(
     )
 
 
+def prepare_mixture(
+    dataset_name: str,
+    sample_size: int,
+    ratios: Sequence[Decimal | int],
+    output_directory: Path,
+    *,
+    seed: int = 42,
+    split_eval: bool = False,
+) -> Path:
+    counts = mixture_counts(sample_size, ratios)
+    rows: list[dict[str, Any]] = []
+    # Direct script execution puts scripts/, not the checkout root, on sys.path.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from draftfit.data.prepare import normalize_row
+
+    for source, count in zip(MIX_SOURCES, counts):
+        if not count:
+            continue
+        dataset, processor = load_dataset_preset(source, streaming=True)
+        if hasattr(dataset, "__len__") and len(dataset) < count:
+            raise ValueError(f"{source} has {len(dataset)} rows; requested {count}")
+        selected = 0
+        excluded = 0
+        seen_ids: set[str] = set()
+        shuffled = (
+            dataset.shuffle(seed=seed)
+            if hasattr(dataset, "__len__")
+            else dataset.shuffle(seed=seed, buffer_size=1_000)
+        )
+        for item in shuffled:
+            try:
+                row, _ = processor(item, source) if processor else (dict(item), 0)
+                if row is None:
+                    continue
+                row = normalize_row(row)
+            except (ValueError, KeyError, TypeError, json.JSONDecodeError):
+                excluded += 1
+                continue
+            row["id"] = f"{source}:{row['id']}"
+            if row["id"] in seen_ids:
+                excluded += 1
+                continue
+            seen_ids.add(row["id"])
+            rows.append(row)
+            selected += 1
+            if selected == count:
+                break
+        if selected != count:
+            raise ValueError(
+                f"{source} has only {selected} usable unique rows; requested {count}"
+            )
+        print(
+            f"Selected {count} rows from {source}; excluded {excluded} incomplete or duplicate rows."
+        )
+    random.Random(seed).shuffle(rows)
+    if len(rows) != sample_size:
+        raise ValueError(f"expected {sample_size} output rows, got {len(rows)}")
+    output_directory.mkdir(parents=True, exist_ok=True)
+    train_path = output_directory / f"{dataset_name}_train.jsonl"
+    eval_path = output_directory / f"{dataset_name}_test.jsonl"
+    if train_path.exists() or (split_eval and eval_path.exists()):
+        raise FileExistsError(
+            "mixture output already exists; choose a fresh --output-path"
+        )
+    if split_eval:
+        if sample_size < 2:
+            raise ValueError("--split-eval requires at least two rows")
+        eval_count = max(1, round(sample_size * 0.05))
+        train_rows, eval_rows = rows[eval_count:], rows[:eval_count]
+    else:
+        train_rows, eval_rows = rows, []
+    written = []
+    try:
+        for path, selected in ((train_path, train_rows), (eval_path, eval_rows)):
+            if path == eval_path and not split_eval:
+                continue
+            with path.open("x", encoding="utf-8") as handle:
+                written.append(path)
+                for row in selected:
+                    handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+    except BaseException:
+        for path in written:
+            path.unlink()
+        raise
+    print(
+        f"Saved {len(train_rows)} train and {len(eval_rows)} eval rows to {output_directory}."
+    )
+    return train_path
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.dataset in {"apigen-mt", "nemotron-agentic"}:
+        ratios = tuple(100 if source == args.dataset else 0 for source in MIX_SOURCES)
+        prepare_mixture(
+            args.dataset,
+            args.sample_size,
+            ratios,
+            args.output_path,
+            seed=args.seed,
+            split_eval=args.split_eval,
+        )
+        return
+    if args.dataset in (*MIX_PRESETS, "mix"):
+        prepare_mixture(
+            args.dataset,
+            args.sample_size,
+            args.ratios,
+            args.output_path,
+            seed=args.seed,
+            split_eval=args.split_eval,
+        )
+        return
     dataset, processor = load_dataset_preset(
         args.dataset,
         data_path=args.data_path,

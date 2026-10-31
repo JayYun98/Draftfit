@@ -133,7 +133,9 @@ def build_capture_manifest(
             manifest["producer"]["settings"] = dict(capture_settings)
     manifest["contract_hash"] = _hash(contract)
     manifest["manifest_hash"] = _hash(manifest)
-    return manifest
+    # Match the JSON representation used by persisted manifests so unchanged
+    # configs with tuples or integer keys can resume capture.
+    return _canonical(manifest)
 
 
 def validate_capture_manifest(

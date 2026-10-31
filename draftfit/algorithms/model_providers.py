@@ -46,7 +46,9 @@ def dflash_needs_input_tools(cfg: Config, draft_model: Any) -> bool:
     needs_mask_fallback = (
         cfg.model.mask_token_id is None and method_config.get("mask_token_id") is None
     )
-    return cfg.mode == "online" or needs_mask_fallback
+    return (
+        cfg.mode == "online" and not cfg.training.joint_online_capture
+    ) or needs_mask_fallback
 
 
 def _torch_dtype(cfg: Config):
@@ -82,6 +84,7 @@ def _warm_start(
         ),
         cache_dir=cfg.model.cache_dir,
         trust_remote_code=cfg.model.trust_remote_code,
+        retrain_anchor_alignment=cfg.training.retrain_anchor_alignment,
     )
 
 
@@ -316,6 +319,7 @@ def build_eagle3_model(
             revision=cfg.model.target_revision,
             cache_dir=cfg.model.cache_dir,
             trust_remote_code=cfg.model.trust_remote_code,
+            dtype=_torch_dtype(cfg),
         )
     return AlgorithmModelParts(
         model=model,
@@ -368,7 +372,7 @@ def _build_dflash_family_model(
     tokenizer: Any,
     model_factory: Callable[[Dict[str, Any]], Any],
 ) -> AlgorithmModelParts:
-    from draftfit.modeling.target.target_utils import TargetEmbeddingsAndHead
+    from draftfit.modeling.target.quantized_parts import load_target_parts
 
     _validate_dflash_block_size(draft_model)
     mask_token_id = _resolve_mask_token_id(cfg, draft_model, tokenizer)
@@ -380,7 +384,7 @@ def _build_dflash_family_model(
     method_config["mask_token_id"] = mask_token_id
     method_config["target_layer_ids"] = list(draft_model.target_layer_ids)
 
-    target_parts = TargetEmbeddingsAndHead.from_pretrained(
+    target_parts = load_target_parts(
         cfg.model.target_model_path,
         embed_key=cfg.model.embedding_key,
         lm_head_key=cfg.model.lm_head_key,
@@ -390,6 +394,18 @@ def _build_dflash_family_model(
         dtype=_torch_dtype(cfg),
         trust_remote_code=cfg.model.trust_remote_code,
     )
+    from draftfit.training.official_dspark import is_official_taichu_source
+
+    if cfg.model.draft_checkpoint_path and is_official_taichu_source(
+        cfg.model.draft_checkpoint_path
+    ):
+        from draftfit.training.official_dspark import verify_taichu_target_copies
+
+        verify_taichu_target_copies(
+            cfg.model.draft_checkpoint_path,
+            target_parts,
+            cache_dir=cfg.model.cache_dir,
+        )
     common = {
         "draft_model": draft_model,
         "target_lm_head": target_parts.lm_head,
@@ -438,12 +454,20 @@ def build_dflash2_model(
     tokenizer: Any,
 ) -> AlgorithmModelParts:
     from draftfit.algorithms.common.dflash_family_model import OnlineDFlash2Model
+    from draftfit.algorithms.taichu_dflash2_model import OnlineTaichuDFlash2Model
+    from draftfit.modeling.draft.taichu_dflash2 import TaichuDFlash2DraftModel
+
+    model_class = (
+        OnlineTaichuDFlash2Model
+        if isinstance(draft_model, TaichuDFlash2DraftModel)
+        else OnlineDFlash2Model
+    )
 
     return _build_dflash_family_model(
         cfg,
         draft_model,
         tokenizer,
-        lambda common: OnlineDFlash2Model(
+        lambda common: model_class(
             **common,
             loss_type=cfg.training.loss_type,
             dpace_alpha=cfg.training.dpace_alpha,
@@ -475,7 +499,7 @@ def build_domino_model(
 def build_dspark_model(
     cfg: Config,
     draft_model: Any,
-    _draft_config: Any,
+    draft_config: Any,
     _target_config: Any,
     tokenizer: Any,
 ) -> AlgorithmModelParts:
@@ -487,9 +511,17 @@ def build_dspark_model(
         tokenizer,
         lambda common: OnlineDSparkModel(
             **common,
+            sample_from_anchor=bool(
+                (getattr(draft_config, "dflash_config", None) or {}).get(
+                    "sample_from_anchor", True
+                )
+            ),
             dspark_ce_loss_alpha=cfg.training.dspark_ce_loss_alpha,
             dspark_l1_loss_alpha=cfg.training.dspark_l1_loss_alpha,
             dspark_confidence_head_alpha=(cfg.training.dspark_confidence_head_alpha),
+            dspark_acceptance_loss=cfg.training.dspark_acceptance_loss,
+            dspark_acceptance_loss_alpha=cfg.training.dspark_acceptance_loss_alpha,
+            dspark_acceptance_temperature=cfg.training.dspark_acceptance_temperature,
         ),
     )
 
@@ -648,7 +680,6 @@ def apply_dflash2_overrides(cfg: Config, draft_config: Any) -> None:
     """Apply overrides, then rebuild DFlash2's derived selector dimensions."""
 
     from draftfit.modeling.draft.dflash import build_target_layer_ids
-    from draftfit.modeling.draft.dflash2 import DFlash2Config
 
     requested_layers = cfg.model.draft_num_hidden_layers
     layer_types = list(getattr(draft_config, "layer_types", ()) or ())
@@ -692,7 +723,7 @@ def apply_dflash2_overrides(cfg: Config, draft_config: Any) -> None:
     # ``resolve_draft_config`` mutates the already-constructed HF config for
     # depth/block overrides. Reconstructing here is the small revalidation
     # boundary that refreshes layer_types, target taps, and selector fields.
-    refreshed = DFlash2Config.from_dict(draft_config.to_dict())
+    refreshed = type(draft_config).from_dict(draft_config.to_dict())
     draft_config.__dict__.clear()
     draft_config.__dict__.update(refreshed.__dict__)
 

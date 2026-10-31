@@ -4,6 +4,35 @@ Config generation is not model certification. The target executes in the
 existing inference backend; the platform does not port its architecture.
 Use `draftfit algorithms` for the live registry and feature tensor contracts.
 
+## Joint and unattended execution
+
+| Capability | Implemented boundary |
+| --- | --- |
+| Joint DSpark/DFlash/DFlash2 | Single-device shared backbone/private parameters, one optimizer; scratch or compatible seeded initialization |
+| Shared online capture | Frozen Transformers target or explicit experimental Prism GGUF adapter, matching taps/contracts, bounded RAM features; synchronous capture/training alternation |
+| Recovery | Same-run checkpoint restores optimizer/RNG/consumed cursor; immutable source and export checks |
+| Native verification | Supported Llama/Qwen2/Qwen3 and Gemma4Unified text adapters; target-only, compatible existing drafts and current drafts; full-prefix reference timing |
+| Optional SGLang milestone | Ordinary Torch HF dense target on one CUDA device; bounded engine lifecycle/report checks; long-output parity remains an open gate |
+| Unattended policy | Loss/acceptance selection and registered batch/LR phases; speed-based decisions rejected |
+| Resource feedback | Measured telemetry selects registered settings; no universal VRAM/time estimator or automatic architecture search |
+| Calibration and forecast | Isolated initial batch probes and capture-inclusive empirical time/cost admission; unmeasured recurring work requires explicit bounds |
+| HF publication | Immutable snapshots, background worker and verified retry receipts; live transport/permissions need a separate check |
+| MLX | Experimental offline feature producer and external evaluation adapter; draft training remains PyTorch |
+
+These are implementation boundaries, not a claim that every combination or
+failure mode is proven on GPU. Current live serving evidence is bounded;
+longer-output token-parity failures and a completed-run GPU resume timeout are
+not resolved by CPU coverage. No general speedup is certified. Read
+[the unattended guide](UNATTENDED_NATIVE.md) and
+[queue/verification lifecycle](SHARED_TARGET_FEATURE_QUEUE.md) before deployment.
+
+See [calibration](CALIBRATION.md) for measured admission,
+[quantized capture](specs/quantized-capture.md) for the required native build and
+unrun MLX/native target gates, and [research methods](specs/research-methods.md)
+for ALR/IRA, Osprey, CAST and Redline boundaries. The
+[optional web workspace](WEB_WORKSPACE.md) delegates to these current engine
+interfaces; it is a local source-checkout tool.
+
 ## Owned native teacher services
 
 The README distinguishes **Core** (the shared PyTorch trainer), **Maintained,
@@ -22,8 +51,11 @@ before transport; it is not a direct zero-disk worker-hook integration.
 `--teacher-backend vllm` selects the platform's own teacher service. It publishes
 features through the same Mooncake transport and producer/consumer trainer as
 the SGLang path; it does not launch a TorchSpec/AngelSpec training wrapper.
-Native capture is limited to supported single-device Llama/Qwen2/Qwen3 text
-decoders, with real GPU evidence limited to the pinned Qwen3-0.6B campaign.
+Native vLLM capture remains limited to single-device Llama/Qwen2/Qwen3 text
+decoders. Transformers also has experimental Qwen3.5, Agnes, Taichu text-decoder
+and Xing hyperconnection capture paths. See [recent target recipes](RECENT_MODEL_EXPERIMENTS.md)
+for their CPU evidence and unverified real-weight gates. The disaggregated native-teacher evidence described below is scoped to the
+pinned Qwen3-0.6B campaign; it is separate from colocated joint verification.
 
 HF BF16 feature parity passed. Native vLLM BF16 cross-engine elementwise parity
 failed; FP32 parity and deterministic next-step replay passed. Both managed
@@ -39,8 +71,9 @@ and the [reproducible entrypoints](OWNED_GPU_ENVIRONMENT.md).
 | --- | --- | --- | --- | --- |
 | DSpark | Yes | Yes | Yes | Target last-hidden features as well as auxiliary taps |
 | DFlash | Yes | Yes | Yes | Algorithm-compatible hidden features and mask token |
-| DFlash2 | Yes | Yes | Yes | Full vocabulary, grouped convolution/selector; eager/SDPA/flex; bounded CUDA training passed, live serving pending |
+| DFlash2 | Yes | Yes | Yes | Full vocabulary, grouped convolution/selector; eager/SDPA/flex; bounded CUDA training and serving checks; full serving correctness remains open |
 | EAGLE3 | Yes | Yes | Yes | Fixed one draft layer; shared vocab mapping for disaggregated online |
+| [EAGLE4](specs/eagle4-minicpm.md) | Yes | Yes | Yes | Experimental dense one-layer SDPA training; saved-feature CUDA checks; real online streaming unrun; serving needs the separate EAGLE-HARNESS engine |
 | PEagle | Yes | No | Yes | Flex attention; algorithm-specific layout and vocabulary contract |
 | Domino | No: explicit draft JSON | Yes | Yes | Compatible draft architecture/config supplied by user |
 
@@ -60,7 +93,7 @@ Do not reuse the old Ling capture image as DFlash2 serving evidence: the locally
 pinned Ling/SGLang sources do not contain `DFlash2DraftModel`. SGLang source
 [`db272201`](https://github.com/sgl-project/sglang/blob/db272201a2dbd72e5699e443240a851f1313ad45/python/sglang/srt/models/dflash.py)
 contains that architecture and candidate-selector support. This is a source
-compatibility prerequisite, not a tested image or a validated deployment.
+compatibility prerequisite, not blanket certification of an image or deployment.
 Pin the actual image digest and source revision before the GPU gate; verify
 convolution/selector weight loading and exact tokens with the exported artifact.
 The selector requires a dense FP16/BF16/FP32 target output head in this revision.
@@ -88,10 +121,11 @@ are separate results. CUDA/OS/kernel profile generation is not hardware testing.
 
 `python -m tests.public_cpu` runs bounded CPU tests with HF network access and
 CUDA visibility disabled. It checks configuration, parser masks, real tiny draft
-construction/loading, checkpoint/export contracts and wheel assets. Seven
-accelerator-dependent cases may skip. It does not run the whole GPU test suite.
+construction/loading, checkpoint/export contracts and wheel assets.
+Accelerator-dependent cases skip according to the current suite; use the run
+summary for the exact count. It does not run the whole GPU test suite.
 
-Those seven named CUDA cases already passed in the retained H100 platform
+A historical subset of seven named CUDA cases passed in the retained H100 platform
 regression: CLI config-to-training (1), checkpoint/resume continuity (2), and
 HF/SGLang export/key checks (4). A CPU skip is not an outstanding GPU failure.
 These are prior-version generic tests, not a GPU rerun of each release wheel or

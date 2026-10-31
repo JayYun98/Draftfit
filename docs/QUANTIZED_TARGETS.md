@@ -29,7 +29,8 @@ uv pip install --python /opt/runtime/bin/python --no-deps 'bitsandbytes==0.50.2'
 
 The `quantization` package extra declares the same optional library.
 Its CUDA and hardware requirements still apply.
-Transformers capture supports Llama, Qwen2, and Qwen3 text decoder layouts.
+Transformers capture preserves the decoder layouts already registered on `dev`.
+Each architecture and quantization combination still requires its own runtime validation.
 Experimental vLLM capture accepts prequantized checkpoints through `auto`, within its existing pinned runtime and architecture limits.
 The vLLM engine must support the checkpoint format; no dequantization fallback is provided.
 SGLang keeps its existing checkpoint and `model.sglang_quantization` behavior.
@@ -39,6 +40,7 @@ Its custom capture build remains required.
 The trainer loads these frozen tensors from the same target checkpoint.
 Packed embeddings or output heads are unsupported and fail during loading.
 Do not substitute a head from another target to bypass this limit.
+Existing explicit Prism/GGUF packed readout adapters retain their separate contracts.
 Native NVFP4 execution, hybrid targets, and untested quantization formats remain separate validation gates.
 
 ## Prepare either initialization

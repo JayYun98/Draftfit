@@ -125,13 +125,25 @@ class OfflineManifestReader:
         if manifest_path is not None:
             self.capture_manifest = load_capture_manifest(manifest_path)
             contract = self.capture_manifest["contract"]
-            if contract["strategy"] != strategy:
+            actual_keys = sorted(str(name) for name in contract["feature_names"])
+            expected_keys = sorted(str(name) for name in self.feature_keys)
+            family = {"dflash", "dspark", "dflash2"}
+            shared_family_capture = (
+                contract["strategy"] in family
+                and strategy in family
+                and set(expected_keys) <= set(actual_keys)
+                and set(actual_keys) - set(expected_keys)
+                <= {"target_last_hidden_states"}
+                and (
+                    set(actual_keys) == set(expected_keys)
+                    or contract["strategy"] == "dspark"
+                )
+            )
+            if contract["strategy"] != strategy and not shared_family_capture:
                 raise ValueError(
                     f"capture manifest strategy {contract['strategy']!r} != {strategy!r}"
                 )
-            actual_keys = sorted(str(name) for name in contract["feature_names"])
-            expected_keys = sorted(str(name) for name in self.feature_keys)
-            if actual_keys != expected_keys:
+            if actual_keys != expected_keys and not shared_family_capture:
                 raise ValueError(
                     f"capture manifest features {actual_keys!r} != {expected_keys!r}"
                 )

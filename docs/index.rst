@@ -24,6 +24,33 @@ not a blanket compatibility or production-readiness claim.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Joint training and automation
+
+   DFLASH_FAMILY
+   JOINT_ONLINE
+   SHARED_TARGET_FEATURE_QUEUE
+   UNATTENDED_NATIVE
+   JOINT_MONITORING
+   FAMILY_CAMPAIGN
+   HF_PUBLICATION
+   specs/eagle4-minicpm
+   research/eagle4-minicpm
+   specs/training-feature-integration
+   CALIBRATION
+   TRAINING_SEARCH
+   specs/quantized-capture
+   WEB_WORKSPACE
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Research methods
+
+   research/README
+   research/latest-speculative-methods
+   specs/research-methods
+
+.. toctree::
+   :maxdepth: 1
    :caption: Validation and runtime boundaries
 
    RUNTIME_PROFILES

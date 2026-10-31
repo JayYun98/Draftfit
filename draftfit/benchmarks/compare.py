@@ -29,14 +29,45 @@ def _positive(value, name, integer=False):
     return value
 
 
+def validate_runtime(runtime):
+    """Validate operator-recorded identity, not attest the remote server."""
+    required = {
+        "target_revision",
+        "tokenizer_revision",
+        "backend_version",
+        "hardware",
+        "common_server_config_sha256",
+        "draft_revision",
+    }
+    if not isinstance(runtime, dict) or set(runtime) != required:
+        raise ValueError(f"runtime must contain exactly {sorted(required)}")
+    for key, value in runtime.items():
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"runtime.{key} must be a nonempty string")
+        if key.endswith("revision"):
+            if key == "draft_revision" and value == "none":
+                continue
+            if not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", value):
+                raise ValueError(
+                    f"runtime.{key} requires a full commit or content hash"
+                )
+            if key == "tokenizer_revision" and len(value) != 40:
+                raise ValueError(
+                    "runtime.tokenizer_revision requires a full 40-hex commit"
+                )
+    if not re.fullmatch(r"[0-9a-f]{64}", runtime["common_server_config_sha256"]):
+        raise ValueError("runtime.common_server_config_sha256 requires SHA256")
+    return runtime
+
+
 def _validate(report):
     if not isinstance(report, dict):
         raise ValueError("report must be an object")
     try:
-        if report["backend"] != "sglang" or report["dataset"] != "messages-jsonl":
-            raise ValueError(
-                "requires sglang messages-jsonl reports with a workload hash"
-            )
+        if report["backend"] != "sglang":
+            raise ValueError("requires sglang reports with a workload hash")
+        if not isinstance(report["dataset"], str) or not report["dataset"].strip():
+            raise ValueError("missing dataset identity")
         for name in ("samples", "output_tokens"):
             _positive(report[name], name, integer=True)
         for name in ("latency_seconds", "throughput_tokens_per_second"):
@@ -51,10 +82,19 @@ def _validate(report):
             )
         metadata = report["metadata"]
         source = metadata["source"]
-        if source["kind"] != "messages_jsonl" or not re.fullmatch(
+        if source["kind"] not in ("messages_jsonl", "builtin") or not re.fullmatch(
             "[0-9a-f]{64}", source["sha256"]
         ):
-            raise ValueError("requires a messages_jsonl SHA256 workload identity")
+            raise ValueError("requires a SHA256 workload identity")
+        if source["kind"] == "builtin" and (
+            source.get("name") != report["dataset"]
+            or "rendered_prompts_sha256" not in metadata
+        ):
+            raise ValueError(
+                "builtin reports require dataset and rendered prompt identities"
+            )
+        if source["kind"] == "messages_jsonl" and report["dataset"] != "messages-jsonl":
+            raise ValueError("messages_jsonl source requires messages-jsonl dataset")
         _positive(source["sample_count"], "source.sample_count", integer=True)
         for key in ("model", "tokenizer"):
             if not isinstance(metadata[key], str) or not metadata[key].strip():
@@ -107,6 +147,19 @@ def _validate(report):
         identity["source"] = {
             key: source[key] for key in ("kind", "sha256", "sample_count")
         }
+        identity["dataset"] = report["dataset"]
+        if "rendered_prompts_sha256" in metadata:
+            rendered = metadata["rendered_prompts_sha256"]
+            if not isinstance(rendered, str) or not re.fullmatch(
+                "[0-9a-f]{64}", rendered
+            ):
+                raise ValueError("invalid rendered prompt hash")
+            identity["rendered_prompts_sha256"] = rendered
+        if "runtime" in metadata:
+            runtime = validate_runtime(metadata["runtime"])
+            identity["runtime"] = {
+                k: v for k, v in runtime.items() if k != "draft_revision"
+            }
         return identity
     except (KeyError, TypeError, OverflowError) as exc:
         raise ValueError(f"missing or malformed benchmark evidence: {exc}") from exc
@@ -120,6 +173,12 @@ def compare(baseline, candidate):
     for report in [*baseline, *candidate]:
         if _validate(report) != identity:
             raise ValueError("incompatible workload or benchmark settings")
+    runtime_recorded = "runtime" in identity
+    rendered_recorded = "rendered_prompts_sha256" in identity
+    if runtime_recorded:
+        for side in (baseline, candidate):
+            if len({r["metadata"]["runtime"]["draft_revision"] for r in side}) != 1:
+                raise ValueError("draft revision must be consistent within each side")
     baseline_rate = statistics.median(
         r["throughput_tokens_per_second"] for r in baseline
     )
@@ -134,10 +193,30 @@ def compare(baseline, candidate):
         "baseline_median_tokens_per_second": baseline_rate,
         "candidate_median_tokens_per_second": candidate_rate,
         "throughput_ratio": ratio,
+        "runtime_identity": (
+            "operator_recorded_match" if runtime_recorded else "not_recorded"
+        ),
+        "rendered_prompt_identity": (
+            "recorded_match" if rendered_recorded else "not_recorded"
+        ),
+        "evidence_strength": (
+            "operator_recorded" if runtime_recorded and rendered_recorded else "weak"
+        ),
         "production_gate": "not_evaluated",
         "limitations": [
             "Report provenance and independent real runs are not verified.",
-            "Hardware, server configuration and immutable model revisions are not recorded.",
+            (
+                "Runtime identity is operator supplied, not independently verified."
+                if runtime_recorded
+                else "Weak evidence: hardware, server configuration and immutable model revisions are not recorded."
+            ),
+            *(
+                []
+                if rendered_recorded
+                else [
+                    "Weak evidence: rendered measured-prompt hashes are not recorded."
+                ]
+            ),
             "Output correctness, latency percentiles and statistical significance are not evaluated.",
         ],
     }

@@ -9,6 +9,14 @@ from draftfit.utils import print_on_rank0
 logger = logging.getLogger(__name__)
 
 
+def _squared_grad_norm(grad):
+    # Preserve DTensor partial reductions until the configured process group reduces them.
+    if callable(getattr(grad, "to_local", None)):
+        return grad.float().square().sum()
+    # Accumulate in FP32 without materializing two full FP32 gradient tensors.
+    return torch.linalg.vector_norm(grad, dtype=torch.float32).square()
+
+
 class BF16Optimizer:
     """AdamW over fp32 master copies of the bf16 trainable params, with grad
     clipping and configurable warmup scheduling."""
@@ -107,7 +115,7 @@ class BF16Optimizer:
         grads = [p.grad.detach() for p in self.model_params if p.grad is not None]
         if grads:
             total_norm_sq = torch.stack(
-                [grad.float().square().sum() for grad in grads]
+                [_squared_grad_norm(grad) for grad in grads]
             ).sum()
         else:
             device = self.model_params[0].device if self.model_params else "cpu"
@@ -124,7 +132,7 @@ class BF16Optimizer:
         grads = [master.grad for master in self.fp32_params if master.grad is not None]
         if grads:
             local_norm_sq = torch.stack(
-                [grad.float().square().sum() for grad in grads]
+                [_squared_grad_norm(grad) for grad in grads]
             ).sum()
         else:
             master_device = self.fp32_params[0].device if self.fp32_params else "cpu"

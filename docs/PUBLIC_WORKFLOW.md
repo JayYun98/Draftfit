@@ -27,6 +27,23 @@ starting point, **not evidence that its model/runtime combination has passed GPU
 validation**. Ling's completed long training is separate from this platform's
 short functional tests; repeating it is not an onboarding requirement.
 
+## Choose a training workflow
+
+The steps below cover individual draft training and disaggregated/offline
+capture. For multiple compatible family methods, choose explicitly:
+
+- [Family matrix](DFLASH_FAMILY.md): independent arms, optionally concurrent.
+- [Joint online](JOINT_ONLINE.md): one resident target, shared features/backbone
+  and method-specific exports on a single device.
+- [Unattended joint training](UNATTENDED_NATIVE.md): bounded queue, fixed-holdout
+  verification, loss/acceptance policy, registered batch/LR phases and recovery.
+- [External campaigns](FAMILY_CAMPAIGN.md): separate training/evaluation workers
+  with comparable serving reports and speed-based decisions.
+
+Use [monitoring](JOINT_MONITORING.md) to distinguish training and serving metrics,
+and [background HF publication](HF_PUBLICATION.md) to upload completed exports.
+Model uploads do not replace optimizer/cursor/log backups.
+
 ## Install and obtain editable recipes
 
 Build a wheel using the [uv environment guide](ENVIRONMENT.md).

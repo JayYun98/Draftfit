@@ -6,9 +6,10 @@ A pretrained speculative draft can lose alignment when the target is quantized.
 Support weights-only draft adaptation and fresh draft training from quantized-target features.
 Reuse current algorithms and trainer objectives. Do not introduce a model-specific calibration loss.
 
-Base revision: `8d17a4032750e664ae432c10e6ea289f3ef81789`.
-Public main registers EAGLE3, P-EAGLE, DFlash, DFlash2, Domino, and DSpark.
-EAGLE4 integration is not part of this base or this PR.
+Integration base: `dev` at `bfe0bbe0dda0c0a1d2cca3ec93cdb1a963122145`.
+The initial implementation used the older `main` base; its CPU evidence remains historical.
+Current `dev` includes EAGLE4 and the existing explicit Prism/GGUF readout adapters.
+This PR preserves those implementations and adds the shared target-quantization contract.
 The shared target-loading and identity contract does not dispatch on algorithm or model names.
 Actual capture layout and serving support remain bounded by each backend and algorithm.
 
@@ -37,7 +38,7 @@ No acceptance or speed improvement is claimed.
 | Artifact integrity | Reloaded draft tensor bytes and target quantization metadata match | CPU real export/reload test; GPU smoke | CPU pass; GPU not-run |
 | Cache isolation | Reject missing, dense, different-recipe, revision, backend, dtype, or attention caches before model allocation | `tests/test_quantized_target.py` | pass; CPU |
 | Resume isolation | Preserve quantization identity in the existing strict provenance check | Existing resume-contract tests and targeted test | CPU pass; GPU resume not-run |
-| CPU and package regression | Public CPU suite and isolated wheel check pass | Verification record | pass; 382 passed, 8 CUDA skips |
+| CPU and package regression | Public CPU suite and isolated wheel check pass | Verification record | pass on dev; 733 passed, 53 skips; packed regressions 34 pass |
 | Serving and quality | Actual target-only/original/adapted serving comparison on held-out prompts | Compatible target engine required | not-run |
 
 ## Usage
@@ -58,7 +59,10 @@ Do not weaken strict correctness or label missing GPU checks as passes.
 
 ## Results and limitations
 
-Implementation and CPU verification are complete. Required GPU and serving gates remain open.
+Initial implementation and CPU verification passed on the older `main` base.
+The PR now targets `dev`. Its CPU suite passed 733 cases with 53 skips.
+Existing packed readout regressions passed 34 cases; isolated installed-wheel onboarding also passed.
+Required GPU and serving gates remain open.
 The worker failed before model construction because Transformers was missing.
 The bounded dependency repair then failed with insufficient instance disk space.
 No quantized training result, acceptance result, or speed result exists.

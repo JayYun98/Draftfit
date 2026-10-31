@@ -22,14 +22,24 @@ from draftfit.algorithms.common.providers import (
 from draftfit.algorithms.contracts import AlgorithmSpec, FeatureMode
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILTINS = ("dflash", "domino", "dspark", "eagle3", "peagle")
+BUILTINS = (
+    "alr_ira",
+    "dflash",
+    "dflash2",
+    "domino",
+    "dspark",
+    "eagle3",
+    "eagle4",
+    "osprey",
+    "peagle",
+)
 
 
 class BuiltinProviderContractTest(unittest.TestCase):
     def setUp(self):
         self.registry = builtin_algorithm_registry()
 
-    def test_five_builtins_are_explicit_and_instance_owned(self):
+    def test_builtins_are_explicit_and_instance_owned(self):
         self.assertEqual(BUILTINS, self.registry.names)
         self.assertIsNot(builtin_algorithm_registry(), self.registry)
 
@@ -93,7 +103,10 @@ class BuiltinProviderContractTest(unittest.TestCase):
         for registration in self.registry:
             with self.subTest(algorithm=registration.name):
                 providers = registration.providers
-                self.assertGreaterEqual(len(providers.server_streaming), 1)
+                if registration.name == "alr_ira":
+                    self.assertEqual(providers.server_streaming, ())
+                else:
+                    self.assertGreaterEqual(len(providers.server_streaming), 1)
                 self.assertFalse(hasattr(providers, "colocated"))
                 self.assertFalse(hasattr(providers, "target_backend"))
                 self.assertFalse(hasattr(providers, "deployment"))
@@ -170,10 +183,17 @@ class BuiltinProviderContractTest(unittest.TestCase):
             compact_teacher_chunk_size=1024,
             lambda_base_start=0.75,
             lambda_base_decay_ratio=0.25,
+            eagle4_stage="draft",
         )
         config = SimpleNamespace(training=training)
         draft = SimpleNamespace(
-            config=SimpleNamespace(num_hidden_layers=2),
+            config=SimpleNamespace(
+                num_hidden_layers=2,
+                target_num_hidden_layers=12,
+                efficient_lm_head_config={"type": "low_rank", "rank": 8},
+            ),
+            sliding_window=4096,
+            norm_output=True,
             layers=[object(), object()],
             norm_before_residual=True,
             target_layer_ids=[3, 7],
@@ -191,6 +211,7 @@ class BuiltinProviderContractTest(unittest.TestCase):
             dspark_ce_loss_alpha=0.1,
             dspark_l1_loss_alpha=0.8,
             dspark_confidence_head_alpha=0.2,
+            selector_loss_alpha=1.0,
         )
         models = {
             "eagle3": SimpleNamespace(
@@ -207,9 +228,20 @@ class BuiltinProviderContractTest(unittest.TestCase):
                 mask_token_id=31,
             ),
             "dflash": dflash_family,
+            "dflash2": dflash_family,
             "domino": dflash_family,
             "dspark": dflash_family,
         }
+        models["osprey"] = models["eagle3"]
+        models["alr_ira"] = SimpleNamespace(
+            block_size=16,
+            topk=8,
+            hard_label_mix=0.0,
+            tail_bucket=True,
+            loss_decay_gamma=None,
+            mask_token_id=31,
+            attention_backend="sdpa",
+        )
         expected_keys = {
             "eagle3": {
                 "eagle3_ttt_length",
@@ -230,6 +262,11 @@ class BuiltinProviderContractTest(unittest.TestCase):
                 "dflash_loss_type",
                 "dflash_dpace_alpha",
             },
+            "dflash2": {
+                "dflash2_block_size",
+                "dflash2_target_layer_ids",
+                "dflash2_selector_loss_alpha",
+            },
             "domino": {
                 "domino_block_size",
                 "domino_shift_label",
@@ -245,12 +282,42 @@ class BuiltinProviderContractTest(unittest.TestCase):
             },
         }
 
+        expected_keys["osprey"] = {
+            key.replace("eagle3_", "osprey_") for key in expected_keys["eagle3"]
+        }
+        expected_keys["alr_ira"] = {
+            "alr_ira_block_size",
+            "alr_ira_topk",
+            "alr_ira_hard_label_mix",
+            "alr_ira_tail_bucket",
+            "alr_ira_target_layer_ids",
+        }
+        models["eagle4"] = models["eagle3"]
+        expected_keys["eagle4"] = {
+            "eagle4_stage",
+            "eagle4_candidate_head",
+            "eagle4_sliding_window",
+        }
+
         for name in BUILTINS:
             with self.subTest(algorithm=name):
                 step = self.registry.resolve(name).providers.step
                 contract = step.resume_contract(config, draft, models[name])
                 self.assertTrue(expected_keys[name] <= contract.keys())
                 self.assertTrue(all(key.startswith(f"{name}_") for key in contract))
+                if name != "alr_ira":
+                    # New ALR defaults must not extend another strategy's resume contract.
+                    training.alr_topk = 16
+                    training.alr_hard_label_mix = 0.25
+                    training.alr_tail_bucket = False
+                    self.assertEqual(
+                        step.resume_contract(config, draft, models[name]), contract
+                    )
+                    del (
+                        training.alr_topk,
+                        training.alr_hard_label_mix,
+                        training.alr_tail_bucket,
+                    )
 
     def test_step_runtime_config_binds_options_contract_and_missing_key_policy(self):
         step = self.registry.resolve("eagle3").providers.step
@@ -427,7 +494,7 @@ class BuiltinProviderContractTest(unittest.TestCase):
         code = (
             "import sys; "
             "from draftfit.algorithms.builtin import builtin_algorithm_registry; "
-            "r=builtin_algorithm_registry(); assert len(r)==5; "
+            "r=builtin_algorithm_registry(); assert len(r)==9; "
             "assert 'torch' not in sys.modules; "
             "assert 'draftfit.training.strategies.registry' not in sys.modules"
         )

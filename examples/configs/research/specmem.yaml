@@ -1,0 +1,20 @@
+method: specmem
+model:
+  target_model_path: ./models/target
+data:
+  input_path: ./data/user-tool-queries.jsonl
+memory:
+  capacity: 48
+  max_users: 128
+  threshold: 0.35
+  max_tokens_per_entry: 4096
+  max_embedding_dimensions: 4096
+  writeback_mode: eos
+  draft_tokens: 32
+generation:
+  max_new_tokens: 128
+  stop_token_ids: [2]
+diagnostics:
+  compare_ar: true
+  record_acceptance: true
+output_dir: outputs/research-specmem

@@ -1,0 +1,24 @@
+method: ngramrl
+model:
+  target_model_path: ./models/target
+data:
+  input_path: ./data/repeated-rollouts.jsonl
+memory:
+  n_min: 2
+  n_max: 5
+  window_steps: 8
+  draft_tokens: 8
+  max_prompts: 128
+  max_rollouts_per_prompt: 16
+  max_tokens_per_rollout: 4096
+generation:
+  max_new_tokens: 128
+diagnostics:
+  compare_ar: true
+  record_acceptance: true
+  warmup: 1
+  repetitions: 3
+runtime:
+  device: cpu
+  seed: 42
+output_dir: outputs/research-ngramrl

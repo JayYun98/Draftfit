@@ -1,0 +1,18 @@
+{
+  "theme": "base",
+  "htmlLabels": false,
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "fontSize": "16px",
+    "background": "#ffffff",
+    "lineColor": "#607087"
+  },
+  "flowchart": {
+    "htmlLabels": false,
+    "curve": "linear",
+    "nodeSpacing": 28,
+    "rankSpacing": 35,
+    "wrappingWidth": 360
+  },
+  "markdownAutoWrap": false
+}

@@ -185,12 +185,24 @@ def main(argv: Optional[List[str]] = None) -> int:
         from draftfit.offline_capture.prepare import main as capture_main
 
         return capture_main(argv[1:]) or 0
+    if argv[:1] == ["calibrate"]:
+        from draftfit.calibrate import main as calibrate_main
+
+        return calibrate_main(argv[1:]) or 0
+    if argv[:1] == ["research"]:
+        from draftfit.research.__main__ import main as research_main
+
+        return research_main(argv[1:]) or 0
     if len(argv) >= 2 and argv[0] == "data" and argv[1] in data_tools:
         module = import_module(f"draftfit.data.{data_tools[argv[1]]}")
         return module.main(argv[2:]) or 0
     parser = argparse.ArgumentParser(prog="draftfit")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("capture", help="capture offline teacher features")
+    sub.add_parser(
+        "calibrate", help="measure batch candidates and forecast training cost"
+    )
+    sub.add_parser("research", help="plan and run opt-in research recipes")
     train = sub.add_parser("train", help="train a draft model from a typed config")
     train.add_argument("-c", "--config", required=True, help="YAML or JSON run config")
     train.add_argument(
@@ -221,6 +233,66 @@ def main(argv: Optional[List[str]] = None) -> int:
     sub.add_parser(
         "algorithms", help="list registered draft methods and feature requirements"
     )
+    unattended = sub.add_parser(
+        "unattended",
+        help="bounded native joint training with durable policy/export/publication",
+    )
+    unattended.add_argument("--config", required=True)
+    unattended.add_argument("--plan", action="store_true")
+    unattended.add_argument("--resume", action="store_true")
+    family = sub.add_parser(
+        "family", help="train DFlash-family variants from one feature cache"
+    )
+    family.add_argument("--manifest", required=True, help="JSON run matrix")
+    family.add_argument(
+        "--plan", action="store_true", help="validate and show stages without training"
+    )
+    family.add_argument(
+        "--jobs",
+        type=int,
+        default=1,
+        help="maximum concurrent independent training workers (default: 1)",
+    )
+    family.add_argument(
+        "--joint",
+        action="store_true",
+        help="read each batch once and jointly update a shared family backbone",
+    )
+    family.add_argument(
+        "--resume-from",
+        help="joint training checkpoint to resume into a new output directory",
+    )
+    family.add_argument(
+        "--stop-at-step",
+        type=int,
+        help="joint operational milestone; preserve full scheduler horizon",
+    )
+    pretrain = sub.add_parser(
+        "pretrain", help="raw-text warm start for a DFlash-family draft"
+    )
+    pretrain.add_argument("--target", required=True)
+    pretrain.add_argument("--target-revision")
+    pretrain.add_argument("--draft-config", required=True)
+    pretrain.add_argument(
+        "--strategy", choices=("dflash", "dspark", "dflash2"), required=True
+    )
+    pretrain.add_argument(
+        "--corpus", required=True, help="JSONL rows with a text field"
+    )
+    pretrain.add_argument("--validation", help="separate held-out text JSONL")
+    pretrain.add_argument("--validation-sequences", type=int, default=32)
+    pretrain.add_argument("--output", required=True)
+    pretrain.add_argument("--steps", type=int, required=True)
+    pretrain.add_argument("--sequence-length", type=int, required=True)
+    pretrain.add_argument("--batch-size", type=int, default=1)
+    pretrain.add_argument("--learning-rate", type=float, default=1e-4)
+    pretrain.add_argument("--seed", type=int, default=42)
+    expand = sub.add_parser(
+        "expand-aux-layers", help="zero-widen a one-tap DFlash-family projection"
+    )
+    expand.add_argument("--checkpoint", required=True)
+    expand.add_argument("--output", required=True)
+    expand.add_argument("--target-layer-ids", type=int, nargs="+", required=True)
     data = sub.add_parser("data", help="prepare local user data for training")
     data_sub = data.add_subparsers(dest="data_command", required=True)
     for name in data_tools:
@@ -416,6 +488,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             "a running SGLang server."
         ),
     )
+    benchmark.add_argument(
+        "--runtime-json", help="operator-recorded immutable model and runtime identity"
+    )
     benchmark.add_argument("--model", required=True)
     benchmark_source = benchmark.add_mutually_exclusive_group(required=True)
     benchmark_source.add_argument(
@@ -471,6 +546,74 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         print(json.dumps(algorithm_catalog(), indent=2))
         return 0
+    if args.command in {"pretrain", "expand-aux-layers"}:
+        from draftfit.pretraining import expand_aux_layers, pretrain
+
+        try:
+            result = (
+                pretrain(
+                    target=args.target,
+                    target_revision=args.target_revision,
+                    draft_config=args.draft_config,
+                    strategy=args.strategy,
+                    corpus=args.corpus,
+                    validation=args.validation,
+                    validation_sequences=args.validation_sequences,
+                    output=args.output,
+                    steps=args.steps,
+                    sequence_length=args.sequence_length,
+                    batch_size=args.batch_size,
+                    learning_rate=args.learning_rate,
+                    seed=args.seed,
+                )
+                if args.command == "pretrain"
+                else expand_aux_layers(
+                    args.checkpoint, args.output, args.target_layer_ids
+                )
+            )
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "unattended":
+        from draftfit.unattended import run
+
+        try:
+            with _worker_signal_unwind():
+                result = run(args.config, plan=args.plan, resume=args.resume)
+        except _WorkerTermination as received:
+            return 128 + received.signum
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0
+    if args.command == "family":
+        from draftfit.family import run_family
+
+        try:
+            with _worker_signal_unwind():
+                result = run_family(
+                    args.manifest,
+                    plan=args.plan,
+                    jobs=args.jobs,
+                    joint=args.joint,
+                    resume_from=args.resume_from,
+                    stop_at_step=args.stop_at_step,
+                )
+        except _WorkerTermination as received:
+            return 128 + received.signum
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+            parser.error(str(exc))
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return (
+            0
+            if (
+                args.plan
+                or all(run["status"] == "complete" for run in result["runs"])
+                or result.get("reason") == "policy_boundary"
+            )
+            else 1
+        )
     if args.command == "data":
         from draftfit.data.prepare import prepare_dataset
 

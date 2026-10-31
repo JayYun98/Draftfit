@@ -1,11 +1,40 @@
 # Quantized-target adaptation verification
 
 Result: CPU checks pass. Quantized GPU execution and serving are not verified.
-Base: `8d17a4032750e664ae432c10e6ea289f3ef81789`; include this change's working files.
-The [machine record](quantized-target-adaptation/verification.json) pins the tested source content with SHA256 values.
+Integration base: `dev` at `bfe0bbe0dda0c0a1d2cca3ec93cdb1a963122145`.
+The initial `main`-based implementation and its CPU evidence are retained below.
+The [initial machine record](quantized-target-adaptation/verification.json) pins that earlier tested source content with SHA256 values.
 This is a self-review and execution record, not an independent review.
 
-## Completed checks
+## Current dev integration checks
+
+Environment: macOS arm64, Python 3.12.8, Torch 2.11.0, Transformers 5.12.1, Accelerate 1.15.0.
+The current `dev` CPU lock was installed with hash verification through the standard PyPI index.
+The [dev machine record](quantized-target-adaptation/verification-dev.json) pins the tested source files and installed wheel.
+
+| Check | Command or action | Result |
+| --- | --- | --- |
+| Public CPU suite | `python -m tests.public_cpu` | 786 total: 733 pass, 53 skip; exit 0; 174.632 seconds |
+| Skip scope | 32 CUDA cases; 21 optional Optuna cases | Not passes; hosted CI runs Optuna separately |
+| Existing packed readouts | Five existing quantized/Prism/GGUF/head test modules | 34 pass; exit 0 |
+| Installed wheel | Build, install with `--no-deps`, then `python -I tests/packaging/check_public_install.py` | pass; actual installed CLI onboarding |
+| Repository hooks | Changed feature files relative to `origin/dev` | pass; initial Black formatting correction retained |
+
+Logs: [CPU](quantized-target-adaptation/dev-cpu.txt),
+[packed regressions](quantized-target-adaptation/dev-packed.txt),
+[installed artifact](quantized-target-adaptation/dev-installed-wheel.txt),
+[hooks](quantized-target-adaptation/dev-pre-commit.txt).
+
+The merge preserves existing EAGLE4 and explicit Prism/GGUF readout paths.
+It preserves cached Hub resolution before configuration loading and metadata-only draft preparation.
+The cached-Hub fixture now supplies valid model metadata for the added real configuration read.
+Self-review found no additional confirmed defect within the feature diff and integration resolutions.
+These CPU checks do not establish quantized GPU capture, training, resume, or serving correctness.
+
+The integration target is `dev`. Promotion to `main` and package publication remain separate actions.
+GPU setup was not retried during this integration. The earlier failed attempt remains recorded below.
+
+## Initial main-based checks
 
 Environment: macOS arm64, Python 3.12.8, Torch 2.11.0, Transformers 5.8.1.
 Dependencies use `requirements-cpu.lock` and hash verification.
@@ -82,5 +111,6 @@ Dense defaults and legacy dense caches remain supported.
 Quantized runs require fresh, matching capture manifests.
 Packed embeddings/output heads and native NVFP4 execution are not certified.
 Experimental vLLM quantized capture still needs engine-specific validation.
-The current public base has no EAGLE4 implementation; this PR does not add one.
+The original `main` base had no EAGLE4 implementation.
+The corrected `dev` base already includes EAGLE4; this PR preserves that implementation.
 See [usage](../QUANTIZED_TARGETS.md) and the [spec](../specs/quantized-target-adaptation.md).

@@ -84,9 +84,9 @@ def export_to_sglang(
     """
     state = resolve_training_state(checkpoint_path)
     strategy = state.get("strategy")
-    if strategy not in {"eagle3", "dflash2"}:
+    if strategy not in {"eagle3", "eagle4", "dflash2"}:
         raise ValueError(
-            "the specialized SGLang exporter supports EAGLE3 and DFlash2 "
+            "the specialized SGLang exporter supports EAGLE3, EAGLE4 and DFlash2 "
             f"checkpoints only, got strategy={strategy!r}; use --to hf for "
             "other draft model directories"
         )
@@ -94,23 +94,23 @@ def export_to_sglang(
         state, draft_config_path, vocab_mapping_path=vocab_mapping_path
     )
     model_name = type(model).__name__
-    if strategy == "dflash2" and model_name != "DFlash2DraftModel":
+    if (strategy == "eagle4") != (model_name == "LlamaForCausalLMEagle4"):
+        raise ValueError("EAGLE4 checkpoints require a LlamaForCausalLMEagle4 config")
+    from draftfit.modeling.draft.dflash2 import DFlash2DraftModel
+
+    is_dflash2 = isinstance(model, DFlash2DraftModel)
+    if strategy == "dflash2" and not is_dflash2:
         raise ValueError(
             "dflash2 checkpoint does not contain a DFlash2DraftModel; "
             f"draft config resolved to {model_name}"
         )
-    if strategy == "eagle3" and model_name == "DFlash2DraftModel":
+    if strategy == "eagle3" and is_dflash2:
         raise ValueError("eagle3 checkpoint cannot use a DFlash2DraftModel config")
-    if model_name == "DFlash2DraftModel":
+    if is_dflash2:
         if vocab_mapping_path:
             raise ValueError("DFlash2 serving does not support vocabulary pruning")
-        from draftfit.modeling.draft.dflash2 import (
-            dflash2_config_for_serving,
-            dflash2_state_dict_for_serving,
-        )
-
-        config = dflash2_config_for_serving(model.config.to_dict())
-        full = dflash2_state_dict_for_serving(model.state_dict())
+        config = model.config_for_serving()
+        full = model.state_dict_for_serving()
         model.save_pretrained(
             output_dir,
             state_dict=_serving_state(
@@ -130,7 +130,20 @@ def export_to_sglang(
     # the model's state dict includes any refreshed t2d/d2t buffers; drop the
     # embeddings exactly as the trainer-side checkpoint filter does.
     full = {k: v for k, v in model.state_dict().items() if "embed" not in k.lower()}
-    model.save_pretrained(output_dir, state_dict=_serving_state(full, weight_map))
+    required = _REQUIRED_SERVING_KEYS
+    if strategy == "eagle4":
+        if vocab_mapping_path:
+            raise ValueError("EAGLE4 serving does not support vocabulary pruning")
+        required = (
+            "fc.weight",
+            "norm.weight",
+            "lm_head.weight",
+            "efficient_lm_head.weight",
+            "efficient_lm_head_down_proj.weight",
+        )
+    model.save_pretrained(
+        output_dir, state_dict=_serving_state(full, weight_map, required)
+    )
     apply_legacy_rope_scaling(output_dir)
     return output_dir
 

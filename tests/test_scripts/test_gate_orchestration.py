@@ -107,6 +107,49 @@ class TestNormalizeDFlashExport(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "positive integer markov_rank"):
                 self.module.normalize_export(str(path), 16)
 
+    def test_preserves_dspark_sampling_and_interleaved_rope_for_servers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.json"
+            config = {
+                "model_type": "qwen3",
+                "block_size": 9,
+                "rope_is_neox_style": False,
+                "dflash_config": {
+                    "projector_type": "dspark",
+                    "markov_rank": 256,
+                    "markov_head_type": "vanilla",
+                    "sample_from_anchor": False,
+                    "sliding_window_non_causal": False,
+                },
+            }
+            path.write_text(json.dumps(config))
+            normalized = self.module.normalize_export(str(path), 9)
+            self.assertIs(normalized["is_neox_style"], False)
+            self.assertIs(normalized["rope_is_neox_style"], False)
+            self.assertIs(normalized["sample_from_anchor"], False)
+            self.assertIs(normalized["sliding_window_non_causal"], False)
+
+    def test_rejects_conflicting_rope_layout_without_rewriting_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.json"
+            before = json.dumps(
+                {
+                    "model_type": "qwen3",
+                    "block_size": 9,
+                    "rope_is_neox_style": False,
+                    "is_neox_style": True,
+                    "dflash_config": {
+                        "projector_type": "dspark",
+                        "markov_rank": 256,
+                        "markov_head_type": "vanilla",
+                    },
+                }
+            )
+            path.write_text(before)
+            with self.assertRaisesRegex(ValueError, "RoPE"):
+                self.module.normalize_export(str(path), 9)
+            self.assertEqual(path.read_text(), before)
+
     def test_rejects_a_mismatched_block_size(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "config.json"

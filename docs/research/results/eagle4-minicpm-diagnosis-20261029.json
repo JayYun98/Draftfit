@@ -1,0 +1,253 @@
+{
+  "cpu_target_replays": {
+    "bf16": {
+      "actual_sha256": "41b562e54896e92d8a6a228cb3eb88065542f5d05d82af1de40fcbc86ff54d66",
+      "algorithm": "eagle4",
+      "baseline_sha256": "037245fb2bfe5014e1849a646eb100914983a32aa94312abb1596b5c85a380bf",
+      "block_multiple_head": {
+        "argmax": 7590,
+        "observed_token_logprob": -0.849955141544342,
+        "reference_token_logprob": -0.849955141544342,
+        "top_two_gap": 0.0,
+        "top_two_ids": [
+          14585,
+          7590
+        ],
+        "top_two_logits": [
+          16.125,
+          16.125
+        ]
+      },
+      "block_single_head": {
+        "argmax": 7590,
+        "observed_token_logprob": -0.849955141544342,
+        "reference_token_logprob": -0.849955141544342,
+        "top_two_gap": 0.0,
+        "top_two_ids": [
+          14585,
+          7590
+        ],
+        "top_two_logits": [
+          16.125,
+          16.125
+        ]
+      },
+      "canonical": {
+        "argmax": 7590,
+        "observed_token_logprob": -0.8526921272277832,
+        "reference_token_logprob": -0.8526921272277832,
+        "top_two_gap": 0.0,
+        "top_two_ids": [
+          14585,
+          7590
+        ],
+        "top_two_logits": [
+          16.125,
+          16.125
+        ]
+      },
+      "device": "cpu",
+      "dtype": "bfloat16",
+      "first_divergence": 26,
+      "head_shape_max_difference": 0.0,
+      "hidden_max_difference": 0.4375,
+      "observed_token": 7590,
+      "prefix_tokens": 119,
+      "reference_token": 14585,
+      "same_argmax_across_shapes": true,
+      "sample": 7,
+      "verification_tokens": 125
+    },
+    "fp32": {
+      "actual_sha256": "41b562e54896e92d8a6a228cb3eb88065542f5d05d82af1de40fcbc86ff54d66",
+      "algorithm": "eagle4",
+      "baseline_sha256": "037245fb2bfe5014e1849a646eb100914983a32aa94312abb1596b5c85a380bf",
+      "block_multiple_head": {
+        "argmax": 7590,
+        "observed_token_logprob": -0.8491191267967224,
+        "reference_token_logprob": -0.8617896437644958,
+        "top_two_gap": 0.012670516967773438,
+        "top_two_ids": [
+          7590,
+          14585
+        ],
+        "top_two_logits": [
+          16.045652389526367,
+          16.032981872558594
+        ]
+      },
+      "block_single_head": {
+        "argmax": 7590,
+        "observed_token_logprob": -0.8491218090057373,
+        "reference_token_logprob": -0.8617866039276123,
+        "top_two_gap": 0.012664794921875,
+        "top_two_ids": [
+          7590,
+          14585
+        ],
+        "top_two_logits": [
+          16.045650482177734,
+          16.03298568725586
+        ]
+      },
+      "canonical": {
+        "argmax": 7590,
+        "observed_token_logprob": -0.8491169214248657,
+        "reference_token_logprob": -0.8617912530899048,
+        "top_two_gap": 0.012674331665039062,
+        "top_two_ids": [
+          7590,
+          14585
+        ],
+        "top_two_logits": [
+          16.0456600189209,
+          16.03298568725586
+        ]
+      },
+      "device": "cpu",
+      "dtype": "float32",
+      "first_divergence": 26,
+      "head_shape_max_difference": 1.0967254638671875e-05,
+      "hidden_max_difference": 2.0265579223632812e-05,
+      "observed_token": 7590,
+      "prefix_tokens": 119,
+      "reference_token": 14585,
+      "same_argmax_across_shapes": true,
+      "sample": 7,
+      "verification_tokens": 125
+    }
+  },
+  "data_protocol_audit": {
+    "capture_manifest_sha256": "1ea85496abf9853119b420c3435a0fb771bb961f28169caa8dde2935430c7e89",
+    "special_token_ids": {
+      "</think>": 9,
+      "<think>": 8
+    },
+    "splits": {
+      "test_sft": {
+        "assistant_starts_think": 0,
+        "assistant_tokens": 9470,
+        "end_think_tokens": 0,
+        "samples": 64,
+        "think_tokens": 0
+      },
+      "train_sft": {
+        "assistant_starts_think": 0,
+        "assistant_tokens": 163372,
+        "end_think_tokens": 0,
+        "samples": 1024,
+        "think_tokens": 0
+      }
+    },
+    "target_generation": {
+      "samples": 64,
+      "sha256": "037245fb2bfe5014e1849a646eb100914983a32aa94312abb1596b5c85a380bf",
+      "starts_think": 64
+    }
+  },
+  "extension": {
+    "additional_dense_steps_per_arm": 10000,
+    "auto_restart": false,
+    "continuations": "greedy target-generated",
+    "cumulative_dense_steps_per_arm": 15000,
+    "eagle4_additional_candidate_steps": 1000,
+    "initialization": "completed dense exports; fresh optimizer and cosine schedule",
+    "reason": "Shared GPU measurement reservation; explicit coordination release required",
+    "status": "not-run"
+  },
+  "followup_source_sha256": {
+    "benchmarks/diagnose_eagle4_parity.py": "996ca693822d11b320eef9ce10c502c857257d1937326b6e260098caebf2c11b",
+    "benchmarks/evaluate_eagle4_comparison.py": "7dbf1d3170f72212ad67ec90bb7b2ca58776b5df411aafb31ff79e5331e04fe8",
+    "benchmarks/serve_eagle4_probe.py": "1d6f45a1500416779ea0022832600704bdebc0b618f83dfec5a19ee397cfb052",
+    "benchmarks/train_eagle4_comparison.py": "a8412607240fd547caff120fc1897c75c4c5e863e9047d57ed6119456e6bd4df",
+    "draftfit/assets/__init__.py": "c5d9eb6b0e98836020f436ba6d110235aa89fc985b65fa89a2de3ded2105c983",
+    "setup.py": "e2a58262595217ef52ac3ddef643ec654fc6060c6965dcf3f496896706dff1d3",
+    "tests/public_cpu.py": "e26a405266574e375bafb55d6cc1e8d1c6676bf299cd7a873480b370420e93d1",
+    "tests/test_eagle4_comparison.py": "3878a0149b9a93378e8fe19f52c2c577e379b256e1debcf03adcf1650b4e2362"
+  },
+  "regression": {
+    "affected_suite": {
+      "environment": {
+        "device": "CPU",
+        "torch": "2.11.0",
+        "transformers": "5.12.1"
+      },
+      "failures": 0,
+      "log_sha256": "cd82b852c2ba7ee75ef73a54ebd5d463f0692872b7d5d99db199e60c1a53d79b",
+      "run": 55,
+      "skipped": 17
+    },
+    "after": "pass",
+    "new_tests": 4,
+    "packaging": {
+      "assets_failures": 0,
+      "assets_log_sha256": "08ba5fcc6f9264c10572e15204996210855a62cb9a50222701b8ac9ee2101992",
+      "assets_tests": 3,
+      "build": "wheel and sdist pass",
+      "initial_attempt": "two uv cache sandbox access failures; rerun with dedicated cache passed",
+      "installed_wheel": "CPU onboarding passed for dspark/dflash/dflash2/eagle4",
+      "wheel_log_sha256": "32e77a746350cd073336fb7fb33a624d85729cbfe82f2c0325dcfe4f6d944380"
+    },
+    "raw_answer_capture_before": "fail: input_ids differ from actual target.generate continuation"
+  },
+  "schema_version": 1,
+  "scope": "Diagnosis of the retained 5000-step full-draft comparison; additional training not run",
+  "single_prompt_cuda_reproduction": {
+    "dflash2": {
+      "accepted_tokens": 7,
+      "greedy_equal_samples": 1,
+      "proposed_tokens": 162,
+      "samples": 1
+    },
+    "dspark": {
+      "accepted_tokens": 7,
+      "greedy_equal_samples": 1,
+      "proposed_tokens": 162,
+      "samples": 1
+    },
+    "eagle4": {
+      "accepted_tokens": 3,
+      "greedy_equal_samples": 0,
+      "proposed_tokens": 174,
+      "samples": 1
+    }
+  },
+  "source_export_validation": {
+    "dflash2": {
+      "export": "dflash2/export",
+      "optimizer": "reset; model warm start, not an optimizer-state resume",
+      "previous_dense_steps": 5000,
+      "scope": "CPU source export validation; no CUDA update",
+      "weights_sha256": {
+        "model.safetensors": "f4dca7a9d85dcf1144f0f7355c9207e38c3ea1626e9ecfc05ff42cf2fe9a86db"
+      }
+    },
+    "dspark": {
+      "export": "dspark/export",
+      "optimizer": "reset; model warm start, not an optimizer-state resume",
+      "previous_dense_steps": 5000,
+      "scope": "CPU source export validation; no CUDA update",
+      "weights_sha256": {
+        "model.safetensors": "2e94130acfb5c77cc62858bb45ee44b14b9bcd276fad3267737cb5c983939c6d"
+      }
+    },
+    "eagle4": {
+      "export": "eagle4/dense-export",
+      "optimizer": "reset; model warm start, not an optimizer-state resume",
+      "previous_dense_steps": 5000,
+      "scope": "CPU source export validation; no CUDA update",
+      "weights_sha256": {
+        "model.safetensors": "59b62128da77e5ad4ae311dc599772709250d010e7d64ac111f8a694bc170c9e"
+      }
+    }
+  },
+  "starting_commit": "41583c1d067198d1e8c94cff8de58fe17f1f1ace",
+  "unverified": [
+    "Causal contribution of data mismatch to low acceptance",
+    "Exact CUDA BF16 flip diagnosis",
+    "Native failure cause",
+    "Corrected MiniCPM GPU capture/training/export/generation",
+    "Native probe with logprob diagnostics",
+    "Any isolated latency or throughput improvement"
+  ]
+}

@@ -328,6 +328,23 @@ def _cpu_two_rank_trainer_resume_worker(
             f"data position diverged: {interrupted_seen + resumed_seen} != {ref_seen}"
         )
 
+    # A damaged shard on rank 1 must fail on both ranks before DDP setup.
+    if rank == 1:
+        rank_path = os.path.join(checkpoint, "training_state_rank1.pt")
+        damaged = torch.load(rank_path, weights_only=True)
+        damaged.pop("rng")
+        torch.save(damaged, rank_path)
+    dist.barrier()
+    try:
+        build_trainer(
+            os.path.join(out_dir, "damaged"), max_steps=2, resume_from=checkpoint
+        )
+    except ValueError as exc:
+        if "rank 1: rng" not in str(exc):
+            raise
+    else:
+        raise AssertionError("incomplete remote rank state was accepted")
+
     with open(os.path.join(result_dir, f"rank{rank}.json"), "w") as handle:
         json.dump(
             {
@@ -506,6 +523,32 @@ class TestTrainerResumeEntrypoint(unittest.TestCase):
         self.assertEqual(t3.fit(), 2)
         self.assertEqual(seen3, [])
         self.assertTrue(torch.equal(model3.draft_model.w.detach(), w_cut))
+
+    def test_resume_rejects_missing_optimizer_or_rng(self):
+        with tempfile.TemporaryDirectory() as workdir:
+            features = _write_feature_files(os.path.join(workdir, "features"), n=8)
+            out = os.path.join(workdir, "out")
+            trainer, _, _ = self._make_trainer(out, feat_dir=features, max_steps=2)
+            self.assertEqual(trainer.fit(), 2)
+            checkpoint = os.path.realpath(os.path.join(out, "rz-latest"))
+            rank_path = os.path.join(checkpoint, "training_state_rank0.pt")
+            original = torch.load(rank_path, weights_only=True)
+            for key in ("optimizer", "rng"):
+                for missing in (True, False):
+                    with self.subTest(key=key, missing=missing):
+                        damaged = dict(original)
+                        if missing:
+                            damaged.pop(key)
+                        else:
+                            damaged[key] = None
+                        torch.save(damaged, rank_path)
+                        with self.assertRaisesRegex(ValueError, key):
+                            self._make_trainer(
+                                out,
+                                feat_dir=features,
+                                max_steps=4,
+                                resume_from=checkpoint,
+                            )
 
     def test_resume_validation_fails_fast(self):
         workdir = tempfile.mkdtemp(prefix="trainer_resume_bad_")

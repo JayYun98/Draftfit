@@ -1,0 +1,1590 @@
+{
+  "schema": "draftfit-bounded-effects-v1",
+  "date_kst": "2026-10-28",
+  "scope": "synthetic_full_prefix_reference_not_a_workload_benchmark",
+  "production_gate": "not_evaluated",
+  "source_base_commit": "89fe422285a7149ba4b38ae0e0a4501242b41ca0",
+  "executed_source_sha256": {
+    "scripts/research/run_latest_effects.py": "4f4b960f542063e78f987c426ddc96fb4e5ef2b43c4a326fda47a46b719a6dcf",
+    "draftfit/research/__init__.py": "fc73e151d67d4480458480e7bcf70ffae1937f5b7cddf79357232d68d68e7576",
+    "draftfit/research/__main__.py": "f1a67853f97cfc063f3eed82f62463e5dc5df90caa63e9c6c257a738ab442f0a",
+    "draftfit/research/arr.py": "d459d272494665cad3b9fd556fbf7eca0a6907f6682a03bffa9426e2408e0e2f",
+    "draftfit/research/catalog.py": "c2eced8622a750e0ed71878ba7926da99e1b96fd140d14826d55abd66690bf0f",
+    "draftfit/research/config.py": "1f09b7791df2a694f442811c876fd0e93d8cb02d33363432fa6608418e82af70",
+    "draftfit/research/diagnostics.py": "fa527c8a1c56a9bbd7032def80627d34e75f735bd4a811d2edfb20b1ea669679",
+    "draftfit/research/memory.py": "7abff6b910f50cf28ebf65c6efb07a4ac7d4bc34e06d804bbfd1188ca8d0655c",
+    "draftfit/research/memory_runner.py": "9488637f44d2854c93c9847f2a206b9ac554efeb7e662ed4b00b4bbaa0dd0dff",
+    "draftfit/research/moe_spac.py": "3d0f3085afba4784216e9443554727e72d8f232db333dc4edc9ea2ad5a4a7883",
+    "draftfit/research/osprey.py": "a8168671d4f08bef45beb337b28ec0d531f72ec6b8c0be69ecb33d530833b7eb",
+    "draftfit/research/query_layout.py": "d3ccbed2aeb941c5801a849caa6fba1ed1695540615b8c33a310f0b1092b0f02",
+    "draftfit/research/reference_decode.py": "f9074474cdd9398e3fbf4ec77f8574d3726648b40c400a9652948982feab8c8f",
+    "draftfit/research/rift.py": "f118c054acc131ec441188b2c0a1a0de98996fe9eb241da8cd3e8ba2488ce37d",
+    "draftfit/research/runner.py": "8b583aa1ff974b2c4441a18a5a5cfb4cbe77b970c7b43c61393c924eae623bf9",
+    "draftfit/research/tokenizer_alignment.py": "5bf600c1f98dd3dd76dff7d2f2c297c8033d13c83aace2f888156ad19173cd32",
+    "draftfit/research/treewy.py": "c83a064252f76d6c81154acf685d2ad2f3ae14af9a42f8bcedc13724e762470e",
+    "draftfit/research/valuation_runner.py": "88c49819d8f80b234e86df152e4fb1284cb57db107b151be2d501f4e5ef51df6",
+    "draftfit/research/valuspec.py": "022a8c4c1f49867310a3d492c76602129cba4f208dcf376da6c9a523b7258e29",
+    "draftfit/research/_vendor/__init__.py": "07a83f5fd95f84f88d3ed565cab5dcd160fe6b02123ce2059ebf254b416dd011",
+    "draftfit/research/_vendor/treewy.py": "29c7d7cf103593090a1001c5a39086d95cb1f31cd6eb7b99219576de80ff76e0",
+    "draftfit/research/cast/__init__.py": "29cff07adcbe741ca79d6eee976754c87edd0a6981d33523211560518017272b",
+    "draftfit/research/cast/_masses.py": "e55296a7f3862feb1af2a74e02770026fb48933fc9a37d2a19c7cc33aa3de726",
+    "draftfit/research/cast/decode.py": "7e7a53f1dd4e96aeba24c4a64d09d6b893ba05862b9f5f7f2915eea4aa6272db",
+    "draftfit/research/cast/tree.py": "ee562474384942482ce21eea980fc48c80d8846c91fd400b8601107e16432042",
+    "draftfit/research/cast/verify.py": "e9298caf28cb354313445a5e23c61051c135e72a1c28a5e5428ef73f2c04124d",
+    "draftfit/research/cast/width.py": "ec3877f4f1182fd8bf7ea9efedc1e13e0e5bdec8b00b99f20eb10e165d3b070c"
+  },
+  "workload_sha256": "438dcfabec23cec41571b46d3e21ff0a6e12a2a5aa57c28b37ff1e5d91da6ce8",
+  "raw_archive_sha256": "c2d69b0e85547e371dff63de82b371c51dee7471c53d629e1789a0d39f0c521f",
+  "model": {
+    "id": "Qwen/Qwen3-0.6B",
+    "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+    "parameters": 596049920,
+    "dtype": "float32",
+    "attention": "eager"
+  },
+  "hardware": "one shared A100 SXM4 80GB",
+  "packages": {
+    "torch": "2.13.0",
+    "transformers": "5.17.0",
+    "pydantic": "2.14.1"
+  },
+  "protocol": {
+    "warmup_per_condition": 1,
+    "measured_pairs_per_condition": 3,
+    "alternating_order": true,
+    "max_new_tokens": 32,
+    "latency_scope": "resident-model generation and memory lookup/writeback; model load, tokenization, history restoration and prior priming request excluded",
+    "memory_seed": "one earlier actual EOS-complete count request, never current baseline or an oracle schema",
+    "embedding": "fixed 128-bin SHA256 lexical word counts, not a semantic encoder",
+    "allocator_limit_gib": 5.5,
+    "entry_headroom_gib": 7,
+    "peak_scope": "whole PyTorch worker including resident model weights; RIFT keeps both models resident in both arms",
+    "p95": "nearest rank of three observations; not a tail-latency estimate",
+    "paired_memory_rift_temperature": 0
+  },
+  "memory": [
+    {
+      "condition": "cold",
+      "prompt": "Count from 1 to 5, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 14,
+      "ar": {
+        "milliseconds": [
+          452.63124629855156,
+          450.5159300751984,
+          451.37585606426
+        ],
+        "median_ms": 451.37585606426,
+        "p95_ms": 452.63124629855156,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2444108800,
+          2444108800,
+          2444108800
+        ],
+        "peak_reserved_bytes": [
+          2613051392,
+          2613051392,
+          2613051392
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          452.6718258857727,
+          449.9782361090183,
+          449.4565217755735
+        ],
+        "median_ms": 449.9782361090183,
+        "p95_ms": 452.6718258857727,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2444108800,
+          2444108800,
+          2444108800
+        ],
+        "peak_reserved_bytes": [
+          2613051392,
+          2613051392,
+          2613051392
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 1.0031059723406335,
+      "method": "ngramrl",
+      "warm_history": false,
+      "user": "alice",
+      "retrieval": {
+        "source": "rollout_snapshot"
+      }
+    },
+    {
+      "condition": "repeat",
+      "prompt": "Count from 1 to 5, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 14,
+      "ar": {
+        "milliseconds": [
+          459.2440561391413,
+          450.31239930540323,
+          452.5349847972393
+        ],
+        "median_ms": 452.5349847972393,
+        "p95_ms": 459.2440561391413,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2444108800,
+          2444108800,
+          2444108800
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          82.3411769233644,
+          84.317522123456,
+          81.2948290258646
+        ],
+        "median_ms": 82.3411769233644,
+        "p95_ms": 84.317522123456,
+        "target_forwards": [
+          2,
+          2,
+          2
+        ],
+        "processed_target_positions": [
+          83,
+          83,
+          83
+        ],
+        "accepted_tokens": [
+          13,
+          13,
+          13
+        ],
+        "peak_allocated_bytes": [
+          2444459008,
+          2444459008,
+          2444459008
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 5.495852764145177,
+      "method": "ngramrl",
+      "warm_history": true,
+      "user": "alice",
+      "retrieval": {
+        "source": "rollout_snapshot"
+      }
+    },
+    {
+      "condition": "paraphrase",
+      "prompt": "Write the numbers 1 through 5, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 10,
+      "ar": {
+        "milliseconds": [
+          321.69869914650917,
+          317.5905980169773,
+          321.79865008220077
+        ],
+        "median_ms": 321.69869914650917,
+        "p95_ms": 321.79865008220077,
+        "target_forwards": [
+          10,
+          10,
+          10
+        ],
+        "processed_target_positions": [
+          345,
+          345,
+          345
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2440201728,
+          2440201728,
+          2440201728
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          317.36551597714424,
+          321.9956709071994,
+          323.23245983570814
+        ],
+        "median_ms": 321.9956709071994,
+        "p95_ms": 323.23245983570814,
+        "target_forwards": [
+          10,
+          10,
+          10
+        ],
+        "processed_target_positions": [
+          345,
+          345,
+          345
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2440201728,
+          2440201728,
+          2440201728
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 0.9990777150517163,
+      "method": "ngramrl",
+      "warm_history": true,
+      "user": "alice",
+      "retrieval": {
+        "source": "rollout_snapshot"
+      }
+    },
+    {
+      "condition": "changed_numbers",
+      "prompt": "Count from 6 to 10, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 11,
+      "ar": {
+        "milliseconds": [
+          357.94949484989047,
+          345.86787316948175,
+          358.0816453322768
+        ],
+        "median_ms": 357.94949484989047,
+        "p95_ms": 358.0816453322768,
+        "target_forwards": [
+          11,
+          11,
+          11
+        ],
+        "processed_target_positions": [
+          385,
+          385,
+          385
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2442277376,
+          2442277376,
+          2442277376
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          351.08062205836177,
+          353.80113311111927,
+          351.65255703032017
+        ],
+        "median_ms": 351.65255703032017,
+        "p95_ms": 353.80113311111927,
+        "target_forwards": [
+          11,
+          11,
+          11
+        ],
+        "processed_target_positions": [
+          385,
+          385,
+          385
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2442277376,
+          2442277376,
+          2442277376
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 1.0179067027771602,
+      "method": "ngramrl",
+      "warm_history": true,
+      "user": "alice",
+      "retrieval": {
+        "source": "rollout_snapshot"
+      }
+    },
+    {
+      "condition": "new_text",
+      "prompt": "Return exactly: red, green, blue.",
+      "token_ids_equal": true,
+      "output_tokens": 6,
+      "ar": {
+        "milliseconds": [
+          190.18159667029977,
+          190.38134906440973,
+          189.9776658974588
+        ],
+        "median_ms": 190.18159667029977,
+        "p95_ms": 190.38134906440973,
+        "target_forwards": [
+          6,
+          6,
+          6
+        ],
+        "processed_target_positions": [
+          141,
+          141,
+          141
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2424347136,
+          2424347136,
+          2424347136
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          189.1555800102651,
+          197.7888559922576,
+          190.12327678501606
+        ],
+        "median_ms": 190.12327678501606,
+        "p95_ms": 197.7888559922576,
+        "target_forwards": [
+          6,
+          6,
+          6
+        ],
+        "processed_target_positions": [
+          141,
+          141,
+          141
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2424347136,
+          2424347136,
+          2424347136
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 1.0003067477389929,
+      "method": "ngramrl",
+      "warm_history": true,
+      "user": "alice",
+      "retrieval": {
+        "source": "rollout_snapshot"
+      }
+    },
+    {
+      "condition": "cold",
+      "prompt": "Count from 1 to 5, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 14,
+      "ar": {
+        "milliseconds": [
+          451.45792700350285,
+          454.76243179291487,
+          476.94103978574276
+        ],
+        "median_ms": 454.76243179291487,
+        "p95_ms": 476.94103978574276,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2444108800,
+          2444108800,
+          2444108800
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          457.00135873630643,
+          456.1471031047404,
+          469.31705297902226
+        ],
+        "median_ms": 457.00135873630643,
+        "p95_ms": 469.31705297902226,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2444108800,
+          2444108800,
+          2444108800
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 0.9951008308824669,
+      "method": "specmem",
+      "warm_history": false,
+      "user": "alice",
+      "retrieval": {
+        "source": "schema",
+        "similarity": null
+      }
+    },
+    {
+      "condition": "repeat",
+      "prompt": "Count from 1 to 5, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 14,
+      "ar": {
+        "milliseconds": [
+          449.1755189374089,
+          452.27681333199143,
+          455.3358661942184
+        ],
+        "median_ms": 452.27681333199143,
+        "p95_ms": 455.3358661942184,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2444108800,
+          2444108800,
+          2444108800
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          49.93577999994159,
+          51.50434095412493,
+          51.2127997353673
+        ],
+        "median_ms": 51.2127997353673,
+        "p95_ms": 51.50434095412493,
+        "target_forwards": [
+          1,
+          1,
+          1
+        ],
+        "processed_target_positions": [
+          43,
+          43,
+          43
+        ],
+        "accepted_tokens": [
+          14,
+          14,
+          14
+        ],
+        "peak_allocated_bytes": [
+          2419554816,
+          2419554816,
+          2419554816
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 8.831323725104827,
+      "method": "specmem",
+      "warm_history": true,
+      "user": "alice",
+      "retrieval": {
+        "source": "user",
+        "similarity": 1.0000000000000002
+      }
+    },
+    {
+      "condition": "paraphrase",
+      "prompt": "Write the numbers 1 through 5, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 10,
+      "ar": {
+        "milliseconds": [
+          329.2382857762277,
+          339.71007633954287,
+          391.1548280157149
+        ],
+        "median_ms": 339.71007633954287,
+        "p95_ms": 391.1548280157149,
+        "target_forwards": [
+          10,
+          10,
+          10
+        ],
+        "processed_target_positions": [
+          345,
+          345,
+          345
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2440201728,
+          2440201728,
+          2440201728
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          269.0261979587376,
+          282.63366129249334,
+          269.255539868027
+        ],
+        "median_ms": 269.255539868027,
+        "p95_ms": 282.63366129249334,
+        "target_forwards": [
+          8,
+          8,
+          8
+        ],
+        "processed_target_positions": [
+          296,
+          296,
+          296
+        ],
+        "accepted_tokens": [
+          2,
+          2,
+          2
+        ],
+        "peak_allocated_bytes": [
+          2441615360,
+          2441615360,
+          2441615360
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 1.261664203849059,
+      "method": "specmem",
+      "warm_history": true,
+      "user": "alice",
+      "retrieval": {
+        "source": "user",
+        "similarity": 0.8229511997978236
+      }
+    },
+    {
+      "condition": "changed_numbers",
+      "prompt": "Count from 6 to 10, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 11,
+      "ar": {
+        "milliseconds": [
+          357.394149992615,
+          372.5527059286833,
+          377.2070319391787
+        ],
+        "median_ms": 372.5527059286833,
+        "p95_ms": 377.2070319391787,
+        "target_forwards": [
+          11,
+          11,
+          11
+        ],
+        "processed_target_positions": [
+          385,
+          385,
+          385
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2442277376,
+          2442277376,
+          2442277376
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          358.55441028252244,
+          364.55025477334857,
+          370.61276100575924
+        ],
+        "median_ms": 364.55025477334857,
+        "p95_ms": 370.61276100575924,
+        "target_forwards": [
+          11,
+          11,
+          11
+        ],
+        "processed_target_positions": [
+          399,
+          399,
+          399
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2442277376,
+          2442277376,
+          2442277376
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 1.0219515719727315,
+      "method": "specmem",
+      "warm_history": true,
+      "user": "alice",
+      "retrieval": {
+        "source": "user",
+        "similarity": 0.8571428571428572
+      }
+    },
+    {
+      "condition": "new_text",
+      "prompt": "Return exactly: red, green, blue.",
+      "token_ids_equal": true,
+      "output_tokens": 6,
+      "ar": {
+        "milliseconds": [
+          191.29856629297137,
+          188.92222829163074,
+          197.72659614682198
+        ],
+        "median_ms": 191.29856629297137,
+        "p95_ms": 197.72659614682198,
+        "target_forwards": [
+          6,
+          6,
+          6
+        ],
+        "processed_target_positions": [
+          141,
+          141,
+          141
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2424347136,
+          2424347136,
+          2424347136
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          186.0764459706843,
+          191.81677978485823,
+          194.85986325889826
+        ],
+        "median_ms": 191.81677978485823,
+        "p95_ms": 194.85986325889826,
+        "target_forwards": [
+          6,
+          6,
+          6
+        ],
+        "processed_target_positions": [
+          141,
+          141,
+          141
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2424347136,
+          2424347136,
+          2424347136
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 0.9972983933289461,
+      "method": "specmem",
+      "warm_history": true,
+      "user": "alice",
+      "retrieval": {
+        "source": "schema",
+        "similarity": null
+      }
+    },
+    {
+      "condition": "new_user",
+      "prompt": "Count from 1 to 5, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 14,
+      "ar": {
+        "milliseconds": [
+          475.16412707045674,
+          477.79095731675625,
+          523.7303171306849
+        ],
+        "median_ms": 477.79095731675625,
+        "p95_ms": 523.7303171306849,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2444108800,
+          2444108800,
+          2444108800
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          455.9676209464669,
+          447.3461448214948,
+          498.5393648967147
+        ],
+        "median_ms": 455.9676209464669,
+        "p95_ms": 498.5393648967147,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          2444108800,
+          2444108800,
+          2444108800
+        ],
+        "peak_reserved_bytes": [
+          2642411520,
+          2642411520,
+          2642411520
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 1.0478615922880443,
+      "method": "specmem",
+      "warm_history": true,
+      "user": "bob",
+      "retrieval": {
+        "source": "schema",
+        "similarity": null
+      }
+    }
+  ],
+  "rift": [
+    {
+      "condition": "Count from 1 to 5, separated by commas. Output only the list.",
+      "prompt": "Count from 1 to 5, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 14,
+      "ar": {
+        "milliseconds": [
+          455.3070552647114,
+          454.0607947856188,
+          452.76138512417674
+        ],
+        "median_ms": 454.0607947856188,
+        "p95_ms": 455.3070552647114,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          4828833792,
+          4828833792,
+          4828833792
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          575.540080666542,
+          557.2553668171167,
+          530.9186801314354
+        ],
+        "median_ms": 557.2553668171167,
+        "p95_ms": 575.540080666542,
+        "target_forwards": [
+          3,
+          3,
+          3
+        ],
+        "processed_target_positions": [
+          114,
+          114,
+          114
+        ],
+        "accepted_tokens": [
+          12,
+          12,
+          12
+        ],
+        "peak_allocated_bytes": [
+          4836622336,
+          4836622336,
+          4836622336
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 0.8148163693408359,
+      "context_budget": 16,
+      "draft_model": "independent copy of the same 0.6B target",
+      "cache": [
+        {
+          "dense_history_kv_bytes_before_gather": 6651904,
+          "active_context_kv_bytes_after_gather": 3670016,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 7798784,
+          "active_context_kv_bytes_after_gather": 3670016,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 8945664,
+          "active_context_kv_bytes_after_gather": 3670016,
+          "draft_forwards": 4
+        }
+      ]
+    },
+    {
+      "condition": "Count from 1 to 5, separated by commas. Output only the list.",
+      "prompt": "Count from 1 to 5, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 14,
+      "ar": {
+        "milliseconds": [
+          465.00630117952824,
+          456.2323805876076,
+          494.9859562329948
+        ],
+        "median_ms": 465.00630117952824,
+        "p95_ms": 494.9859562329948,
+        "target_forwards": [
+          14,
+          14,
+          14
+        ],
+        "processed_target_positions": [
+          497,
+          497,
+          497
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          4828833792,
+          4828833792,
+          4828833792
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          526.0538901202381,
+          525.7406979799271,
+          558.1997530534863
+        ],
+        "median_ms": 526.0538901202381,
+        "p95_ms": 558.1997530534863,
+        "target_forwards": [
+          3,
+          3,
+          3
+        ],
+        "processed_target_positions": [
+          114,
+          114,
+          114
+        ],
+        "accepted_tokens": [
+          12,
+          12,
+          12
+        ],
+        "peak_allocated_bytes": [
+          4836772352,
+          4836772352,
+          4836772352
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 0.8839518344275404,
+      "context_budget": 40960,
+      "draft_model": "independent copy of the same 0.6B target",
+      "cache": [
+        {
+          "dense_history_kv_bytes_before_gather": 6651904,
+          "active_context_kv_bytes_after_gather": 6651904,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 7798784,
+          "active_context_kv_bytes_after_gather": 7798784,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 8945664,
+          "active_context_kv_bytes_after_gather": 8945664,
+          "draft_forwards": 4
+        }
+      ]
+    },
+    {
+      "condition": "Count from 6 to 10, separated by commas. Output only the list.",
+      "prompt": "Count from 6 to 10, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 11,
+      "ar": {
+        "milliseconds": [
+          358.38990984484553,
+          365.05792289972305,
+          365.9059088677168
+        ],
+        "median_ms": 365.05792289972305,
+        "p95_ms": 365.9059088677168,
+        "target_forwards": [
+          11,
+          11,
+          11
+        ],
+        "processed_target_positions": [
+          385,
+          385,
+          385
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          4827002368,
+          4827002368,
+          4827002368
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          531.6484239883721,
+          543.2513151317835,
+          541.6814321652055
+        ],
+        "median_ms": 541.6814321652055,
+        "p95_ms": 543.2513151317835,
+        "target_forwards": [
+          3,
+          3,
+          3
+        ],
+        "processed_target_positions": [
+          117,
+          117,
+          117
+        ],
+        "accepted_tokens": [
+          9,
+          9,
+          9
+        ],
+        "peak_allocated_bytes": [
+          4839059968,
+          4839059968,
+          4839059968
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 0.6739347173864091,
+      "context_budget": 16,
+      "draft_model": "independent copy of the same 0.6B target",
+      "cache": [
+        {
+          "dense_history_kv_bytes_before_gather": 6881280,
+          "active_context_kv_bytes_after_gather": 3670016,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 8028160,
+          "active_context_kv_bytes_after_gather": 3670016,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 9175040,
+          "active_context_kv_bytes_after_gather": 3670016,
+          "draft_forwards": 4
+        }
+      ]
+    },
+    {
+      "condition": "Count from 6 to 10, separated by commas. Output only the list.",
+      "prompt": "Count from 6 to 10, separated by commas. Output only the list.",
+      "token_ids_equal": true,
+      "output_tokens": 11,
+      "ar": {
+        "milliseconds": [
+          368.58473997563124,
+          364.8320701904595,
+          358.60315104946494
+        ],
+        "median_ms": 364.8320701904595,
+        "p95_ms": 368.58473997563124,
+        "target_forwards": [
+          11,
+          11,
+          11
+        ],
+        "processed_target_positions": [
+          385,
+          385,
+          385
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          4827002368,
+          4827002368,
+          4827002368
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          545.8191041834652,
+          541.8708128854632,
+          520.3621140681207
+        ],
+        "median_ms": 541.8708128854632,
+        "p95_ms": 545.8191041834652,
+        "target_forwards": [
+          3,
+          3,
+          3
+        ],
+        "processed_target_positions": [
+          117,
+          117,
+          117
+        ],
+        "accepted_tokens": [
+          9,
+          9,
+          9
+        ],
+        "peak_allocated_bytes": [
+          4839210496,
+          4839210496,
+          4839210496
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 0.6732823793326825,
+      "context_budget": 40960,
+      "draft_model": "independent copy of the same 0.6B target",
+      "cache": [
+        {
+          "dense_history_kv_bytes_before_gather": 6881280,
+          "active_context_kv_bytes_after_gather": 6881280,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 8028160,
+          "active_context_kv_bytes_after_gather": 8028160,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 9175040,
+          "active_context_kv_bytes_after_gather": 9175040,
+          "draft_forwards": 4
+        }
+      ]
+    },
+    {
+      "condition": "Return exactly: red, green, blue.",
+      "prompt": "Return exactly: red, green, blue.",
+      "token_ids_equal": true,
+      "output_tokens": 6,
+      "ar": {
+        "milliseconds": [
+          198.07822909206152,
+          195.62681764364243,
+          192.58744502440095
+        ],
+        "median_ms": 195.62681764364243,
+        "p95_ms": 198.07822909206152,
+        "target_forwards": [
+          6,
+          6,
+          6
+        ],
+        "processed_target_positions": [
+          141,
+          141,
+          141
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          4809072128,
+          4809072128,
+          4809072128
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          358.20418782532215,
+          364.45229733362794,
+          346.3892051950097
+        ],
+        "median_ms": 358.20418782532215,
+        "p95_ms": 364.45229733362794,
+        "target_forwards": [
+          2,
+          2,
+          2
+        ],
+        "processed_target_positions": [
+          55,
+          55,
+          55
+        ],
+        "accepted_tokens": [
+          5,
+          5,
+          5
+        ],
+        "peak_allocated_bytes": [
+          4816281088,
+          4816281088,
+          4816281088
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 0.5461321343876627,
+      "context_budget": 16,
+      "draft_model": "independent copy of the same 0.6B target",
+      "cache": [
+        {
+          "dense_history_kv_bytes_before_gather": 4816896,
+          "active_context_kv_bytes_after_gather": 3670016,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 5963776,
+          "active_context_kv_bytes_after_gather": 3670016,
+          "draft_forwards": 4
+        }
+      ]
+    },
+    {
+      "condition": "Return exactly: red, green, blue.",
+      "prompt": "Return exactly: red, green, blue.",
+      "token_ids_equal": true,
+      "output_tokens": 6,
+      "ar": {
+        "milliseconds": [
+          200.47330670058727,
+          192.5104740075767,
+          196.7336880043149
+        ],
+        "median_ms": 196.7336880043149,
+        "p95_ms": 200.47330670058727,
+        "target_forwards": [
+          6,
+          6,
+          6
+        ],
+        "processed_target_positions": [
+          141,
+          141,
+          141
+        ],
+        "accepted_tokens": [
+          0,
+          0,
+          0
+        ],
+        "peak_allocated_bytes": [
+          4809072128,
+          4809072128,
+          4809072128
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "candidate": {
+        "milliseconds": [
+          346.0195707157254,
+          355.712266638875,
+          344.981552567333
+        ],
+        "median_ms": 346.0195707157254,
+        "p95_ms": 355.712266638875,
+        "target_forwards": [
+          2,
+          2,
+          2
+        ],
+        "processed_target_positions": [
+          55,
+          55,
+          55
+        ],
+        "accepted_tokens": [
+          5,
+          5,
+          5
+        ],
+        "peak_allocated_bytes": [
+          4816362496,
+          4816362496,
+          4816362496
+        ],
+        "peak_reserved_bytes": [
+          4945084416,
+          4945084416,
+          4945084416
+        ]
+      },
+      "observed_ar_over_candidate_median_ratio": 0.5685623145459097,
+      "context_budget": 40960,
+      "draft_model": "independent copy of the same 0.6B target",
+      "cache": [
+        {
+          "dense_history_kv_bytes_before_gather": 4816896,
+          "active_context_kv_bytes_after_gather": 4816896,
+          "draft_forwards": 4
+        },
+        {
+          "dense_history_kv_bytes_before_gather": 5963776,
+          "active_context_kv_bytes_after_gather": 5963776,
+          "draft_forwards": 4
+        }
+      ]
+    }
+  ],
+  "arr": {
+    "scope": "four predeclared toy arithmetic questions, not a held-out benchmark",
+    "primary_metric": "predeclared strict full-response exact match to the requested bare integer",
+    "additional_diagnostic": "post-hoc last numeric literal; does not replace the failed strict metric",
+    "root_temperature": 0.7,
+    "max_roots": 3,
+    "active_roots": 2,
+    "max_processed_positions": 6000,
+    "comparisons": [
+      {
+        "prompt": "What is 2 + 3? Reply with only the integer.",
+        "expected": "5",
+        "ar_response": "2 + 3 = 5",
+        "arr_response": "2 + 3 = 5",
+        "ar_strict_full_response_exact_match": false,
+        "arr_strict_full_response_exact_match": false,
+        "ar_last_number_diagnostic_correct": true,
+        "arr_last_number_diagnostic_correct": true,
+        "ar_processed_positions": 236,
+        "arr_processed_positions": 1287
+      },
+      {
+        "prompt": "What is 7 - 4? Reply with only the integer.",
+        "expected": "3",
+        "ar_response": "7 - 4 = 3.",
+        "arr_response": "7 - 4 = 3.",
+        "ar_strict_full_response_exact_match": false,
+        "arr_strict_full_response_exact_match": false,
+        "ar_last_number_diagnostic_correct": true,
+        "arr_last_number_diagnostic_correct": true,
+        "ar_processed_positions": 270,
+        "arr_processed_positions": 2550
+      },
+      {
+        "prompt": "What is 3 * 4? Reply with only the integer.",
+        "expected": "12",
+        "ar_response": "3 * 4 = 12.",
+        "arr_response": "3 * 4 = 12.",
+        "ar_strict_full_response_exact_match": false,
+        "arr_strict_full_response_exact_match": false,
+        "ar_last_number_diagnostic_correct": true,
+        "arr_last_number_diagnostic_correct": true,
+        "ar_processed_positions": 305,
+        "arr_processed_positions": 1669
+      },
+      {
+        "prompt": "What is 8 / 2? Reply with only the integer.",
+        "expected": "4",
+        "ar_response": "8 divided by 2 is 4.  \n\nSo, the answer is **4**.",
+        "arr_response": "8 divided by 2 equals 4. Therefore, the integer is 4.",
+        "ar_strict_full_response_exact_match": false,
+        "arr_strict_full_response_exact_match": false,
+        "ar_last_number_diagnostic_correct": true,
+        "arr_last_number_diagnostic_correct": true,
+        "ar_processed_positions": 710,
+        "arr_processed_positions": 4412
+      }
+    ],
+    "ar_strict_correct": 0,
+    "arr_strict_correct": 0,
+    "ar_numeric_diagnostic_correct": 4,
+    "arr_numeric_diagnostic_correct": 4
+  },
+  "observations": {
+    "exact_greedy_pairs": 51,
+    "external_process_identity_constant_during_sampled_pairs": true,
+    "maximum_observed_reserved_gib": 4.60546875,
+    "shared_gpu_activity_is_not_isolated": true,
+    "subsequent_service_health_observation": "external serving process disappeared after the gate, then a replacement process appeared while health remained unavailable; cause unverified; no service-control action in this probe"
+  }
+}

@@ -43,6 +43,20 @@ def _payload(strategy: str, **model_overrides):
 
 
 class ModelLoadingSchemaTest(unittest.TestCase):
+    def test_acceptance_objective_requires_dspark_and_method(self):
+        missing = _payload("dspark")
+        missing["training"].update(dspark_acceptance_loss_alpha=1.0)
+        with self.assertRaisesRegex(
+            ValidationError, "dspark_acceptance_loss is required"
+        ):
+            Config.model_validate(missing)
+        wrong_strategy = _payload("dflash")
+        wrong_strategy["training"].update(
+            dspark_acceptance_loss="eal", dspark_acceptance_loss_alpha=1.0
+        )
+        with self.assertRaisesRegex(ValidationError, "requires strategy=dspark"):
+            Config.model_validate(wrong_strategy)
+
     def test_working_legacy_auto_config_strategies_can_omit_source(self):
         for strategy in ("eagle3", "peagle", "dflash"):
             with self.subTest(strategy=strategy):
@@ -114,6 +128,19 @@ class ModelLoadingSchemaTest(unittest.TestCase):
                     },
                 }
             )
+
+    def test_head_only_requires_dspark_warm_start(self):
+        for strategy, checkpoint in (("dspark", None), ("dflash", "/draft")):
+            with (
+                self.subTest(strategy=strategy),
+                self.assertRaisesRegex(ValidationError, "dspark_head_only requires"),
+            ):
+                payload = _payload(strategy, draft_checkpoint_path=checkpoint)
+                payload["training"]["dspark_head_only"] = True
+                Config.model_validate(payload)
+        resume = _payload("dspark", draft_model_config="/draft.json")
+        resume["training"].update(dspark_head_only=True, resume_from="/run/checkpoint")
+        self.assertTrue(Config.model_validate(resume).training.dspark_head_only)
 
     def test_disaggregated_producer_can_resolve_warm_start_metadata(self):
         payload = _payload(

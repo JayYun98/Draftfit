@@ -1,0 +1,25 @@
+flowchart TB
+    DATA["Prepared token data<br/>Train + fixed holdout"] --> TARGET["Frozen target<br/>Capture once per microbatch"]
+    TARGET --> QUEUE["Bounded RAM feature queue<br/>Ready + leased bytes"]
+    QUEUE --> ALIGN["Family-specific alignment / masks"]
+    ALIGN --> S["DSpark loss<br/>Taps + final hidden"]
+    ALIGN --> F["DFlash loss<br/>Auxiliary taps"]
+    ALIGN --> F2["DFlash2 loss<br/>Auxiliary taps + selector"]
+    S --> OPT["Shared backbone + private parameters<br/>One optimizer update"]
+    F --> OPT
+    F2 --> OPT
+    OPT --> ACK["Acknowledge consumed batches<br/>Release feature RAM"]
+    ACK --> CKPT["Checkpoint + committed cursor<br/>Weights / optimizer / RNG"]
+    CKPT --> VERIFY["Milestone verification<br/>Token parity / acceptance / domain timings"]
+    VERIFY --> POLICY{"Bounded policy<br/>Loss / acceptance"}
+    POLICY -->|Continue| TARGET
+    POLICY -->|Registered batch / LR preset| PHASE["New weights-only phase<br/>New optimizer / schedule"]
+    PHASE --> TARGET
+    POLICY -->|Plateau / limit| END["Best + latest verified exports<br/>Retain exact-resume state"]
+    END -. Optional .-> HUB["Immutable snapshot<br/>Background HF upload + receipt"]
+    classDef input fill:#eaf2ff,stroke:#4477aa,color:#172c46
+    classDef train fill:#edf7f0,stroke:#44835d,color:#173923
+    classDef check fill:#fff3df,stroke:#ad7932,color:#493311
+    class DATA,TARGET,QUEUE input
+    class ALIGN,S,F,F2,OPT,ACK train
+    class CKPT,VERIFY,POLICY,PHASE,END,HUB check

@@ -1,7 +1,10 @@
 # Unified training recipe catalog
 
-Every draft model JSON under `configs/` has at least one typed YAML recipe in
-this directory. Run any recipe through the one public training entry:
+The stable draft model JSON files under `configs/` have typed YAML recipes in
+this directory. The five recent-target DSpark/DFlash2 metadata recipes are
+experimental and documented separately in
+[recent target experiments](../../docs/RECENT_MODEL_EXPERIMENTS.md); they need
+real-weight GPU and serving validation. Run a YAML recipe through the training entry:
 
 ```bash
 specforge train --config examples/configs/qwen3-8b-eagle3-disaggregated.yaml
@@ -78,6 +81,25 @@ The Pydantic models in `draftfit/config/schema.py` are the authoritative
 schema. This section explains what belongs in each YAML section and records the
 defaults that matter when writing a recipe. Unknown or misspelled fields are
 errors; YAML files and dotted CLI overrides go through the same validation.
+
+For DSpark ablations, `training.dspark_acceptance_loss` selects `eal` or `wtv`,
+`training.dspark_acceptance_loss_alpha` sets its weight, and
+`training.dspark_acceptance_temperature` controls soft acceptance weights.
+`training.dspark_head_only` set to `true` freezes the shared backbone when warm-starting
+from a draft checkpoint. For published anchor-style DSpark → DFlash/DFlash2
+initialization, `training.retrain_anchor_alignment` set to `true` explicitly changes
+the destination label alignment and requires fresh training. The default
+rejects this transfer; see the MiniCPM5 family matrix linked above.
+
+For joint training, `training.joint_online_capture` captures frozen-target
+features from tokenized inputs instead of loading saved feature files.
+`training.joint_target_device` optionally places that target on a separate device.
+`training.joint_feature_queue_bytes` bounds resident feature memory, and
+`training.joint_feature_queue_batches` limits lookahead batches within that bound.
+`training.joint_verification` configures fixed-holdout generation checks and
+optimizer offload/restore. `training.joint_control` enables checkpoint-bound
+policy decisions using explicit budget observations; the unattended controller
+owns this field when selected. These options do not establish serving speedup.
 
 New checked-in recipes should explicitly set `training.strategy`,
 `deployment.mode`, `deployment.trainer.nnodes`,
@@ -157,10 +179,15 @@ should make their training strategy and topology explicit.
 | `model.target_revision` | `null` | Target config/tokenizer/weights revision for owned loaders and managed servers; pin a commit for reproducibility. |
 | `model.draft_model_config` | `null` | Draft JSON, model directory containing `config.json`, or Hugging Face repository. EAGLE3, P-EAGLE, DFlash, and DSpark may omit it and derive a fresh config; Domino still requires one. |
 | `model.draft_checkpoint_path` | `null` | Weights-only warm start for a new run. Do not combine it with `training.resume_from`. |
+| `model.draft_capture_layer_indexing` | `null` | Required for generic nested published drafts unless their metadata declares the convention: `block_output` selects zero-based decoder block outputs; `embedding_inclusive` maps source IDs greater than zero to block ID minus one. Embedding slot zero and conflicting declarations are rejected. Native exports preserve resolved provenance. |
 | `model.draft_num_hidden_layers` | `null` | Positive fresh-architecture override where the strategy permits it. EAGLE3 remains one layer; P-EAGLE and DFlash may override their generated defaults. |
 | `model.draft_block_size` | `null` | Positive DFlash block-size override; generated DFlash configs default to 16. |
-| `model.target_backend` | `sglang` | `sglang`, `transformers`, or `vllm`. Native HF/vLLM online teachers use the owned loopback capture service, currently text TP1. Retired `hf`/`custom` names fail. Offline consumers do not instantiate a teacher. |
+| `model.target_backend` | `sglang` | `sglang`, `transformers`, `vllm`, or explicit local `prism_gguf`. Native HF/vLLM online teachers use the owned loopback capture service, currently text TP1. Prism is restricted to in-process joint-family capture with the pinned native bridge. Retired `hf`/`custom` names fail. Offline consumers do not instantiate a teacher. |
 | `model.target_quantization` | `auto` | Preserve checkpoint quantization. `bitsandbytes-4bit` and `bitsandbytes-8bit` quantize a floating Transformers teacher at load time. Draft weights stay floating. See [quantized targets](../../docs/QUANTIZED_TARGETS.md). |
+| `model.prism_capture_bridge` | `null` | Local pinned native capture bridge; required for `prism_gguf`. See [quantized capture](../../docs/specs/quantized-capture.md) for the native build and ABI contract. |
+| `model.target_gguf_sha256` | `null` | Exact lowercase 64-character SHA256 of the local target GGUF; required for Prism capture and checked before loading. |
+| `model.gguf_context_size` | `1024` | Native Prism context limit, from 64 through 8192; must cover training and verification sequences. |
+| `model.gguf_chunk_size` | `32` | Native Prism capture chunk size, from 1 through 512. |
 | `model.hf_attn_implementation` | `sdpa` | Owned Transformers teacher attention: `sdpa` or `eager`. Nondefault settings require the Transformers online backend. |
 | `model.vllm_gpu_memory_utilization` | `0.8` | Owned vLLM teacher GPU memory fraction, strictly between zero and one. Nondefault settings require the vLLM online backend. |
 | `model.input_modality` | `text` | The provider modality. The unified runtime supports text only; VLM modalities such as `qwen2_5_vl` are rejected. |
@@ -249,6 +276,8 @@ Common fields:
 | `training.total_steps` | `null` | Positive optimizer/loss schedule horizon; it does not itself stop an online stream. A finite online disaggregated run may omit both fields: the producer publishes the exact horizon derived from prepared prompts, epochs, DP size, batch size, and accumulation. |
 | `training.batch_size` | `1` | Per-rank microbatch size. P-EAGLE and USP require 1. |
 | `training.accumulation_steps` | `1` | Positive microbatches per optimizer update. |
+| `training.eagle4_stage` | `draft` | EAGLE4 dense training or frozen-draft `candidates` distillation. |
+| `training.eagle4_initialize_candidates` | `false` | Initialize candidate factors with randomized SVD on a candidate-stage warm start; disable for full resume. |
 | `training.fsdp_sharding` | `SHARD_GRAD_OP` | Trainer FSDP mode: `SHARD_GRAD_OP`, `FULL_SHARD`, or `NO_SHARD`. |
 | `training.fsdp_version` | `v1` | Trainer implementation: `v1` (legacy wrapper) or `v2` (composable FSDP2, single-node opt-in). |
 | `training.learning_rate` | `1e-4` | Positive peak learning rate. |
@@ -281,6 +310,7 @@ Strategy-specific fields should be written only when tuning that objective:
 | DFlash / Domino / D-PACE | `training.num_anchors` (`512`), `training.loss_decay_gamma` (`null`), `training.objective_chunk_blocks` (`128`; `0` materializes all objective logits), `training.loss_type` (`dflash`), `training.dpace_alpha` (`0.5`), `training.lambda_base_start` (`1.0`), `training.lambda_base_decay_ratio` (`0.5`) |
 | DFlash2 | Shared DFlash objective settings plus `training.dflash2_selector_loss_alpha` (`1.0`, positive); trains grouped convolution and a full-vocabulary candidate selector. |
 | DSpark | Token-pooled objective with valid-first-target anchors and distributed ratio telemetry. Configure the shared `training.num_anchors` (`512`), `training.loss_decay_gamma` (`null`; production recipes use `4.0`), and `training.objective_chunk_blocks` (`128`; `0` materializes all objective logits), plus `training.dspark_ce_loss_alpha` (`0.1`), `training.dspark_l1_loss_alpha` (`0.9`), and `training.dspark_confidence_head_alpha` (`1.0`). |
+| ALR/IRA | `training.alr_topk` (`8`, positive), `training.alr_hard_label_mix` (`0.0`, from 0 through 1), and `training.alr_tail_bucket` (`true`). Uses prepared sparse target rollouts; it does not modify the ordinary DFlash objective. See [research workflows](../../docs/specs/research-methods.md). |
 | P-EAGLE | `training.num_depths` (`8`), `training.down_sample_ratio` (`0.8`), `training.down_sample_ratio_min` (`0.2`), `training.norm_before_residual` (`null`) |
 
 New recipes must not write the loader-only migration fields
