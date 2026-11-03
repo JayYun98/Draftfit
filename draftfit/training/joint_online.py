@@ -1,4 +1,4 @@
-"""Bounded, synchronous token-to-feature source for joint family training.
+"""Bounded token-to-feature source for joint family training.
 
 Token rows remain recoverable; prefetched features live only in the bounded RAM
 queue until their joint update succeeds. Features are captured once per requested
@@ -11,7 +11,7 @@ import hashlib
 import json
 import random
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 import numpy as np
@@ -178,7 +178,7 @@ def _read_rows(path, max_length):
 class JointOnlineSource:
     """One lazy frozen teacher shared by training and held-out loaders.
 
-    This source is synchronous and intended for the single-process joint loop.
+    Capture can use a bounded background producer in the single-process joint loop.
     ``capture_calls`` and ``captured_samples`` count successful captures only.
     """
 
@@ -251,6 +251,8 @@ class JointOnlineSource:
         if capture_identity is not None:
             self._sources["capture"] = capture_identity
         self._teacher = None
+        self._async_capture = getattr(cfg.training, "joint_async_capture", False)
+        self._capture_stream = None
         self._queue_bytes = getattr(cfg.training, "joint_feature_queue_bytes", 0)
         self._queue_batches = getattr(cfg.training, "joint_feature_queue_batches", 2)
         self._feature_width = getattr(
@@ -279,14 +281,23 @@ class JointOnlineSource:
             "cancelled",
             "backpressure",
         )
-        return {
+        snapshots = [queue.metrics() for queue in self._queues]
+        metrics = {
             key: (
-                max((q.metrics()[key] for q in self._queues), default=0)
+                max((snapshot[key] for snapshot in snapshots), default=0)
                 if key == "peak_bytes"
-                else sum(q.metrics()[key] for q in self._queues)
+                else sum(snapshot[key] for snapshot in snapshots)
             )
             for key in keys
         }
+        if self._async_capture:
+            metrics["reserved_bytes"] = sum(
+                snapshot["reserved_bytes"] for snapshot in snapshots
+            )
+            metrics["producer_alive"] = any(
+                snapshot["producer_alive"] for snapshot in snapshots
+            )
+        return metrics
 
     def consume(self, batches):
         """Called only after every family backward and the optimizer update."""
@@ -296,6 +307,11 @@ class JointOnlineSource:
                 queue, lease = owned
                 queue.release(lease, consumed=True)
             self.consumed_samples += len(batch.sample_ids)
+
+    def pause_capture(self):
+        if self._async_capture and self._queue is not None:
+            return self._queue.pause()
+        return nullcontext()
 
     def close_queues(self):
         for queue in self._queues:
@@ -341,6 +357,25 @@ class JointOnlineSource:
             self, rows, indices, stage.config.training.batch_size, drop_last, evaluation
         ), len(rows)
 
+    def _load_teacher(self, device):
+        if self._teacher is None:
+            identity = self._sources.get("capture")
+            if (
+                identity
+                and _file_sha256(identity["bridge_path"]) != identity["bridge_sha256"]
+            ):
+                raise ValueError("Prism bridge changed after source fingerprinting")
+            teacher = self._teacher_factory.from_pretrained(
+                self._model_path,
+                device=device,
+                **self._model_kwargs,
+            )
+            teacher.set_capture_layers(
+                list(self._layers),
+                capture_method="dspark" if self.needs_dspark else "dflash",
+            )
+            self._teacher = teacher
+
     def _capture_batch(self, rows, indices, evaluation):
         selected = [rows[index] for index in indices]
         length = max(row["input_ids"].numel() for row in selected)
@@ -352,25 +387,20 @@ class JointOnlineSource:
             loss[index, :size] = row["loss_mask"]
             attention[index, :size] = 1
         device = self._target_device or get_device()
-        with _preserve_rng(device):
-            if self._teacher is None:
-                identity = self._sources.get("capture")
-                if (
-                    identity
-                    and _file_sha256(identity["bridge_path"])
-                    != identity["bridge_sha256"]
-                ):
-                    raise ValueError("Prism bridge changed after source fingerprinting")
-                teacher = self._teacher_factory.from_pretrained(
-                    self._model_path,
-                    device=device,
-                    **self._model_kwargs,
-                )
-                teacher.set_capture_layers(
-                    list(self._layers),
-                    capture_method="dspark" if self.needs_dspark else "dflash",
-                )
-                self._teacher = teacher
+        capture_context = (
+            torch.cuda.stream(self._capture_stream)
+            if self._async_capture
+            and not evaluation
+            and self._capture_stream is not None
+            else nullcontext()
+        )
+        rng_context = (
+            nullcontext()
+            if self._async_capture and not evaluation
+            else _preserve_rng(device)
+        )
+        with capture_context, rng_context:
+            self._load_teacher(device)
             started = time.perf_counter()
             captured = self._teacher.capture(
                 input_ids=ids,
@@ -448,13 +478,17 @@ class _TokenLoader:
     def __iter__(self):
         start, self._seek_batches = self._seek_batches, 0
         if not self.source._queue_bytes or self.evaluation:
-            for batch in range(start, len(self)):
-                offset = batch * self.batch_size
-                yield self.source._capture_batch(
-                    self.rows,
-                    self.indices[offset : offset + self.batch_size],
-                    self.evaluation,
-                )
+            with self.source.pause_capture() if self.evaluation else nullcontext():
+                for batch in range(start, len(self)):
+                    offset = batch * self.batch_size
+                    yield self.source._capture_batch(
+                        self.rows,
+                        self.indices[offset : offset + self.batch_size],
+                        self.evaluation,
+                    )
+            return
+        if self.source._async_capture:
+            yield from self._iter_async(start)
             return
         from draftfit.training.feature_queue import BoundedFeatureQueue
 
@@ -494,3 +528,38 @@ class _TokenLoader:
             # Leases may still belong to an accumulation window crossing the
             # epoch boundary. They keep source-wide credit until optimizer ACK.
             queue.cancel_ready()
+
+    def _iter_async(self, start):
+        from draftfit.training.async_feature_queue import AsyncFeatureQueue
+
+        source = self.source
+        device = source._target_device or get_device()
+        # Model initialization can draw random numbers. Complete it on the caller
+        # before training and never restore global RNG state from the producer.
+        with _preserve_rng(device):
+            source._load_teacher(device)
+        if source._queue is None:
+            source._queue = AsyncFeatureQueue(
+                source._queue_bytes, source._queue_batches
+            )
+            source._queues.append(source._queue)
+            if device.type == "cuda":
+                source._capture_stream = torch.cuda.Stream(device=device)
+                source._capture_stream.wait_stream(torch.cuda.current_stream(device))
+        queue = source._queue
+        items = [
+            self.indices[batch * self.batch_size : (batch + 1) * self.batch_size]
+            for batch in range(start, len(self))
+        ]
+        queue.start(
+            items,
+            lambda indices: source._capture_batch(self.rows, indices, False),
+            lambda indices: source._batch_bytes(self.rows, indices),
+        )
+        try:
+            for _ in items:
+                lease = queue.acquire()
+                source._leases[id(lease.value)] = (queue, lease)
+                yield lease.value
+        finally:
+            queue.stop()

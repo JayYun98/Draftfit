@@ -5,6 +5,10 @@ explicitly approved operation; a Git version tag does not imply a PyPI release.
 
 ## Unreleased
 
+- Add optional asynchronous joint feature capture through a bounded RAM queue.
+  A frozen Transformers teacher can produce features while the draft trains on
+  earlier batches. CUDA correctness and throughput remain unverified.
+
 - Train fresh drafts or adapt existing drafts from quantized-target features.
   Add optional Transformers NF4/INT8 target loading, cache identity checks,
   and quantization provenance. Draft weights remain floating point.

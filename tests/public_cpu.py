@@ -19,6 +19,8 @@ def load_tests(loader, tests, pattern):
         "tests.test_joint_family_core",
         "tests.test_joint_family_audit",
         "tests.test_feature_queue",
+        "tests.test_async_feature_queue",
+        "tests.test_joint_async_capture",
         "tests.test_joint_online_source",
         "tests.test_shared_target_queue.SharedTargetQueueCPU",
         "tests.test_joint_verification",

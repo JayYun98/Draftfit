@@ -96,6 +96,11 @@ features from tokenized inputs instead of loading saved feature files.
 `training.joint_target_device` optionally places that target on a separate device.
 `training.joint_feature_queue_bytes` bounds resident feature memory, and
 `training.joint_feature_queue_batches` limits lookahead batches within that bound.
+`training.joint_async_capture=true` runs a background producer with bounded RAM
+credit while the trainer consumes earlier batches. It requires a built-in
+Transformers teacher and a nonzero queue byte limit. Both models can share one
+GPU. Evaluation and checkpoint boundaries pause production. See
+[async capture](../../docs/specs/async-joint-capture.md) for lifecycle and validation limits.
 `training.joint_verification` configures fixed-holdout generation checks and
 optimizer offload/restore. `training.joint_control` enables checkpoint-bound
 policy decisions using explicit budget observations; the unattended controller
