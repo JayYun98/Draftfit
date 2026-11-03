@@ -281,6 +281,9 @@ class _ConfiguredOptimizerFactory:
             max_grad_norm=t.max_grad_norm,
             warmup_ratio=t.warmup_ratio,
             lr_scheduler=t.lr_scheduler,
+            lr_decay_ratio=t.lr_decay_ratio,
+            min_lr_ratio=t.min_lr_ratio,
+            lr_decay_style=t.lr_decay_style,
             total_steps=self.total_steps,
             offload_master=t.optimizer_cpu_offload,
         )

@@ -8,6 +8,7 @@ dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.10"
 description = "Train and fine-tune speculative decoding drafts on your own data"
+keywords = ["speculative-decoding", "dspark", "dflash", "dflash2", "eagle3", "eagle4", "quantization"]
 authors = [{name = "JayYun98"}, {name = "SpecForge contributors (upstream engine)"}]
 maintainers = [{name = "JayYun98"}]
 urls = {Homepage = "https://github.com/JayYun98/Draftfit", Upstream = "https://github.com/sgl-project/SpecForge"}

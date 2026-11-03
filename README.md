@@ -2,7 +2,8 @@
 
 [English](README.md) | [한국어](README.ko.md)
 
-Draftfit trains draft models for speculative decoding.
+Draftfit trains DSpark, DFlash, DFlash2, EAGLE3, and EAGLE4 drafts for speculative decoding.
+It supports full-draft adaptation from official EAGLE4 checkpoints.
 Use JSON configuration files to select the target model, draft method, and training settings.
 
 The target model remains fixed during training.
@@ -57,11 +58,17 @@ EAGLE4 has a registered online path; its current GPU validation uses saved featu
 | DFlash | Yes | Compatible hidden features and a mask token |
 | DFlash2 | Yes | Full vocabulary, convolution training, and selector training |
 | EAGLE3 | Yes | One draft layer and vocabulary mapping for online training |
-| [EAGLE4](docs/specs/eagle4-minicpm.md) | Yes | Experimental dense training and candidate distillation; separate serving engine |
+| [EAGLE4](docs/EAGLE4.md) | Yes | Official checkpoint loading, full-draft training, and candidate distillation; separate serving engine |
 | PEagle | No | Flex attention and the required feature layout |
 | Domino | Yes | A compatible draft configuration |
 
 Select compatible target and draft configurations from the [model recipes](examples/configs/README.md).
+
+## Official EAGLE4 checkpoints
+
+Start from an official EAGLE4 checkpoint with its original configuration and learned candidate head.
+Train the full draft with saved target features, including externally captured native logits for quantized targets.
+Use [the EAGLE4 guide](docs/EAGLE4.md) for checkpoint loading, precision, WSD scheduling, export, and evaluation.
 
 ## Joint training and unattended runs
 
@@ -101,6 +108,7 @@ These implementations are not production backends.
 | --- | --- |
 | Install a runtime | [Environment](docs/ENVIRONMENT.md) |
 | Prepare, train, resume, and export | [Complete workflow](docs/PUBLIC_WORKFLOW.md) |
+| Adapt an official EAGLE4 checkpoint | [EAGLE4](docs/EAGLE4.md) |
 | Adapt a draft for a quantized target | [Quantized targets](docs/QUANTIZED_TARGETS.md) |
 | Add a target or runtime | [Target extension](docs/TARGET_EXTENSION.md) · [Runtime profiles](docs/RUNTIME_PROFILES.md) |
 | Compare inference speed | [Workload evaluation](docs/PERFORMANCE_GATE.md) |

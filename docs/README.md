@@ -12,6 +12,7 @@ Preserve upstream credits when editing inherited material; see
 | Install and migrate | [uv environments](ENVIRONMENT.md) |
 | Prepare, train, fine-tune, resume, export | [Workflow](PUBLIC_WORKFLOW.md) |
 | Choose a method/model combination | [Support matrix](PUBLIC_SUPPORT.md) · [Validation evidence](MODEL_VALIDATION.md) |
+| Adapt an official EAGLE4 checkpoint | [EAGLE4 training and evaluation](EAGLE4.md) |
 | Add your target | [Configuration and adapters](TARGET_EXTENSION.md) |
 | Select a backend environment | [Runtime profiles](RUNTIME_PROFILES.md) · [Model environments](MODEL_ENVIRONMENTS.md) |
 | Measure inference performance | [Workload evaluation](PERFORMANCE_GATE.md) |

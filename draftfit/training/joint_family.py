@@ -57,6 +57,9 @@ _SCHEDULE = (
     "learning_rate",
     "lr_scheduler",
     "warmup_ratio",
+    "lr_decay_ratio",
+    "min_lr_ratio",
+    "lr_decay_style",
     "max_grad_norm",
     "optimizer_cpu_offload",
     "save_interval",
@@ -105,6 +108,9 @@ def _semantic_fingerprint(
             ):
                 cfg["model"].pop(field, None)
         cfg["training"].pop("resume_from", None)
+        if cfg["training"].get("lr_scheduler") != "wsd":
+            for field in ("lr_decay_ratio", "min_lr_ratio", "lr_decay_style"):
+                cfg["training"].pop(field, None)
         verification = cfg["training"].get("joint_verification")
         if verification and not verification.get("existing_drafts"):
             verification.pop("existing_drafts", None)
@@ -812,6 +818,9 @@ def run_joint_family(
             total_steps=horizon,
             warmup_ratio=t.warmup_ratio,
             lr_scheduler=t.lr_scheduler,
+            lr_decay_ratio=t.lr_decay_ratio,
+            min_lr_ratio=t.min_lr_ratio,
+            lr_decay_style=t.lr_decay_style,
             offload_master=t.optimizer_cpu_offload,
         )
         if probe_steps is not None:

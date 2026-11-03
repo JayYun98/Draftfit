@@ -281,7 +281,10 @@ Common fields:
 | `training.fsdp_sharding` | `SHARD_GRAD_OP` | Trainer FSDP mode: `SHARD_GRAD_OP`, `FULL_SHARD`, or `NO_SHARD`. |
 | `training.fsdp_version` | `v1` | Trainer implementation: `v1` (legacy wrapper) or `v2` (composable FSDP2, single-node opt-in). |
 | `training.learning_rate` | `1e-4` | Positive peak learning rate. |
-| `training.lr_scheduler` | `cosine` | Learning-rate schedule after warmup: `cosine` or `constant`. |
+| `training.lr_scheduler` | `cosine` | Learning-rate schedule: `cosine`, `constant`, or `wsd`; see [EAGLE4](../../docs/EAGLE4.md). |
+| `training.lr_decay_ratio` | `0.2` | WSD decay fraction; the remaining horizon after warmup stays at peak. |
+| `training.min_lr_ratio` | `0.1` | WSD initial and final LR as a fraction of peak. |
+| `training.lr_decay_style` | `linear` | WSD decay shape: `linear` or `cosine`. |
 | `training.warmup_ratio` | `0.015` | Fraction in `[0, 1]` used for scheduler warmup. |
 | `training.max_grad_norm` | `0.5` | Positive gradient-clipping norm. |
 | `training.optimizer_cpu_offload` | `false` | Keep the optimizer's FP32 master parameters and Adam state on CPU. |

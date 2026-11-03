@@ -156,3 +156,8 @@ EAGLE4 uses CPU FP32 optimizer states with full CUDA dense forward/backward,
 cap 6,200 MiB and reserve 768 MiB.
 DSpark and DFlash2 retain fused GPU optimizers. Failed memory probes remain
 in the experiment record; they do not count toward completed training.
+
+## Official checkpoint adaptation
+
+Use [the EAGLE4 guide](../EAGLE4.md) for the maintained official-checkpoint, native-logit, and WSD contracts.
+The historical MiniCPM evidence above does not qualify every official checkpoint or serving runtime.

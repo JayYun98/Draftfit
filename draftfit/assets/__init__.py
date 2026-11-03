@@ -12,6 +12,7 @@ DOCUMENTS = (
     "docs/PUBLIC_WORKFLOW.md",
     "docs/PUBLIC_RELEASE.md",
     "docs/PUBLIC_SUPPORT.md",
+    "docs/EAGLE4.md",
     "docs/SOURCE_ATTRIBUTION.md",
     "docs/RUNTIME_PROFILES.md",
     "docs/NATIVE_LING_REPLAY.md",

@@ -146,7 +146,7 @@ class UnifiedFeatureReachabilityTest(unittest.TestCase):
             for path in EXAMPLE_CONFIG_DIR.glob("*.yaml")
             if not path.name.startswith(".")
         )
-        self.assertEqual(len(paths), 68)
+        self.assertEqual(len(paths), 69)
 
         resolved_runs = {
             path.name: resolve_run(Config.from_file(str(path))) for path in paths
@@ -169,7 +169,7 @@ class UnifiedFeatureReachabilityTest(unittest.TestCase):
 
         for filename, config in configs.items():
             with self.subTest(config=filename, contract="legacy runtime defaults"):
-                is_eagle = config.training.strategy in ("eagle3", "peagle")
+                is_eagle = config.training.strategy in ("eagle3", "eagle4", "peagle")
                 expected_timeout = LEGACY_DIST_TIMEOUT_OVERRIDES.get(
                     filename, 20 if is_eagle else 30
                 )

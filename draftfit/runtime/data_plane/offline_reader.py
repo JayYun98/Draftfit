@@ -152,6 +152,18 @@ class OfflineManifestReader:
                 self.capture_manifest["tokenizer"].get("version") or "unknown"
             )
             self.target_repr = contract.get("target_repr")
+            if self.target_repr == "native_logits":
+                if (
+                    strategy != "eagle4"
+                    or contract.get("target_feature") != "native_logits"
+                    or type(contract.get("target_vocab_size")) is not int
+                    or contract["target_vocab_size"] <= 0
+                ):
+                    raise ValueError(
+                        "native logits require an EAGLE4 manifest with target feature and vocabulary"
+                    )
+        if self.target_repr == "native_logits" and self.capture_manifest is None:
+            raise ValueError("native logits require capture_manifest.json")
         # Spec-less refs stay usable: FeatureDataLoader._validate_refs skips
         # spec comparison when no ref carries specs, the store resolves tensors
         # through feature_keys rather than specs, and nothing reads num_tokens
@@ -200,6 +212,11 @@ class OfflineManifestReader:
             metadata={
                 "format": f"offline_{self.strategy}",
                 "target_repr": self.target_repr,
+                "target_vocab_size": (
+                    self.capture_manifest["contract"].get("target_vocab_size")
+                    if self.capture_manifest is not None
+                    else None
+                ),
                 "capture_contract_hash": (
                     self.capture_manifest.get("contract_hash")
                     if self.capture_manifest is not None

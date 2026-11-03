@@ -4,6 +4,13 @@ from dataclasses import replace
 
 from draftfit.algorithms.common.providers import make_registration
 from draftfit.algorithms.eagle3 import providers as eagle3
+from draftfit.algorithms.eagle4.native_logits import (
+    NORMALIZER_ID,
+    STORAGE_CONTRACT,
+    build_offline_collator,
+    build_offline_normalizer,
+    offline_representation,
+)
 
 ARCHITECTURE = "LlamaForCausalLMEagle4"
 
@@ -74,6 +81,19 @@ def build_training_model(config, draft_model, draft_config, target_config, token
     needs_head = config.mode == "offline" or (
         config.deployment.mode == "disaggregated" and config.training.role == "consumer"
     )
+    if config.mode == "offline":
+        sources = [
+            source
+            for source in (
+                config.data.hidden_states_path,
+                config.data.eval_hidden_states_path,
+            )
+            if source
+        ]
+        if sources and all(
+            offline_representation(source) == "native_logits" for source in sources
+        ):
+            needs_head = False
     head = (
         TargetHead.from_pretrained(
             config.model.target_model_path,
@@ -115,13 +135,18 @@ def resume_contract(config, draft_model, training_model):
 def build_offline_reader(hidden_states_path, *, run_id, ttt_length, max_len):
     from draftfit.runtime.data_plane.offline_reader import OfflineManifestReader
 
+    representation = offline_representation(hidden_states_path)
+
     return OfflineManifestReader(
         hidden_states_path,
         run_id=run_id,
         strategy="eagle4",
         ttt_length=ttt_length,
         max_len=max_len,
-        target_repr="hidden_state",
+        target_repr=representation,
+        feature_keys=tuple(
+            sorted(STORAGE_CONTRACT.required_tensors_for(representation))
+        ),
     )
 
 
@@ -137,6 +162,20 @@ def create_registration():
     spec = replace(
         base.spec,
         name="eagle4",
+        feature_contracts=tuple(
+            (
+                replace(
+                    contract,
+                    optional_tensors=contract.optional_tensors | {"native_logit_start"},
+                    allowed_target_representations=contract.allowed_target_representations
+                    | {"native_logits"},
+                    storage=STORAGE_CONTRACT,
+                )
+                if contract.storage is not None
+                else contract
+            )
+            for contract in base.spec.feature_contracts
+        ),
         draft=replace(
             base.spec.draft,
             compatible_architectures={ARCHITECTURE},
@@ -173,7 +212,13 @@ def create_registration():
         ),
         vocab_mapping_modes=frozenset(),
         offline=tuple(
-            replace(provider, build_reader=build_offline_reader)
+            replace(
+                provider,
+                build_reader=build_offline_reader,
+                normalizer_id=NORMALIZER_ID,
+                build_normalizer=build_offline_normalizer,
+                build_collator=build_offline_collator,
+            )
             for provider in base.providers.offline
         ),
     )

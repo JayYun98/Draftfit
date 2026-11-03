@@ -127,3 +127,8 @@ See the [verification record](reports/quantized-target-adaptation.md) for comple
 
 References: [Transformers bitsandbytes loading](https://huggingface.co/docs/transformers/quantization/bitsandbytes),
 [vLLM hidden-state extraction](https://docs.vllm.ai/en/v0.22.1/features/speculative_decoding/extract_hidden_states/).
+
+## EAGLE4 native teacher outputs
+
+For official EAGLE4 adaptation, use the [native-logit contract](EAGLE4.md#native-logit-features).
+A hidden-state projection through an external head is not a substitute for the quantized runtime output distribution.

@@ -13,9 +13,35 @@ from .llama3_eagle import LlamaForCausalLMEagle3
 from .registry import register_draft
 
 
+def candidate_argmax(logits, token_ids):
+    """Match full-vocabulary argmax, including lowest-token-ID score ties."""
+    maximum = logits.amax(-1, keepdim=True)
+    return torch.where(
+        logits == maximum, token_ids, torch.iinfo(token_ids.dtype).max
+    ).amin(-1)
+
+
 @register_draft
 class LlamaForCausalLMEagle4(LlamaForCausalLMEagle3):
     """One recurrent dense layer, three target features and a candidate head."""
+
+    @classmethod
+    def from_pretrained(cls, *args, **kwargs):
+        # Official checkpoints name the recurrent block layers.0, rather than midlayer.
+        kwargs["key_mapping"] = {
+            r"^layers\.0\.": "midlayer.",
+            **(kwargs.get("key_mapping") or {}),
+        }
+        loaded = super().from_pretrained(*args, **kwargs)
+        model = loaded[0] if isinstance(loaded, tuple) else loaded
+        # HF meta loading materializes unsaved buffers without their constructor values.
+        attention = model.midlayer.self_attn
+        with torch.device(attention.q_proj.weight.device):
+            attention._init_rope()
+        attention.rotary_emb.to(dtype=attention.q_proj.weight.dtype)
+        model.t2d.fill_(True)
+        model.d2t.zero_()
+        return loaded
 
     def __init__(self, config, quant_config=None, attention_backend="sdpa"):
         if attention_backend != "sdpa":
@@ -72,7 +98,36 @@ class LlamaForCausalLMEagle4(LlamaForCausalLMEagle3):
         if layers is not None and (len(layers) != 3 or len(set(layers)) != 3):
             raise ValueError("EAGLE4 requires three distinct target feature layers")
         self.sliding_window = window if enabled else None
+        precision = getattr(config, "eagle4_precision", "torch")
+        if precision not in {"torch", "vllm"}:
+            raise ValueError("EAGLE4 eagle4_precision must be torch or vllm")
+        if precision == "vllm" and (
+            getattr(config, "pretraining_tp", 1) != 1 or config.hidden_act != "silu"
+        ):
+            raise ValueError("EAGLE4 vllm precision requires SiLU and pretraining_tp=1")
         super().__init__(config, quant_config, attention_backend)
+        if precision == "vllm":
+            from .eagle4_precision import (
+                Eagle4NativeAttention,
+                Eagle4NativeMLP,
+                Eagle4NativeRMSNorm,
+            )
+
+            self.midlayer.self_attn = Eagle4NativeAttention(config)
+            self.midlayer.mlp = Eagle4NativeMLP(config)
+            for name in ("hidden_norm", "input_layernorm", "post_attention_layernorm"):
+                setattr(
+                    self.midlayer,
+                    name,
+                    Eagle4NativeRMSNorm(config.hidden_size, eps=config.rms_norm_eps),
+                )
+            self.midlayer.apply(self._init_weights)
+            self.norm = Eagle4NativeRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+            if self.fc_norm is not None:
+                self.fc_norm = nn.ModuleList(
+                    Eagle4NativeRMSNorm(norm.weight.numel(), eps=config.rms_norm_eps)
+                    for norm in self.fc_norm
+                )
         # Identity vocabulary maps are training helpers, not EAGLE4 serving tensors.
         self._non_persistent_buffers_set.update({"t2d", "d2t"})
         self.efficient_lm_head_down_proj = nn.Linear(
@@ -84,18 +139,17 @@ class LlamaForCausalLMEagle4(LlamaForCausalLMEagle3):
         self.set_training_stage("draft")
 
     def set_training_stage(self, stage):
-        if stage not in {"draft", "candidates"}:
-            raise ValueError("EAGLE4 stage must be draft or candidates")
+        if stage not in {"draft", "candidates", "onebody"}:
+            raise ValueError("EAGLE4 stage must be draft, candidates or onebody")
         self.training_stage = stage
         for name, parameter in self.named_parameters():
             # A stage transition must not leave frozen gradients in clipping.
             parameter.grad = None
             candidate = name.startswith("efficient_lm_head")
-            parameter.requires_grad_(
-                candidate
-                if stage == "candidates"
-                else not candidate and name != "embed_tokens.weight"
+            trainable = stage == "onebody" or (
+                candidate if stage == "candidates" else not candidate
             )
+            parameter.requires_grad_(trainable and name != "embed_tokens.weight")
 
     def prepare_decoder_attention_mask(
         self,
@@ -172,6 +226,9 @@ class LlamaForCausalLMEagle4(LlamaForCausalLMEagle3):
             .to(features.dtype)
         )
         return logits, ids
+
+    def candidate_greedy_ids(self, hidden_states):
+        return candidate_argmax(*self.candidate_logits(hidden_states))
 
     @torch.no_grad()
     def initialize_candidate_head(self, *, randomized=False):

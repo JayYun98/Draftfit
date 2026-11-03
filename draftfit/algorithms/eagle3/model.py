@@ -40,11 +40,12 @@ from draftfit.utils import padding
 
 
 def _teacher_cross_entropy(logits, target_p, position_mask):
-    """Use the existing fused CUDA loss and its differentiable CPU reference."""
+    """Use the fused loss where supported, otherwise the same dense objective."""
     if logits.is_cuda:
-        from draftfit.core.loss import LogSoftmaxLoss
+        from draftfit.core.loss import MAX_FUSED_SIZE, LogSoftmaxLoss
 
-        return LogSoftmaxLoss.apply(logits, target_p, position_mask)
+        if logits.shape[-1] <= MAX_FUSED_SIZE:
+            return LogSoftmaxLoss.apply(logits, target_p, position_mask)
     if position_mask.ndim == logits.ndim - 1:
         position_mask = position_mask.unsqueeze(-1)
     log_p = F.log_softmax(logits.float(), dim=-1)

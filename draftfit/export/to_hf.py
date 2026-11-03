@@ -8,10 +8,15 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 """Export a DataFlow training checkpoint to an HF-format draft directory.
 
-The output loads back through ``AutoDraftModel.from_pretrained`` (e.g. to
-finetune from it). EAGLE-family embeddings may be absent by design — training
-reloads frozen embeddings from the target — while DFlash-family drafts do not
-own an embedding at all.
+The output loads back through ``AutoDraftModel.from_pretrained`` for further
+training. EAGLE-family exports include real embeddings from the checkpoint or
+an explicit target source. DFlash-family drafts do not own an embedding.
+
+EAGLE4 output uses Draftfit's internal ``midlayer.*`` tensor names. Official
+``layers.0.*`` input aliases are normalized, not preserved in the output. This
+HF reload format does not promise compatibility with the official EAGLE4
+serving runtime. That runtime requires a separate conversion to its official
+``layers.0.*`` names and validation in the intended engine.
 """
 
 from __future__ import annotations
@@ -137,8 +142,24 @@ def export_to_hf(
     (the target model path/dir — the embedding is deterministic from it) unless
     the checkpoint itself carries ``embed_tokens.weight``. A randomly
     initialized embedding would silently break serving, so its absence raises.
+
+    EAGLE4 exports retain all learned tensors, including both candidate factors,
+    under Draftfit's internal names. Accepting official input aliases does not
+    make this an official-runtime serving export; see the module contract.
     """
     state = resolve_training_state(checkpoint_path)
+    if state.get("strategy") == "eagle4":
+        normalized = {}
+        for key, value in state["draft_state_dict"].items():
+            destination = (
+                "midlayer." + key[len("layers.0.") :]
+                if key.startswith("layers.0.")
+                else key
+            )
+            if destination in normalized:
+                raise ValueError(f"conflicting EAGLE4 checkpoint key {destination}")
+            normalized[destination] = value
+        state = {**state, "draft_state_dict": normalized}
     model = materialize_draft(
         state, draft_config_path, vocab_mapping_path=vocab_mapping_path
     )
