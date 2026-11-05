@@ -432,6 +432,20 @@ class JointVerificationTest(unittest.TestCase):
         )
         self.assertTrue(all(c["acceptance_rate"] is None for c in result["candidates"]))
 
+    def test_spark_full_prefix_routing_retains_state(self):
+        # Routing coverage with a tiny dense fixture, not real Spark kernel validation.
+        before = self.snapshot()
+        config = self.source._teacher._model.config
+        with (
+            mock.patch.object(config, "model_type", "spark2_5"),
+            mock.patch.object(config, "sliding_window", 4, create=True),
+        ):
+            report = evaluate_generation(
+                self.stages, self.bundles, self.source, self.optimizer, 1, self.config
+            )
+        self.assertEqual(len(report["candidates"]), 3)
+        self.assert_restored(before)
+
     def test_unsupported_target_and_deadline_fail_without_training_mutation(self):
         before = self.snapshot()
         target_config = self.source._teacher._model.config

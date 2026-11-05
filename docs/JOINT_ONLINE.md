@@ -124,8 +124,20 @@ width, backbone geometry and relevant attention/alignment settings. Current
 joint training requires the same tap layout; automatic union-of-layers capture
 is not implemented. DSpark also needs final normalized target hidden states.
 
-Native verification supports the implemented Llama/Qwen2/Qwen3 and
-Gemma4Unified text adapters; capture support alone does not imply verification
-support for a hybrid architecture. Draft attention must use a supported eager
-or SDPA path. See [queue and verification behavior](SHARED_TARGET_FEATURE_QUEUE.md)
-and [support boundaries](PUBLIC_SUPPORT.md).
+Native verification supports the implemented Llama/Qwen2/Qwen3, Gemma4Unified
+and experimental Spark text adapters (`model_type=spark2_5`). Capture support
+alone does not imply verification support for a hybrid architecture. Draft
+attention must use a supported eager or SDPA path.
+
+Spark requires a separately prepared remote-code runtime with compatible
+attention-mask and per-layer RoPE APIs, plus the explicit
+`model.embedding.weight` embedding key. Draftfit does not patch those
+dependencies. This path uses the generic draft implementation, not the official
+Spark-plugin DSpark architecture. Spark proposals are checked using sequential
+standalone prefixes until rejection or EOS. Reported timings include these
+target calls and do not establish parallel serving performance. Tiny CPU
+fixtures verify routing and feature boundaries only; real Spark GPU capture,
+token parity and production serving remain unverified.
+
+See [queue and verification behavior](SHARED_TARGET_FEATURE_QUEUE.md) and
+[support boundaries](PUBLIC_SUPPORT.md).

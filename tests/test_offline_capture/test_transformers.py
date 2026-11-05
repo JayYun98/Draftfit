@@ -106,6 +106,18 @@ class TransformersCaptureTest(unittest.TestCase):
             text.norm(result.hidden_states[..., 16:]), result.last_hidden_states
         )
 
+    def test_spark_adapter_preserves_raw_and_normalized_boundaries(self):
+        # This dense fixture checks routing and feature boundaries, not Spark kernels.
+        model = self.model()
+        model.config.model_type = "spark2_5"
+        teacher = OfflineTransformersCapture(model)
+        teacher.set_capture_layers([0, 2], capture_method="dspark")
+        result = teacher.capture(**self.batch())
+        torch.testing.assert_close(
+            model.norm(result.hidden_states[..., 16:]), result.last_hidden_states
+        )
+        self.assertFalse(any(p.requires_grad for p in model.parameters()))
+
     def test_lfm_conv_and_moe_capture_unnormalized_taps(self):
         for config_cls, model_cls in (
             (Lfm2Config, Lfm2Model),

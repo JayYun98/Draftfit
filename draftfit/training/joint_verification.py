@@ -536,6 +536,37 @@ def _propose(bundle, features, anchor, count):
     return draft._sample_draft_tokens(target, hidden, block)[:, :count]
 
 
+def _prefix_stable_verification(teacher):
+    return (
+        not isinstance(teacher, OfflinePrismGGUFCapture)
+        and teacher._model.config.model_type == "spark2_5"
+    )
+
+
+def _verify_prefix_proposal(teacher, bundle, prefix, anchor, proposal, config):
+    """Keep Spark BF16 target calls identical to standalone greedy prefixes.
+
+    A longer causal block can change the rounded residuals even before its
+    suffix, so it cannot certify exact standalone token IDs. Stop at the first
+    rejection; later draft tokens cannot be committed and need no target call.
+    """
+    ids = torch.cat((prefix, anchor.reshape(1, 1).to(prefix.device)), dim=1)
+    predictions = []
+    for index in range(proposal.shape[1] + 1):
+        verified = _capture(teacher, ids, config)
+        token = _target_logits(teacher, bundle, verified, slice(-1, None)).argmax(-1)[
+            0, 0
+        ]
+        del verified
+        predictions.append(token)
+        if index == proposal.shape[1] or token.item() != proposal[0, index].item():
+            break
+        if token.item() in config["stop_token_ids"]:
+            break
+        ids = torch.cat((ids, token.reshape(1, 1).to(ids.device)), dim=1)
+    return torch.stack(predictions)
+
+
 def _generate(teacher, bundle, prompt, config, *, speculative, proposal_fn=None):
     device = _target_device(teacher)
     bundle_device = next(bundle.model.parameters()).device
@@ -583,17 +614,22 @@ def _generate(teacher, bundle, prompt, config, *, speculative, proposal_fn=None)
         proposal_seconds += _clock(device, bundle_device) - tick
         del features
         proposed += count
-        # A causal full-prefix target pass verifies a *generated* draft suffix.
-        verify_ids = torch.cat(
-            (prefix, anchor.reshape(1, 1).to(device), proposal.to(device)), dim=1
-        )
         tick = _clock(device, bundle_device)
-        verified = _capture(teacher, verify_ids, config)
-        posterior = _target_logits(
-            teacher, bundle, verified, slice(prefix.shape[1], None)
-        ).argmax(-1)[0]
+        if _prefix_stable_verification(teacher):
+            posterior = _verify_prefix_proposal(
+                teacher, bundle, prefix, anchor, proposal, config
+            )
+        else:
+            # A causal full-prefix target pass verifies a generated suffix.
+            verify_ids = torch.cat(
+                (prefix, anchor.reshape(1, 1).to(device), proposal.to(device)), dim=1
+            )
+            verified = _capture(teacher, verify_ids, config)
+            posterior = _target_logits(
+                teacher, bundle, verified, slice(prefix.shape[1], None)
+            ).argmax(-1)[0]
+            del verified, verify_ids
         verification_seconds += _clock(device, bundle_device) - tick
-        del verified, verify_ids
         trace = dict(
             proposed_token_ids=proposal[0].tolist(),
             target_token_ids=posterior.tolist(),
@@ -633,6 +669,15 @@ def _generate(teacher, bundle, prompt, config, *, speculative, proposal_fn=None)
         tok_s=len(generated) / seconds,
         proposal_seconds=proposal_seconds,
         verification_seconds=verification_seconds,
+        target_verification=(
+            "standalone_prefix"
+            if not speculative
+            else (
+                "sequential_prefix_until_rejection"
+                if _prefix_stable_verification(teacher)
+                else "causal_block"
+            )
+        ),
         traces=traces,
     )
 
@@ -651,13 +696,13 @@ def _preflight(stages, bundles, source, config):
                 "generation verification requires the already-loaded online Transformers or Prism GGUF teacher"
             )
         family = teacher._model.config.model_type
-        if family not in {"llama", "qwen2", "qwen3", "gemma4_unified_text"}:
+        if family not in {"llama", "qwen2", "qwen3", "gemma4_unified_text", "spark2_5"}:
             raise ValueError(
                 f"unsupported generation verification target: {family}; "
-                "only Llama/Qwen2/Qwen3/Gemma4Unified reference decoding is supported"
+                "only Llama/Qwen2/Qwen3/Gemma4Unified/Spark reference decoding is supported"
             )
         if (
-            family != "gemma4_unified_text"
+            family not in {"gemma4_unified_text", "spark2_5"}
             and getattr(teacher._model.config, "sliding_window", None) is not None
         ):
             raise ValueError(

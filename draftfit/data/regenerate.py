@@ -101,6 +101,21 @@ def parse_arguments(argv=None):
     model_group = parser.add_argument_group("model")
     model_group.add_argument("--model", type=str, required=True)
     model_group.add_argument(
+        "--backend",
+        choices=("server", "transformers"),
+        default="server",
+        help="Use existing servers or one resident local Transformers target",
+    )
+    model_group.add_argument("--revision", default=None)
+    model_group.add_argument("--trust-remote-code", action="store_true")
+    model_group.add_argument("--local-files-only", action="store_true")
+    model_group.add_argument("--device", default="cuda")
+    model_group.add_argument(
+        "--torch-dtype",
+        choices=("auto", "float32", "float16", "bfloat16"),
+        default="auto",
+    )
+    model_group.add_argument(
         "--reasoning",
         choices=["none", "save", "disable"],
         default="none",
@@ -156,6 +171,12 @@ def parse_arguments(argv=None):
         default=64,
         help="The number of requests to send to a single server concurrently, the total number of concurrent requests is concurrency * number of server addresses",
     )
+    optimization_group.add_argument("--batch-size", type=int, default=1)
+    optimization_group.add_argument("--auto-batch", action="store_true")
+    optimization_group.add_argument("--max-auto-batch", type=int, default=128)
+    optimization_group.add_argument("--tuning-seconds", type=float, default=60)
+    optimization_group.add_argument("--memory-fraction", type=float, default=0.9)
+    optimization_group.add_argument("--deadline-unix", type=float, default=None)
 
     # data related arguments
     data_group = parser.add_argument_group("data")
@@ -391,6 +412,15 @@ def main(argv=None):
     if args.max_tokens <= 0:
         raise ValueError("Max tokens must be greater than 0")
     validate_regeneration_config(args)
+
+    if args.backend == "transformers":
+        from draftfit.data.local_regenerate import regenerate
+
+        return regenerate(args)
+    if args.auto_batch:
+        raise ValueError("--auto-batch requires --backend transformers")
+    if not args.server_address:
+        raise ValueError("--server-address is required for the server backend")
 
     print(f"Configuration:")
     print(f"  Model path: {args.model}")

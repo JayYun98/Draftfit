@@ -2,6 +2,7 @@
 
 import json
 import os
+import random
 import tempfile
 import unittest
 from pathlib import Path
@@ -229,6 +230,10 @@ class JointFamilyCoreTest(unittest.TestCase):
                     )
                     self.assertEqual(before_eval["python"], _rng_state()["python"])
                     _restore_rng(before_eval)
+                    torch.random.default_generator.manual_seed(
+                        stages[0].config.training.seed
+                    )
+                    random.seed(stages[0].config.training.seed)
                     reference_loader, _ = _make_loader(
                         stages[0].config.data.eval_hidden_states_path,
                         stages[0],
@@ -242,6 +247,7 @@ class JointFamilyCoreTest(unittest.TestCase):
                         strategies[0].forward_loss, reference_loader
                     )
                     bundles[0].model.train()
+                    _restore_rng(before_eval)
                     self.assertEqual(set(metrics["dspark"]), set(reference))
                     for name in reference:
                         self.assertAlmostEqual(

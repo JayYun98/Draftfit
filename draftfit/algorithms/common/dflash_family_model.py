@@ -1351,9 +1351,12 @@ class OnlineDSparkModel(OnlineDFlashModel):
                 draft_top1_num = (
                     draft_probabilities.max(dim=-1).values * eval_mask
                 ).sum()
-                valid_blocks = eval_mask.any(dim=-1).float()
+                # DFlash alignment commits slot zero before proposing the suffix.
+                start = 0 if self.sample_from_anchor else 1
+                proposal_mask = eval_mask[..., start:]
+                valid_blocks = proposal_mask.any(dim=-1).float()
                 accepted_expectation = (
-                    accept_probability.detach() * eval_mask
+                    accept_probability.detach()[..., start:] * proposal_mask
                 ).cumprod(dim=-1).sum(dim=-1) + 1.0
                 tau_num = (accepted_expectation * valid_blocks).sum()
                 tau_den = valid_blocks.sum()

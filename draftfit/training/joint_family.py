@@ -506,27 +506,34 @@ def _evaluate(stages, strategies, bundles, online_source=None):
         return value
 
     saved_rng = _rng_state()
-    needs_dspark = any(s.config.training.strategy == "dspark" for s in stages)
-    if online_source is not None:
-        loader, _ = online_source.loader(
-            stages[0], epoch=0, shuffle=False, drop_last=False, evaluation=True
-        )
-    else:
-        loader, _ = _make_loader(
-            stages[0].config.data.eval_hidden_states_path,
-            stages[0],
-            needs_dspark=needs_dspark,
-            epoch=0,
-            shuffle=False,
-            drop_last=False,
-        )
-    for bundle in bundles:
-        bundle.model.eval()
     # Evaluator owns denominator-weighted loss, accuracy and family diagnostic
     # reduction. Keep only detached scalar/position terms and a token count per
     # batch; the full feature tensors are discarded after each shared read.
     records = {stage.name: [] for stage in stages}
     try:
+        # Reuse the configured seed so milestones evaluate the same anchors.
+        # Seed only the generators captured by _rng_state.
+        seed = stages[0].config.training.seed
+        torch.random.default_generator.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+        random.seed(seed)
+        needs_dspark = any(s.config.training.strategy == "dspark" for s in stages)
+        if online_source is not None:
+            loader, _ = online_source.loader(
+                stages[0], epoch=0, shuffle=False, drop_last=False, evaluation=True
+            )
+        else:
+            loader, _ = _make_loader(
+                stages[0].config.data.eval_hidden_states_path,
+                stages[0],
+                needs_dspark=needs_dspark,
+                epoch=0,
+                shuffle=False,
+                drop_last=False,
+            )
+        for bundle in bundles:
+            bundle.model.eval()
         with torch.no_grad():
             for batch in loader:
                 token_count = batch.tensors["loss_mask"].sum().detach().cpu().reshape(1)

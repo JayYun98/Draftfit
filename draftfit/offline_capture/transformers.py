@@ -32,6 +32,8 @@ class OfflineTransformersCapture:
     next block. HF's final hidden_states entry is already normalized, so block
     hooks are necessary to preserve the same boundary for a last-layer tap.
     This does not certify numerical parity with a GPU inference backend.
+    Spark admission assumes a separately prepared remote-code runtime with
+    compatible mask and per-layer RoPE APIs; this adapter does not patch it.
     """
 
     def __init__(self, model):
@@ -56,6 +58,7 @@ class OfflineTransformersCapture:
             "xing4_0",
             "lfm2",
             "lfm2_moe",
+            "spark2_5",
         }:
             raise ValueError(
                 f"unsupported Transformers text decoder: {self._model.config.model_type}"
