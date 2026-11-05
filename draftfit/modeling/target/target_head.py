@@ -27,8 +27,9 @@ class TargetHead(nn.Module):
             cache_dir=cache_dir,
             revision=revision,
         )
-        self.hidden_size = self.config.hidden_size
-        self.vocab_size = self.config.vocab_size
+        text_config = self.config.get_text_config()
+        self.hidden_size = text_config.hidden_size
+        self.vocab_size = text_config.vocab_size
 
         self.fc = nn.Linear(self.hidden_size, self.vocab_size, bias=False)
 

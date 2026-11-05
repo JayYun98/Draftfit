@@ -23,8 +23,11 @@ TERMINAL = {"complete", "pruned", "rejected", "interrupted", "failed"}
 PARAMETERS = {
     "training.learning_rate": ("float", 0, 1, False),
     "training.warmup_ratio": ("float", 0, 1, True),
+    "training.lr_decay_ratio": ("float", 0, 1, False),
+    "training.min_lr_ratio": ("float", 0, 1, True),
+    "training.lr_decay_style": ("categorical", ("linear", "cosine")),
     "training.max_grad_norm": ("float", 0, 100, False),
-    "training.lr_scheduler": ("categorical", ("cosine", "constant")),
+    "training.lr_scheduler": ("categorical", ("cosine", "constant", "wsd")),
     "training.optimizer_cpu_offload": ("categorical", (False, True)),
     "training.objective_chunk_blocks": ("int", 1, 65536, True),
 }

@@ -1238,6 +1238,18 @@ def warm_start_draft_model(
 
     if not state:
         raise ValueError(f"warm-start checkpoint {source!r} contains no draft weights")
+    if getattr(draft_config, "architectures", None) == ["LlamaForCausalLMEagle4"]:
+        normalized = {}
+        for key, value in state.items():
+            destination = (
+                "midlayer." + key[len("layers.0.") :]
+                if key.startswith("layers.0.")
+                else key
+            )
+            if destination in normalized:
+                raise ValueError(f"conflicting EAGLE4 checkpoint key {destination}")
+            normalized[destination] = value
+        state = normalized
     try:
         result = model.load_state_dict(state, strict=False)
     except RuntimeError as exc:

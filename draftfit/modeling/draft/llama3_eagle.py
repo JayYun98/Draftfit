@@ -658,6 +658,16 @@ class LlamaAttention(nn.Module):
             .contiguous()
         )
 
+    def project_qkv(self, hidden_states):
+        return (
+            self.q_proj(hidden_states),
+            self.k_proj(hidden_states),
+            self.v_proj(hidden_states),
+        )
+
+    def apply_rotary(self, q, k, cos, sin, position_ids):
+        return apply_rotary_pos_emb(q, k, cos, sin, position_ids)
+
     def forward(
         self,
         hidden_states: torch.Tensor,
@@ -670,9 +680,7 @@ class LlamaAttention(nn.Module):
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         bsz, q_len, _ = hidden_states.size()
 
-        query_states = self.q_proj(hidden_states)
-        key_states = self.k_proj(hidden_states)
-        value_states = self.v_proj(hidden_states)
+        query_states, key_states, value_states = self.project_qkv(hidden_states)
 
         query_states = query_states.view(
             bsz, q_len, self.num_heads, self.head_dim
@@ -698,7 +706,7 @@ class LlamaAttention(nn.Module):
             else:
                 cos, sin = self.rotary_emb(query_states, seq_len=q_len)
                 cos, sin = cos.to(query_states.device), sin.to(query_states.device)
-                query_states, key_states = apply_rotary_pos_emb(
+                query_states, key_states = self.apply_rotary(
                     query_states, key_states, cos, sin, position_ids
                 )
 
@@ -729,7 +737,7 @@ class LlamaAttention(nn.Module):
             else:
                 cos, sin = self.rotary_emb(query_states, seq_len=q_len + lck)
                 cos, sin = cos.to(query_states.device), sin.to(query_states.device)
-                query_states, key_states = apply_rotary_pos_emb(
+                query_states, key_states = self.apply_rotary(
                     query_states, key_states, cos, sin, position_ids + lck
                 )
 

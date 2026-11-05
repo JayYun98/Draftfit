@@ -82,6 +82,10 @@ def load_tests(loader, tests, pattern):
         "tests.test_runtime.test_owned_teacher_stream",
         "tests.test_runtime.test_feature_dataloader",
         "tests.test_modeling.test_eagle4",
+        "tests.test_modeling.test_eagle4_precision",
+        "tests.test_eagle4_native_logits",
+        "tests.test_eagle4_export",
+        "tests.test_optimizer.test_wsd",
         "tests.test_eagle4_comparison",
     ]
     suite = loader.loadTestsFromNames(modules)

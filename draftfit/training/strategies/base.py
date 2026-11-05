@@ -293,6 +293,29 @@ class Eagle3TrainStrategy(DraftTrainStrategy):
                 target_hidden=target_hidden,
                 chunk_size_arg=self.compact_teacher_chunk_size,
             )
+        elif target_repr == "native_logits":
+            if self.name != "eagle4":
+                raise ValueError("native_logits ingestion requires the EAGLE4 strategy")
+            from draftfit.algorithms.eagle4.native_logits import (
+                prepare_native_logits_target,
+            )
+
+            model = self.eagle3_model
+            if not hasattr(model, "draft_model") and hasattr(model, "module"):
+                model = model.module
+            vocab_size = int(model.draft_model.config.vocab_size)
+            declared_vocab = batch.metadata.get("target_vocab_size")
+            if declared_vocab is not None and declared_vocab != vocab_size:
+                raise ValueError("native capture vocabulary differs from the draft")
+            input_ids, target, loss_mask = prepare_native_logits_target(
+                t["input_ids"],
+                t["target"],
+                t["loss_mask"],
+                t.get("native_logit_start"),
+                device,
+                vocab_size=vocab_size,
+                attention_mask=t["attention_mask"],
+            )
         else:
             input_ids, target, loss_mask = self._prepare_target(
                 target_repr, t["input_ids"], t["target"], t["loss_mask"], device

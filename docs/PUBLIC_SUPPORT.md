@@ -4,6 +4,14 @@ Config generation is not model certification. The target executes in the
 existing inference backend; the platform does not port its architecture.
 Use `draftfit algorithms` for the live registry and feature tensor contracts.
 
+## Official EAGLE4 checkpoints
+
+Draftfit supports official EAGLE4 checkpoint loading, full-draft adaptation, and candidate-head distillation.
+The [EAGLE4 guide](EAGLE4.md) defines precision, native-logit alignment, WSD scheduling, and export contracts.
+Externally captured native logits retain the target runtime distribution without an external head projection.
+The artifact writer validates storage and alignment; it does not execute or certify the capture backend.
+Serving engines remain separate integrations. CPU checks do not establish live acceptance or throughput.
+
 ## Joint and unattended execution
 
 | Capability | Implemented boundary |

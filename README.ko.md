@@ -129,3 +129,9 @@ Draftfit은 [SpecForge](https://github.com/sgl-project/SpecForge)에서 파생�
 참고·적용하고 출처를 표기합니다.
 [코드 소유 범위](docs/CODE_OWNERSHIP.md), [외부 코드 고지](THIRDPARTY_NOTICES.md),
 [라이선스](LICENSE)를 참고하세요.
+
+## 공식 EAGLE4 체크포인트 지원
+
+공식 EAGLE4 체크포인트의 구조와 candidate head를 보존한 전체 draft 추가 학습을 지원합니다.
+Native logits 입력, WSD 스케줄, export 및 검증 방법은 [EAGLE4 가이드](docs/EAGLE4.md)를 참고하세요.
+Draftfit은 독립적인 학습 통합 도구이며, 공식 개발사의 배포물을 의미하지 않습니다.

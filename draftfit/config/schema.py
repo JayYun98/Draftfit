@@ -730,8 +730,13 @@ class TrainingConfig(StrictConfigModel):
     fsdp_version: Literal["v1", "v2"] = "v1"
     fsdp_sharding: Literal["SHARD_GRAD_OP", "FULL_SHARD", "NO_SHARD"] = "SHARD_GRAD_OP"
     learning_rate: float = Field(default=1e-4, gt=0.0)
-    lr_scheduler: Literal["cosine", "constant"] = "cosine"
+    lr_scheduler: Literal["cosine", "constant", "wsd"] = "cosine"
     warmup_ratio: float = Field(default=0.015, ge=0.0, le=1.0)
+    #: WSD decay fraction; the remaining horizon after warmup stays at peak LR.
+    lr_decay_ratio: float = Field(default=0.2, gt=0.0, le=1.0, allow_inf_nan=False)
+    #: WSD floor as a fraction of each parameter group's peak LR.
+    min_lr_ratio: float = Field(default=0.1, ge=0.0, le=1.0, allow_inf_nan=False)
+    lr_decay_style: Literal["linear", "cosine"] = "linear"
     max_grad_norm: float = Field(default=0.5, gt=0.0)
     #: Keep FP32 Adam masters and moments on CPU while the trainable draft
     #: remains on the accelerator.
@@ -812,6 +817,19 @@ class TrainingConfig(StrictConfigModel):
 
     @model_validator(mode="after")
     def _validate_training_shape(self):
+        if self.lr_scheduler == "wsd":
+            if self.warmup_ratio + self.lr_decay_ratio > 1:
+                raise ValueError(
+                    "WSD warmup_ratio + lr_decay_ratio must not exceed one"
+                )
+            horizon = self.total_steps or self.max_steps
+            if horizon is not None:
+                if int(horizon * self.warmup_ratio) == 1:
+                    raise ValueError(
+                        "WSD warmup must contain zero or at least two updates"
+                    )
+                if int(horizon * self.lr_decay_ratio) < 1:
+                    raise ValueError("WSD decay must contain at least one update")
         if not math.isfinite(self.dspark_acceptance_loss_alpha) or not math.isfinite(
             self.dspark_acceptance_temperature
         ):

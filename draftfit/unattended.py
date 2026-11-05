@@ -239,6 +239,9 @@ def load_plan(path):
             "training.learning_rate",
             "training.lr_scheduler",
             "training.warmup_ratio",
+            "training.lr_decay_ratio",
+            "training.min_lr_ratio",
+            "training.lr_decay_style",
         }
         if any(
             not isinstance(v, str) or v.split("=", 1)[0] not in allowed_overrides
@@ -315,6 +318,8 @@ def load_plan(path):
                     "pilot_steps"
                 ]
             t = cfg.training
+            if t.lr_scheduler == "wsd":
+                type(t).model_validate(t.model_dump())
             validate_fixed_accumulation_plan(
                 num_samples=count,
                 batch_size=t.batch_size,

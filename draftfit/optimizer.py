@@ -1,9 +1,14 @@
 import logging
+import math
 
 import torch
 import torch.distributed as dist
 
-from draftfit.lr_scheduler import ConstantWarmupLR, CosineAnnealingWarmupLR
+from draftfit.lr_scheduler import (
+    ConstantWarmupLR,
+    CosineAnnealingWarmupLR,
+    WarmupStableDecayLR,
+)
 from draftfit.utils import print_on_rank0
 
 logger = logging.getLogger(__name__)
@@ -31,6 +36,9 @@ class BF16Optimizer:
         warmup_ratio=0.015,
         lr_scheduler="cosine",
         offload_master=False,
+        lr_decay_ratio=0.2,
+        min_lr_ratio=0.1,
+        lr_decay_style="linear",
     ):
         # defaults copied from EAGLE traineagle3 ds_config.json
         self.model = model
@@ -56,17 +64,38 @@ class BF16Optimizer:
         scheduler_types = {
             "constant": ConstantWarmupLR,
             "cosine": CosineAnnealingWarmupLR,
+            "wsd": WarmupStableDecayLR,
         }
         if lr_scheduler not in scheduler_types:
             raise ValueError(
                 f"unsupported lr_scheduler={lr_scheduler!r}; "
                 f"expected one of {sorted(scheduler_types)}"
             )
+        scheduler_kwargs = {}
+        if lr_scheduler == "wsd":
+            if type(total_steps) is not int or total_steps < 1:
+                raise ValueError("WSD total_steps must be a positive integer")
+            if not math.isfinite(warmup_ratio) or not 0 <= warmup_ratio < 1:
+                raise ValueError("WSD warmup_ratio must be finite and in [0, 1)")
+            if (
+                not math.isfinite(lr_decay_ratio)
+                or lr_decay_ratio <= 0
+                or warmup_ratio + lr_decay_ratio > 1
+            ):
+                raise ValueError(
+                    "WSD lr_decay_ratio must be positive and fit after warmup"
+                )
+            scheduler_kwargs = dict(
+                decay_steps=int(lr_decay_ratio * total_steps),
+                min_lr_ratio=min_lr_ratio,
+                lr_decay_style=lr_decay_style,
+            )
         self.lr_scheduler_type = lr_scheduler
         self.scheduler = scheduler_types[lr_scheduler](
             self.optimizer,
             total_steps=total_steps,
             warmup_steps=int(warmup_ratio * total_steps),
+            **scheduler_kwargs,
         )
 
     def configure_grad_norm_reduction(
@@ -206,6 +235,10 @@ class BF16Optimizer:
         # offload_master is a pure device-placement choice: restored fp32
         # masters and Adam moments are relocated to the current master device,
         # so toggling it on resume is safe and intentionally not gated here.
+        if self.lr_scheduler_type == "wsd":
+            self.scheduler.validate_state_dict(state_dict["scheduler_state_dict"])
+            if state_dict.get("fp32_params") is None:
+                raise ValueError("WSD exact resume requires fp32_params")
         self.optimizer.load_state_dict(state_dict["optimizer_state_dict"])
         print_on_rank0("Successfully loaded optimizer state_dict.")
         self.scheduler.load_state_dict(state_dict["scheduler_state_dict"])

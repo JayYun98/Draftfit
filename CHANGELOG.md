@@ -5,6 +5,10 @@ explicitly approved operation; a Git version tag does not imply a PyPI release.
 
 ## Unreleased
 
+- Support official EAGLE4 checkpoint aliases and restore nonpersistent rotary buffers after loading.
+  Preserve learned candidate factors, add native-logit feature ingestion and optional vLLM arithmetic,
+  and expose resumable warmup-stable-decay scheduling. Add CPU regression coverage and an EAGLE4 guide.
+
 - Train fresh drafts or adapt existing drafts from quantized-target features.
   Add optional Transformers NF4/INT8 target loading, cache identity checks,
   and quantization provenance. Draft weights remain floating point.

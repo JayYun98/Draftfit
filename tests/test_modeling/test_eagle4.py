@@ -2,6 +2,7 @@
 
 import tempfile
 import unittest
+from importlib.util import find_spec
 from pathlib import Path
 from unittest.mock import patch
 
@@ -9,7 +10,7 @@ import torch
 from transformers import LlamaConfig
 
 from draftfit.modeling.auto import AutoDraftModel
-from draftfit.modeling.draft.eagle4 import LlamaForCausalLMEagle4
+from draftfit.modeling.draft.eagle4 import LlamaForCausalLMEagle4, candidate_argmax
 
 
 def tiny_config(**overrides):
@@ -43,6 +44,245 @@ class Eagle4Test(unittest.TestCase):
     def setUp(self):
         torch.manual_seed(29)
         self.model = LlamaForCausalLMEagle4(tiny_config()).eval()
+
+    def test_candidate_greedy_matches_vocabulary_argmax_for_ties(self):
+        scores = torch.tensor([[3.0, 3.0, 1.0], [2.0, 4.0, 4.0]]).bfloat16()
+        ids = torch.tensor([[9, 3, 5], [2, 8, 7]])
+        dense = torch.full((2, 32), -torch.inf, dtype=scores.dtype).scatter(
+            -1, ids, scores
+        )
+        expected = dense.argmax(-1)
+        for order in (torch.tensor([0, 1, 2]), torch.tensor([2, 1, 0])):
+            self.assertTrue(
+                torch.equal(candidate_argmax(scores[:, order], ids[:, order]), expected)
+            )
+
+    def test_native_precision_keeps_checkpoint_keys_and_rejects_cpu_forward(self):
+        native = LlamaForCausalLMEagle4(tiny_config(eagle4_precision="vllm"))
+        self.assertEqual(set(native.state_dict()), set(self.model.state_dict()))
+        with self.assertRaisesRegex(RuntimeError, "requires CUDA"):
+            native(torch.randn(1, 3, 48), torch.randn(1, 3, 16))
+
+    @unittest.skipUnless(
+        torch.cuda.is_available() and find_spec("vllm") is not None,
+        "requires a vLLM CUDA runtime",
+    )
+    def test_native_rms_norm_gradients_match_full_precision_formula(self):
+        from draftfit.modeling.draft.eagle4_precision import Eagle4NativeRMSNorm
+
+        norm = Eagle4NativeRMSNorm(5120).cuda().bfloat16()
+        with torch.no_grad():
+            norm.weight.uniform_(0.5, 2.0)
+        value = torch.randn(
+            2, 3, 5120, device="cuda", dtype=torch.bfloat16, requires_grad=True
+        )
+        grad = torch.randn_like(value)
+        norm(value).backward(grad)
+        x = value.detach().float().requires_grad_()
+        w = norm.weight.detach().float().requires_grad_()
+        reference = (
+            x
+            * torch.rsqrt(x.square().mean(-1, keepdim=True) + norm.variance_epsilon)
+            * w
+        )
+        reference.backward(grad.float())
+        torch.testing.assert_close(value.grad, x.grad.bfloat16(), rtol=0, atol=0)
+        torch.testing.assert_close(norm.weight.grad, w.grad.bfloat16(), rtol=0, atol=0)
+
+    @unittest.skipUnless(torch.cuda.is_available(), "requires CUDA")
+    def test_large_vocabulary_loss_matches_dense_value_and_gradient(self):
+        from draftfit.algorithms.eagle3.model import _teacher_cross_entropy
+
+        for size in (131072, 131073, 248320):
+            for dtype in (torch.float32, torch.bfloat16):
+                with self.subTest(vocabulary=size, dtype=dtype):
+                    logits = torch.randn(
+                        1, 3, size, device="cuda", dtype=dtype, requires_grad=True
+                    )
+                    teacher = torch.randn_like(logits).float().softmax(-1)
+                    mask = torch.tensor([[[1.0], [0.0], [1.0]]], device="cuda")
+                    expected = (
+                        -(mask * teacher * logits.float().log_softmax(-1))
+                        .sum(-1)
+                        .mean()
+                    )
+                    actual = _teacher_cross_entropy(logits, teacher, mask)
+                    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-5)
+                    torch.testing.assert_close(
+                        torch.autograd.grad(actual, logits)[0],
+                        torch.autograd.grad(expected, logits)[0],
+                        rtol=1e-2 if dtype == torch.bfloat16 else 1e-4,
+                        atol=1e-6,
+                    )
+
+    def test_onebody_stage_clears_stale_gradients_and_trains_both_heads(self):
+        self.model.compute_logits(torch.randn(1, 2, 16)).sum().backward()
+        self.model.set_training_stage("onebody")
+        self.assertTrue(all(p.grad is None for p in self.model.parameters()))
+        for name, parameter in self.model.named_parameters():
+            self.assertEqual(
+                parameter.requires_grad, name != "embed_tokens.weight", name
+            )
+        hidden = torch.randn(1, 2, 16)
+        logits = self.model.compute_logits(hidden)
+        loss = logits.square().mean() + self.model.candidate_loss(
+            hidden, logits, torch.ones(1, 2, 1)
+        )
+        loss.backward()
+        for parameter in (
+            self.model.lm_head.weight,
+            self.model.efficient_lm_head.weight,
+            self.model.efficient_lm_head_down_proj.weight,
+        ):
+            self.assertGreater(parameter.grad.abs().sum().item(), 0)
+        self.model.set_training_stage("draft")
+        self.assertTrue(all(p.grad is None for p in self.model.parameters()))
+        self.assertFalse(self.model.efficient_lm_head.weight.requires_grad)
+        self.model.set_training_stage("candidates")
+        self.assertFalse(self.model.lm_head.weight.requires_grad)
+
+    def test_packed_target_embedding_is_rejected_without_changing_weights(self):
+        from safetensors.torch import save_file
+
+        with tempfile.TemporaryDirectory() as directory:
+            save_file(
+                {"model.embed_tokens.weight": torch.ones(32, 16, dtype=torch.uint8)},
+                str(Path(directory) / "model.safetensors"),
+            )
+            before = self.model.embed_tokens.weight.detach().clone()
+            with self.assertRaisesRegex(
+                ValueError, "packed embeddings or output heads"
+            ):
+                self.model.load_embedding(directory)
+            torch.testing.assert_close(
+                self.model.embed_tokens.weight, before, atol=0, rtol=0
+            )
+
+    def test_freeze_embedding_clears_a_preexisting_gradient(self):
+        weight = self.model.embed_tokens.weight
+        weight.requires_grad_(True)
+        weight.sum().backward()
+        optimizer = torch.optim.SGD([weight], lr=0.1)
+        before = weight.detach().clone()
+        self.model.freeze_embedding()
+        optimizer.step()
+        self.assertIsNone(weight.grad)
+        torch.testing.assert_close(weight, before, atol=0, rtol=0)
+
+    def test_official_pretrained_warm_start_preserves_candidates_without_embedding(
+        self,
+    ):
+        from safetensors.torch import save_file
+
+        from draftfit.training.model_loading import warm_start_draft_model
+
+        with tempfile.TemporaryDirectory() as directory:
+            self.model.config.save_pretrained(directory)
+            weights = {
+                key.replace("midlayer.", "layers.0.", 1): value.contiguous()
+                for key, value in self.model.state_dict().items()
+                if key != "embed_tokens.weight"
+            }
+            save_file(weights, str(Path(directory) / "model.safetensors"))
+            reloaded = AutoDraftModel.from_config(tiny_config()).eval()
+            with patch.object(
+                reloaded,
+                "initialize_candidate_head",
+                side_effect=AssertionError("unexpected SVD"),
+            ):
+                report = warm_start_draft_model(
+                    reloaded,
+                    directory,
+                    draft_config=reloaded.config,
+                    strategy="eagle4",
+                    allow_missing_embedding=True,
+                )
+            self.assertEqual(report.missing_keys, ("embed_tokens.weight",))
+            self.assertFalse(report.loaded_embedding)
+            for key, expected in self.model.state_dict().items():
+                if key != "embed_tokens.weight":
+                    torch.testing.assert_close(
+                        reloaded.state_dict()[key], expected, atol=0, rtol=0
+                    )
+
+    def test_warm_start_rejects_ambiguous_official_and_internal_layer_keys(self):
+        from draftfit.training.model_loading import warm_start_draft_model
+
+        with tempfile.TemporaryDirectory() as directory:
+            weights = dict(self.model.state_dict())
+            weights["layers.0.self_attn.q_proj.weight"] = weights[
+                "midlayer.self_attn.q_proj.weight"
+            ]
+            torch.save(
+                {"strategy": "eagle4", "draft_state_dict": weights},
+                Path(directory) / "training_state.pt",
+            )
+            with self.assertRaisesRegex(
+                ValueError, "conflicting EAGLE4 checkpoint key"
+            ):
+                warm_start_draft_model(
+                    self.model,
+                    directory,
+                    draft_config=self.model.config,
+                    strategy="eagle4",
+                )
+
+    def test_reload_preserves_native_rotary_dtype_policy(self):
+        for precision in ("torch", "vllm"):
+            with (
+                self.subTest(precision=precision),
+                tempfile.TemporaryDirectory() as path,
+            ):
+                model = LlamaForCausalLMEagle4(
+                    tiny_config(eagle4_precision=precision)
+                ).bfloat16()
+                model.save_pretrained(path)
+                reloaded = AutoDraftModel.from_pretrained(path, dtype=torch.bfloat16)
+                before = dict(model.midlayer.self_attn.rotary_emb.named_buffers())
+                after = dict(reloaded.midlayer.self_attn.rotary_emb.named_buffers())
+                self.assertEqual(set(before), set(after))
+                for key, value in before.items():
+                    self.assertEqual(after[key].dtype, value.dtype)
+                    torch.testing.assert_close(after[key], value, atol=0, rtol=0)
+                self.assertTrue(reloaded.t2d.all())
+                self.assertFalse(reloaded.d2t.any())
+
+    def test_official_layers_warm_start_preserves_all_weights(self):
+        from draftfit.training.model_loading import warm_start_draft_model
+
+        with tempfile.TemporaryDirectory() as directory:
+            self.model.config.save_pretrained(directory)
+            torch.save(
+                {
+                    "strategy": "eagle4",
+                    "draft_state_dict": {
+                        key.replace("midlayer.", "layers.0.", 1): value
+                        for key, value in self.model.state_dict().items()
+                    },
+                },
+                Path(directory) / "training_state.pt",
+            )
+            reloaded = AutoDraftModel.from_config(tiny_config()).eval()
+            with patch.object(
+                reloaded,
+                "initialize_candidate_head",
+                side_effect=AssertionError("unexpected SVD"),
+            ):
+                report = warm_start_draft_model(
+                    reloaded, directory, draft_config=reloaded.config, strategy="eagle4"
+                )
+            self.assertFalse(report.missing_keys)
+            for key, expected in self.model.state_dict().items():
+                torch.testing.assert_close(
+                    reloaded.state_dict()[key], expected, atol=0, rtol=0
+                )
+            hidden, embedding = torch.randn(1, 4, 48), torch.randn(1, 4, 16)
+            torch.testing.assert_close(
+                reloaded(hidden, embedding),
+                self.model(hidden, embedding),
+                atol=0,
+                rtol=0,
+            )
 
     def test_candidate_logits_use_exact_selected_full_head_rows(self):
         h = torch.randn(2, 3, 16)
@@ -140,6 +380,82 @@ class Eagle4Test(unittest.TestCase):
             torch.testing.assert_close(a, b)
             self.assertTrue(torch.equal(ai, bi))
 
+            hidden = torch.randn(1, 3, 48)
+            embedding = torch.randn(1, 3, 16)
+            torch.testing.assert_close(
+                self.model(hidden, embedding),
+                reloaded(hidden, embedding),
+                atol=0,
+                rtol=0,
+            )
+            self.assertTrue(reloaded.t2d.all())
+            self.assertFalse(reloaded.d2t.any())
+
+    def test_official_layer_names_load_without_random_backbone_weights(self):
+        from safetensors.torch import save_file
+
+        with tempfile.TemporaryDirectory() as path:
+            self.model.config.save_pretrained(path)
+            weights = {
+                key.replace("midlayer.", "layers.0.", 1): value.contiguous()
+                for key, value in self.model.state_dict().items()
+            }
+            save_file(weights, str(Path(path) / "model.safetensors"))
+            reloaded, info = AutoDraftModel.from_pretrained(
+                path, output_loading_info=True
+            )
+            for key in (
+                "missing_keys",
+                "unexpected_keys",
+                "mismatched_keys",
+                "error_msgs",
+            ):
+                self.assertFalse(info.get(key), (key, info.get(key)))
+            for key, expected in self.model.state_dict().items():
+                torch.testing.assert_close(
+                    reloaded.state_dict()[key], expected, atol=0, rtol=0
+                )
+            hidden = torch.randn(1, 3, 48)
+            embedding = torch.randn(1, 3, 16)
+            torch.testing.assert_close(
+                self.model(hidden, embedding),
+                reloaded.eval()(hidden, embedding),
+                atol=0,
+                rtol=0,
+            )
+
+    def test_bfloat16_reload_preserves_three_recurrent_outputs(self):
+        model = self.model.bfloat16()
+        with tempfile.TemporaryDirectory() as path:
+            model.save_pretrained(path)
+            reloaded = AutoDraftModel.from_pretrained(path, dtype=torch.bfloat16).eval()
+            ids = torch.tensor([[1, 2, 3]])
+            hidden = torch.randn(1, 3, 48).bfloat16()
+            expected = model.project_hidden_states(hidden)
+            actual = reloaded.project_hidden_states(hidden)
+            mask = model.prepare_decoder_attention_mask(
+                torch.ones_like(ids), expected, 1, 3, 0
+            )
+            expected_cache, actual_cache = [[], []], [[], []]
+            for _ in range(3):
+                kwargs = {
+                    "attention_mask": mask,
+                    "position_ids": torch.arange(3)[None],
+                }
+                expected = model.backbone(
+                    input_embeds=model.embed_input_ids(ids),
+                    hidden_states=expected,
+                    cache_hidden=expected_cache,
+                    **kwargs,
+                )
+                actual = reloaded.backbone(
+                    input_embeds=reloaded.embed_input_ids(ids),
+                    hidden_states=actual,
+                    cache_hidden=actual_cache,
+                    **kwargs,
+                )
+                torch.testing.assert_close(actual, expected, atol=0, rtol=0)
+
     def test_sglang_export_preserves_candidate_factors(self):
         from safetensors.torch import load_file
 
@@ -187,6 +503,9 @@ class Eagle4Test(unittest.TestCase):
             {"draft_vocab_size": 16},
             {"sliding_window": 0},
             {"use_rope": False},
+            {"eagle4_precision": "unsupported"},
+            {"eagle4_precision": "vllm", "hidden_act": "relu"},
+            {"eagle4_precision": "vllm", "pretraining_tp": 2},
             {
                 "efficient_lm_head_config": {
                     "type": "low_rank",

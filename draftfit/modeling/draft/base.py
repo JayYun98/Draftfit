@@ -130,6 +130,7 @@ class Eagle3DraftModel(PreTrainedModel, ABC):
         Freeze the embeddings of the draft model so that they are not updated during training.
         """
         self.embed_tokens.weight.requires_grad = False
+        self.embed_tokens.weight.grad = None
 
     @torch.no_grad()
     def load_embedding(

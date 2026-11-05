@@ -195,6 +195,14 @@ class FeatureDataLoader:
 
         def batch_shape(spec, ref):
             shape = tuple(spec.shape)
+            if (
+                ref.metadata.get("target_repr") == "native_logits"
+                and spec.name == "native_logits"
+                and shape
+            ):
+                if len(shape) == 3 and shape[0] == 1:
+                    return (1, None, *shape[2:])
+                return (None, *shape[1:])
             # Refs contain one sequence, not a fixed-length training batch.
             # Only the declared token axis varies; hidden width/rank stay exact.
             if ref.num_tokens > 0:
@@ -264,6 +272,7 @@ class FeatureDataLoader:
             metadata={
                 "target_repr": refs[0].metadata.get("target_repr"),
                 "ttt_length": refs[0].metadata.get("ttt_length"),
+                "target_vocab_size": refs[0].metadata.get("target_vocab_size"),
             },
         )
 

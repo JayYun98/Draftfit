@@ -41,7 +41,8 @@ DraftStrategyName = Literal[
 #   - pruned_logits: rollout applied the t2d vocab map; stored (seq, draft_vocab)
 #   - logits:        full (seq, target_vocab); parity/debug only
 #   - hidden_state:  target last hidden state; strategy re-runs lm_head + t2d
-TargetRepr = Literal["logits", "pruned_logits", "hidden_state"]
+#   - native_logits: original-position suffix; native_logit_start names its start
+TargetRepr = Literal["logits", "pruned_logits", "hidden_state", "native_logits"]
 
 
 @dataclass(frozen=True)
