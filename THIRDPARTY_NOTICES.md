@@ -15,6 +15,7 @@ runtime modules do not replace or erase the authorship of adapted source.
 | [Osprey](https://github.com/LeanModels/Osprey) | `f62cd48844b03f3cb929543da25c15756e1f1095` | Draft backbone conversion and aligned embeddings |
 | [CAST](https://github.com/js-lee-AI/CAST) | `2eed73f38f9210f1d5ddf01de8059cf3ffb43c19` | Reference tree construction and corrected speculative sampling |
 | [Redline](https://github.com/js-lee-AI/Redline) | `d78ede9b035420f3c8c8c63c185ed55be5ea038f` | Paired correctness-risk calibration |
+| [TableTune](https://github.com/asm582/tabletune) | `38170878d901cb06f696a122a0b4140a3d365f02` | Offline draft-length table construction |
 | Prism extended runtime | `e3de715222b2667c54a267441159a5729f11155e` | Explicit external native capture API; runtime is not bundled |
 
 ## Borrowed boundaries
@@ -49,6 +50,12 @@ runtime modules do not replace or erase the authorship of adapted source.
   a bridge revision string does not authenticate a linked native library.
 
 ## Sync policy
+
+The TableTune recipe adapts the dependency-light `dsd_tuning/core.py` numerical
+kernel under Apache-2.0. Its full license is bundled in
+`draftfit/research/_vendor/TABLETUNE_LICENSE`.
+The source boundary and digest are recorded in `draftfit/research/NOTICE.md`.
+The vLLM plugin, live controller, installers, and profiling workers are not bundled.
 
 The latest research adapter additionally bundles the Apache-2.0 single-tree
 TreeWY reference from `sneha5gsm/vllm` at

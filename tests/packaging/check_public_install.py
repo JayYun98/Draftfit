@@ -74,6 +74,47 @@ def main():
         export_assets(root / "exported-assets")
         assert (root / "exported-assets/docs/TRAINING_SEARCH.md").is_file()
 
+        exported = root / "exported-assets"
+        assert (exported / "docs/research/paper-intake.md").is_file()
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                "-m",
+                "draftfit.research",
+                "-c",
+                "examples/configs/research/tabletune.yaml",
+                "output_dir=tabletune-result",
+            ],
+            cwd=exported,
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert (exported / "tabletune-result/result.json").is_file()
+        from importlib.resources import files
+
+        assert (
+            files("draftfit.research._vendor").joinpath("TABLETUNE_LICENSE").is_file()
+        )
+        notes = root / "paper-notes"
+        notes.mkdir()
+        (notes / "2611.05611_v1_fixture.md").write_text("# Public test fixture\n")
+        intake = json.loads(
+            cli(
+                "research",
+                "intake",
+                "scan",
+                "--notes-dir",
+                notes,
+                "--state",
+                root / "intake.json",
+            )
+        )
+        assert intake["pending_count"] == 1
+
         target = root / "target"
         target.mkdir()
         raw_data = root / "messages.jsonl"

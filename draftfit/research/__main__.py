@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import sys
 
 from .catalog import source_catalog
 from .config import load_recipe
@@ -9,7 +10,15 @@ from .runner import plan, run
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Run a native research recipe")
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv[:1] == ["intake"]:
+        from .intake import main as intake_main
+
+        return intake_main(argv[1:])
+    parser = argparse.ArgumentParser(
+        description="Run an experimental research recipe",
+        epilog="Track literature with: draftfit research intake --help",
+    )
     parser.add_argument("-c", "--config")
     parser.add_argument("--plan", action="store_true")
     parser.add_argument("--sources", action="store_true")

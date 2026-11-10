@@ -10,6 +10,13 @@ SOURCES = {
 
 # Unavailable author code is not replaced by a guessed repository/revision.
 LATEST = [
+    (
+        "tabletune",
+        "2610.38968v2",
+        "pinned_author_offline_table",
+        "asm582/tabletune",
+        "38170878d901cb06f696a122a0b4140a3d365f02",
+    ),
     ("ngramrl", "2610.32881v1", "native_synchronous_reference", None, None),
     ("specmem", "2610.31840v1", "native_memory_reference", None, None),
     ("valuspec", "2610.31338v1", "cast_conditional_branch_filter", None, None),

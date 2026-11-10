@@ -14,18 +14,24 @@ IMPLEMENTATIONS = {
     "treewy": "author_numerical_reference",
     "moe_spac": "policy_trace_reference",
     "query_layout": "tensor_diagnostic",
+    "tabletune": "pinned_author_offline_table",
 }
 
 
 def plan(config, recipe_path=None):
     """Describe the selected work without loading models or writing output."""
-    return {
+    result = {
         "project": config.method,
         "implementation": IMPLEMENTATIONS.get(config.method, "native"),
         "config": config.model_dump(),
         "execution": "not-run",
         "serving_compatibility": "not_validated",
     }
+    if config.method == "tabletune":
+        from .tabletune import experiment_metadata
+
+        result.update(experiment_metadata(config))
+    return result
 
 
 def _cast(config):
@@ -199,6 +205,7 @@ def run(config, recipe_path=None):
         "arr",
         "moe_spac",
         "query_layout",
+        "tabletune",
     }:
         raise ValueError(f"unsupported research method: {config.method}")
     if config.method in {"ngramrl", "specmem"}:
@@ -225,6 +232,10 @@ def run(config, recipe_path=None):
         from .query_layout import run_query_layout
 
         result = run_query_layout(config)
+    elif config.method == "tabletune":
+        from .tabletune import run_tabletune
+
+        result = run_tabletune(config)
     else:
         result = _cast(config) if config.method == "cast" else _redline(config)
     memory_state = result.pop("memory_state", None)

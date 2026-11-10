@@ -325,6 +325,26 @@ class QueryLayoutConfig(StrictConfigModel):
     output_dir: str
 
 
+class TableTuneData(StrictConfigModel):
+    input_path: str = Field(min_length=1)
+
+
+class TableTuneOptions(StrictConfigModel):
+    costs_pattern: str = Field(min_length=1)
+    max_batch_size: int = Field(default=128, ge=1, le=4096, strict=True)
+    eps: float = Field(default=0.005, ge=0, lt=1, allow_inf_nan=False)
+    min_width_frac: float = Field(default=0.25, ge=0, allow_inf_nan=False)
+    merge_tol: float | None = Field(default=None, ge=0, le=1, allow_inf_nan=False)
+
+
+class TableTuneConfig(StrictConfigModel):
+    method: Literal["tabletune"]
+    data: TableTuneData
+    table: TableTuneOptions
+    profile_kind: Literal["synthetic", "measured"] = "synthetic"
+    output_dir: str
+
+
 Recipe = Annotated[
     Union[
         CastConfig,
@@ -338,6 +358,7 @@ Recipe = Annotated[
         ARRConfig,
         MoEPolicyConfig,
         QueryLayoutConfig,
+        TableTuneConfig,
     ],
     Field(discriminator="method"),
 ]

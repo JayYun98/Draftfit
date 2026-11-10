@@ -1,0 +1,115 @@
+{
+  "date": "2026-11-11",
+  "repository": "JayYun98/Draftfit",
+  "base_revision": "ccd27e4fa5ceef44e6c2ffd5c205f034673cb65e",
+  "scope": "Local literature bookkeeping and offline TableTune table construction; experimental only.",
+  "environment": {
+    "python": "3.12.8",
+    "torch": "2.11.0",
+    "transformers": "5.8.1",
+    "pydantic": "2.13.4",
+    "platform": "macOS arm64",
+    "device": "cpu",
+    "dependency_profile": "reused contributor dependencies; not the current locked CPU profile"
+  },
+  "source_sha256": {
+    ".pre-commit-config.yaml": "d3feb160726ef59eabc4dfc9ce61239db512426d28b18f578fd61f6bedfdef88",
+    "MANIFEST.in": "33630bddecd1137fbfaa7c6001f0b66bd7485a12e20ad14efe9d96bff706e65b",
+    "draftfit/assets/__init__.py": "5b2af7a71e837df929674d4903e08ee9ac9faf7eabba416b5deaee82eac319f0",
+    "draftfit/research/__main__.py": "449407523b87c6aa719ea862998954227629747be0596797adfda0dd2896821c",
+    "draftfit/research/_vendor/TABLETUNE_LICENSE": "c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c",
+    "draftfit/research/_vendor/tabletune.py": "8d4c7e0d8b5d7a04f85f00fe7c28d80f1f76afd4c497657430b412df744ee80c",
+    "draftfit/research/catalog.py": "94e731ad4f22ef439f80484fb262ce3a047806688df707fb0871349d0bf3da74",
+    "draftfit/research/config.py": "0f55e5f15e1b1d0c44c969b08de8639912d4f98f958d9df7bba2d630b8cacd26",
+    "draftfit/research/intake.py": "b95122310ea15b2573b944b5cd03a380eca9874f37b823da5ec2b047cd0f97c7",
+    "draftfit/research/runner.py": "99beab48089b81218426ff1ad8b82b3f9f2bc93e3fba624d00303f3c7c6be98d",
+    "draftfit/research/tabletune.py": "07bc48efb2f15a0cd53853644de2afc3e895631ddb077ce628ac0a0b9cd868b1",
+    "examples/configs/research/data/tabletune-acceptance.json": "2ab06f04b94d59b09b143948e79dd2c329d0d1f35904d53322f28492cac88349",
+    "examples/configs/research/data/tabletune-costs_k0.json": "a2ba7cbef3ca36c620cc22af545099e4142ded642b5bf9653f7689efb49f7edd",
+    "examples/configs/research/data/tabletune-costs_k1.json": "5e6233d7a592b1f1a8d22b2d280caf1db03b9c6e46f1fb79bdad12cc4911770e",
+    "examples/configs/research/data/tabletune-costs_k3.json": "1ef5011facb95ce64a4319eeb16ae5e1ed00e096fc19c7bd2034f5cdb01d35ca",
+    "examples/configs/research/tabletune.yaml": "260d263af8026f70e4b71f8b3bcb00e669d47b0b79529dcb8b1343df62115ebd",
+    "pyproject.toml": "74d77baa951e0fced90ccc2111294861c32c82fe970af7cd59e2e4e41f70a585",
+    "setup.py": "251ab55a9c656383b5bfa3498704d45686b36a9d6a9bc0c094013f0155c2ba8f",
+    "tests/packaging/check_public_install.py": "cd4713dcee69ac467573ce34457e688fca73534345a3189c9ced31ef515436bd",
+    "tests/public_cpu.py": "96b09330e8a9445ce9a1a46a9f7824d341ecfba583e651a3ca65ab1ad04a474a",
+    "tests/research/test_paper_intake.py": "f30686da13a71651bc6a532e906890183c0644f664e09de8172a35ef6c123401",
+    "tests/research/test_tabletune.py": "917d33fadbd122520e117b1f8ba66a66d24a10e79e6367a04fdb9d9e69586c76"
+  },
+  "checks": [
+    {
+      "command": "git diff --cached --check -- . ':(exclude)draftfit/research/_vendor/TABLETUNE_LICENSE'",
+      "status": "pass",
+      "scope": "The copied license retains its upstream blank line at EOF; its SHA256 is checked separately"
+    },
+    {
+      "command": "pre-commit run --files <all changed files>",
+      "status": "pass",
+      "scope": "All applicable hooks; preserved upstream source and license bytes"
+    },
+    {
+      "command": "python -m unittest discover -s tests/research -t . -v",
+      "status": "pass",
+      "tests": 54
+    },
+    {
+      "command": "python -m unittest tests.test_research_core tests.test_research_methods tests.test_research_providers tests.test_research_review_regressions -v",
+      "status": "pass",
+      "tests": 30
+    },
+    {
+      "command": "python -m unittest tests.test_packaging.test_assets -v",
+      "status": "pass",
+      "tests": 3
+    },
+    {
+      "command": "uv build --no-build-isolation",
+      "status": "pass",
+      "artifacts": [
+        "wheel",
+        "sdist"
+      ]
+    },
+    {
+      "command": "python -I tests/packaging/check_public_install.py",
+      "status": "pass",
+      "scope": "Installed wheel with reused CPU dependencies, including intake CLI, exported TableTune recipe, and license"
+    },
+    {
+      "command": "uv pip sync --python .venv/bin/python requirements-cpu.lock --torch-backend cpu --require-hashes",
+      "status": "blocked",
+      "attempts": 2,
+      "package": "torch==2.11.0",
+      "computed_sha256": "43b35116802c85fb88d99f4a396b8bd4472bfca1dd82e69499e5a4f9b8b4e252",
+      "hash_bypass": false
+    },
+    {
+      "command": "python -m tests.public_cpu",
+      "status": "not-run",
+      "reason": "The required locked environment could not be installed. A run in the old environment was aborted and is not a passing gate."
+    }
+  ],
+  "review": {
+    "independent_scope": "Complete diff including untracked files against the pinned dev base",
+    "finding": "Last paper removal left availability stale. Reproduced, fixed, and covered by a regression test.",
+    "fix_verification": "All 11 intake checks passed; included in the final suite of 54 tests."
+  },
+  "upstream": {
+    "repository": "https://github.com/asm582/tabletune",
+    "revision": "38170878d901cb06f696a122a0b4140a3d365f02",
+    "license": "Apache-2.0",
+    "source_and_license_bytes": "unchanged"
+  },
+  "not_run": [
+    "live TableTune controller",
+    "vLLM plugin",
+    "CUDA graph transitions",
+    "real model token parity",
+    "GPU throughput",
+    "training quality"
+  ],
+  "claims": [
+    "Synthetic fixture matches hand-calculated schedule [[1,1,3],[2,4,1],[5,8,0]].",
+    "No serving speed or quality improvement is claimed."
+  ]
+}

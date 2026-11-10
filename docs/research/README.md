@@ -6,6 +6,10 @@ These methods are experimental.
 They are not production backends.
 Use their separate recipes and execution limits.
 
+Use [paper intake](paper-intake.md) to track literature revisions and prepare
+experimental PRs. Its first [TableTune recipe](../../examples/configs/research/tabletune.yaml)
+builds an offline table from synthetic profiles. Live serving remains unverified.
+
 ## Existing research workflows
 
 | Method | Purpose | Guide |

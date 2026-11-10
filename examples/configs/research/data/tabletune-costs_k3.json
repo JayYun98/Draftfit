@@ -1,0 +1,9 @@
+{
+  "profile_kind": "synthetic",
+  "description": "Toy step times in milliseconds, not measured performance.",
+  "rows": [
+    {"batch_size": 1, "k": 3, "step_ms": 13.0},
+    {"batch_size": 4, "k": 3, "step_ms": 24.0},
+    {"batch_size": 8, "k": 3, "step_ms": 48.0}
+  ]
+}
