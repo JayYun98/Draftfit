@@ -486,6 +486,8 @@ class DFlashDraftModel(Qwen3PreTrainedModel):
         **kwargs,
     ) -> CausalLMOutputWithPast:
         hidden_states = noise_embedding
+        # Targets may retain an FP32 residual stream with BF16 model weights.
+        target_hidden = target_hidden.to(dtype=hidden_states.dtype)
         target_hidden = self.hidden_norm(self.fc(target_hidden))
         position_embeddings = self.rotary_emb(hidden_states, position_ids)
         for layer_type, layer in zip(self.layer_types, self.layers):

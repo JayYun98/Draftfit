@@ -715,6 +715,8 @@ class TrainingConfig(StrictConfigModel):
     #: CPU feature bytes, including leased accumulation windows; zero disables.
     joint_feature_queue_bytes: int = Field(default=0, ge=0)
     joint_feature_queue_batches: int = Field(default=2, gt=0)
+    #: Keep full joint resume state while optionally omitting duplicate per-arm saves.
+    joint_emit_arm_checkpoints: bool = True
     joint_verification: Optional[JointVerificationConfig] = None
     joint_control: Optional[JointControlConfig] = None
     # Keep this extensible for externally registered algorithms; the immutable

@@ -28,6 +28,7 @@ not a blanket compatibility or production-readiness claim.
 
    DFLASH_FAMILY
    JOINT_ONLINE
+   specs/spark-generation-tuning
    SHARED_TARGET_FEATURE_QUEUE
    UNATTENDED_NATIVE
    JOINT_MONITORING

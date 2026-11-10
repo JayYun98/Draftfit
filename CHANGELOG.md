@@ -5,6 +5,11 @@ explicitly approved operation; a Git version tag does not imply a PyPI release.
 
 ## Unreleased
 
+- Preserve stable evaluation anchors, exclude committed anchors from DSpark tau
+  diagnostics and accept FP32 residual features in BF16 family drafts. Add
+  opt-in joint-only checkpoint storage and bounded local generation batch tuning
+  with CUDA OOM reduction and completed-row resume.
+
 - Support official EAGLE4 checkpoint aliases and restore nonpersistent rotary buffers after loading.
   Preserve learned candidate factors, add native-logit feature ingestion and optional vLLM arithmetic,
   and expose resumable warmup-stable-decay scheduling. Add CPU regression coverage and an EAGLE4 guide.

@@ -96,6 +96,9 @@ features from tokenized inputs instead of loading saved feature files.
 `training.joint_target_device` optionally places that target on a separate device.
 `training.joint_feature_queue_bytes` bounds resident feature memory, and
 `training.joint_feature_queue_batches` limits lookahead batches within that bound.
+Set `training.joint_emit_arm_checkpoints` to `false` to omit duplicate per-family checkpoint
+files while retaining joint optimizer/cursor state and the existing export policy.
+The default is `true`; this output-only choice does not change resume identity.
 `training.joint_verification` configures fixed-holdout generation checks and
 optimizer offload/restore. `training.joint_control` enables checkpoint-bound
 policy decisions using explicit budget observations; the unattended controller

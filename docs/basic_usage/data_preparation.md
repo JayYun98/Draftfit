@@ -95,6 +95,58 @@ before training or distributing a model. Tool calls are retained, so use a
 tokenizer/chat template that supports tool messages.
 
 
+## Resident local generation
+
+The server backend remains the default. To generate training conversations
+inside one instance without starting a separate inference server, opt into
+the Transformers backend:
+
+```sh
+draftfit data regenerate --backend transformers \
+  --model /path/to/local-target --local-files-only \
+  --input-file-path ./data/train.jsonl \
+  --output-file-path ./data/target-generated.jsonl \
+  --device cuda --torch-dtype bfloat16 \
+  --max-tokens 128 --temperature 0 \
+  --auto-batch --max-auto-batch 32 --tuning-seconds 60 \
+  --memory-fraction 0.9
+```
+
+Every input row needs a unique string or integer `id` and a valid text-only
+`conversations` list. A configured tokenizer chat template is required.
+Existing assistant replies are replaced. Later turns use the replies generated
+for preceding turns, rather than the original assistant text.
+Use the target's existing runtime and dependencies for quantized checkpoints;
+this command does not dequantize or fall back to a floating-point target.
+Remote model IDs require an exact `--revision`.
+Structured reasoning output (`--reasoning save`) and GPT-OSS-specific request
+handling remain on the server backend.
+
+`--auto-batch` runs short CUDA generation probes using the longest representative
+prompt. It reuses the existing throughput selector, keeps memory headroom and
+prefers the smaller batch when throughput differs by less than 3%.
+Probe calls preserve sampling RNG and do not write training rows.
+Only CUDA OOM triggers a smaller-batch retry; other runtime errors propagate.
+Batch one OOM fails. A shared GPU can lose free memory after a probe, so a saved
+choice is advisory and the OOM fallback remains active.
+This changes generation batching only, not training batch size, optimizer or LR.
+
+The command writes an `.autotune.json` receipt, a `.regeneration.json` contract
+and a `.progress.json` status beside the output. Tuning receipts contain timing,
+memory and model/runtime identity, not prompt content. A cached choice must
+match its identity, generation settings and tested prompt-length envelope.
+The JSONL files commit only complete conversations. Resume with the same command
+and `--resume`; a changed input or generation contract requires a new output.
+This is completed-row resume, not bitwise sampling-RNG replay.
+`--deadline-unix` supplies an optional absolute deadline; generation checks it
+between batches and uses a cooperative generation time bound. A single native
+kernel cannot be preempted by this option.
+
+For a CPU smoke test, replace auto tuning with `--batch-size 1 --device cpu
+--torch-dtype float32`. CUDA memory tuning, native serving correctness and
+throughput need separate checks on the selected GPU/runtime. CPU tests do not
+establish GPU performance or acceptance improvements.
+
 ## ↩️ Regenerate Datasets
 
 When training speculative decoding draft models for a specific target model, instead of using the original dataset, we can regenerate the assistant responses using the target model to better align the draft model with the target model's output distribution. This will improve the acceptance rate of the draft model and the overall performance of the speculative decoding. According to the [EAGLE1 paper](https://arxiv.org/pdf/2401.15077), the EAGLE method is not very sensitive to the dataset quality, which means the performance is still good even if you use the original dataset. However, if you are looking for optimal performance in the production environment, it is recommended to regenerate the dataset using the target model.

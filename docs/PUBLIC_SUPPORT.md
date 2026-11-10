@@ -19,7 +19,7 @@ Serving engines remain separate integrations. CPU checks do not establish live a
 | Joint DSpark/DFlash/DFlash2 | Single-device shared backbone/private parameters, one optimizer; scratch or compatible seeded initialization |
 | Shared online capture | Frozen Transformers target or explicit experimental Prism GGUF adapter, matching taps/contracts, bounded RAM features; synchronous capture/training alternation |
 | Recovery | Same-run checkpoint restores optimizer/RNG/consumed cursor; immutable source and export checks |
-| Native verification | Supported Llama/Qwen2/Qwen3 and Gemma4Unified text adapters; target-only, compatible existing drafts and current drafts; full-prefix reference timing |
+| Native verification | Supported Llama/Qwen2/Qwen3 and Gemma4Unified text adapters plus experimental Spark; target-only, compatible existing drafts and current drafts; full-prefix reference timing (Spark uses sequential prefixes) |
 | Optional SGLang milestone | Ordinary Torch HF dense target on one CUDA device; bounded engine lifecycle/report checks; long-output parity remains an open gate |
 | Unattended policy | Loss/acceptance selection and registered batch/LR phases; speed-based decisions rejected |
 | Resource feedback | Measured telemetry selects registered settings; no universal VRAM/time estimator or automatic architecture search |
