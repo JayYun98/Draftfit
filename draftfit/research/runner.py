@@ -14,18 +14,25 @@ IMPLEMENTATIONS = {
     "treewy": "author_numerical_reference",
     "moe_spac": "policy_trace_reference",
     "query_layout": "tensor_diagnostic",
+    "d3d_corrected_kl": "adapted_author_corrected_kl_component",
 }
 
 
 def plan(config, recipe_path=None):
     """Describe the selected work without loading models or writing output."""
-    return {
+    result = {
         "project": config.method,
         "implementation": IMPLEMENTATIONS.get(config.method, "native"),
         "config": config.model_dump(),
         "execution": "not-run",
         "serving_compatibility": "not_validated",
     }
+    if config.method == "d3d_corrected_kl":
+        result["scope"] = "corrected_forward_kl_component_only"
+        result["model_training"] = "not_implemented"
+        result["pruning"] = "not_implemented"
+        result["asynchronous_serving"] = "not_implemented"
+    return result
 
 
 def _cast(config):
@@ -199,6 +206,7 @@ def run(config, recipe_path=None):
         "arr",
         "moe_spac",
         "query_layout",
+        "d3d_corrected_kl",
     }:
         raise ValueError(f"unsupported research method: {config.method}")
     if config.method in {"ngramrl", "specmem"}:
@@ -225,6 +233,10 @@ def run(config, recipe_path=None):
         from .query_layout import run_query_layout
 
         result = run_query_layout(config)
+    elif config.method == "d3d_corrected_kl":
+        from .d3d import run_d3d_corrected_kl
+
+        result = run_d3d_corrected_kl(config)
     else:
         result = _cast(config) if config.method == "cast" else _redline(config)
     memory_state = result.pop("memory_state", None)

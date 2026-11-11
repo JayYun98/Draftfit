@@ -10,6 +10,13 @@ SOURCES = {
 
 # Unavailable author code is not replaced by a guessed repository/revision.
 LATEST = [
+    (
+        "d3d_corrected_kl",
+        "2611.06425v1",
+        "adapted_author_corrected_kl_component",
+        "fudan-generative-vision/D3D",
+        "cd7762436217fb51d7e7a310b310b72766bb816f",
+    ),
     ("ngramrl", "2610.32881v1", "native_synchronous_reference", None, None),
     ("specmem", "2610.31840v1", "native_memory_reference", None, None),
     ("valuspec", "2610.31338v1", "cast_conditional_branch_filter", None, None),

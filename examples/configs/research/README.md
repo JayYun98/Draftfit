@@ -14,6 +14,7 @@ Use the [research guide](../../../docs/research/README.md) for results and limit
 | [TreeWY](treewy.yaml) | The included numerical fixture |
 | [MoE-SpAc](moe-spac.yaml) | The included policy trace |
 | [Query layouts](query-layout.yaml) | The included attention fixture |
+| [D3D corrected KL](d3d-corrected-kl.yaml) | The included synthetic logits, labels, and weights; loss component only |
 
 Run commands from the repository root.
 Model recipes contain paths that you must replace.

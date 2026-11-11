@@ -15,10 +15,15 @@ runtime modules do not replace or erase the authorship of adapted source.
 | [Osprey](https://github.com/LeanModels/Osprey) | `f62cd48844b03f3cb929543da25c15756e1f1095` | Draft backbone conversion and aligned embeddings |
 | [CAST](https://github.com/js-lee-AI/CAST) | `2eed73f38f9210f1d5ddf01de8059cf3ffb43c19` | Reference tree construction and corrected speculative sampling |
 | [Redline](https://github.com/js-lee-AI/Redline) | `d78ede9b035420f3c8c8c63c185ed55be5ea038f` | Paired correctness-risk calibration |
+| [D3D](https://github.com/fudan-generative-vision/D3D) | `cd7762436217fb51d7e7a310b310b72766bb816f` | Corrected forward-KL component for offline recovery experiments |
 | Prism extended runtime | `e3de715222b2667c54a267441159a5729f11155e` | Explicit external native capture API; runtime is not bundled |
 
 ## Borrowed boundaries
 
+- D3D's probability correction and forward-KL calculation were adapted from
+  `training/pruning/losses.py`. The full MIT notice is retained in
+  `draftfit/research/_vendor/D3D_LICENSE`. No author trainer, pruning loop,
+  hidden-state loss, model, inference engine, or weights are bundled.
 - TorchSpec `torchspec/config/train_config.py`, `torchspec/ray/placement_group.py`,
   and `torchspec/training/checkpoint.py` were reviewed at `bd64d93`. Only the
   declarative launch/checkpoint contract was adapted in

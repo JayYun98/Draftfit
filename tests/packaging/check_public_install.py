@@ -4,12 +4,14 @@ Run with the provisioned environment: python -I tests/packaging/check_public_ins
 This checks metadata/configuration, not real target training or GPU support.
 """
 
+import hashlib
 import importlib.metadata
 import json
 import os
 import subprocess
 import sys
 import tempfile
+from importlib.resources import files
 from pathlib import Path
 
 
@@ -73,6 +75,42 @@ def main():
         assert "docs/TRAINING_SEARCH.md" in list_assets()
         export_assets(root / "exported-assets")
         assert (root / "exported-assets/docs/TRAINING_SEARCH.md").is_file()
+        assert (
+            hashlib.sha256(
+                files("draftfit.research._vendor").joinpath("D3D_LICENSE").read_bytes()
+            ).hexdigest()
+            == "81054477e017851780fab7d4c7c86e1477583f83f3c81aa1d60c0c4a2d6e347b"
+        )
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                "-m",
+                "draftfit.research",
+                "-c",
+                "examples/configs/research/d3d-corrected-kl.yaml",
+                "output_dir=outputs/installed-d3d-check",
+            ],
+            cwd=root / "exported-assets",
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        corrected = json.loads(result.stdout)
+        assert corrected["scope"] == "corrected_forward_kl_component_only"
+        answer = corrected["answers"][0]
+        assert answer["active_positions"] == 2
+        assert answer["student_gradient_norm"] > 0
+        assert all(
+            abs(actual - expected) < 1e-12
+            for actual, expected in zip(
+                answer["corrected_teacher_probs"][0], [0.46, 0.36, 0.18]
+            )
+        )
+        saved = root / "exported-assets/outputs/installed-d3d-check/result.json"
+        assert json.loads(saved.read_text()) == corrected
 
         target = root / "target"
         target.mkdir()

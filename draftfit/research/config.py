@@ -325,6 +325,21 @@ class QueryLayoutConfig(StrictConfigModel):
     output_dir: str
 
 
+class D3DCorrectedKLOptions(StrictConfigModel):
+    temperature: float = Field(default=1.0, gt=0, allow_inf_nan=False, strict=True)
+    probability_margin: float = Field(
+        default=0.01, gt=0, lt=1, allow_inf_nan=False, strict=True
+    )
+
+
+class D3DCorrectedKLConfig(StrictConfigModel):
+    method: Literal["d3d_corrected_kl"]
+    data: InputData
+    loss: D3DCorrectedKLOptions = Field(default_factory=D3DCorrectedKLOptions)
+    input_kind: Literal["synthetic", "recorded"] = "synthetic"
+    output_dir: str
+
+
 Recipe = Annotated[
     Union[
         CastConfig,
@@ -338,6 +353,7 @@ Recipe = Annotated[
         ARRConfig,
         MoEPolicyConfig,
         QueryLayoutConfig,
+        D3DCorrectedKLConfig,
     ],
     Field(discriminator="method"),
 ]
