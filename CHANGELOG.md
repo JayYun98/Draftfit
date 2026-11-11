@@ -5,6 +5,9 @@ explicitly approved operation; a Git version tag does not imply a PyPI release.
 
 ## Unreleased
 
+- Add an experimental D3D corrected forward-KL component and offline CPU recipe.
+  Retain pinned MIT source attribution. Full recovery training and serving remain unverified.
+
 - Preserve stable evaluation anchors, exclude committed anchors from DSpark tau
   diagnostics and accept FP32 residual features in BF16 family drafts. Add
   opt-in joint-only checkpoint storage and bounded local generation batch tuning

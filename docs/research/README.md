@@ -17,6 +17,11 @@ Use their separate recipes and execution limits.
 
 ## Tested reference experiments
 
+For a separate component experiment, use [D3D corrected forward KL](d3d-corrected-kl.md).
+It provides a reusable loss term and a synthetic CPU recipe.
+It does not provide the full D3D recovery trainer or asynchronous engine.
+The historical reference results below do not cover that component.
+
 All eight research recipes passed CPU CLI checks.
 All 52 affected regression and packaging tests passed.
 GPU checks used a pinned Qwen3-0.6B model on an A100.

@@ -15,6 +15,21 @@ Upstream file SHA256:
 The owned adapter adds strict topology, shape, gate and accepted-node validation.
 Neither the upstream Triton kernels nor its vLLM serving lifecycle are bundled.
 
+## D3D corrected KL
+
+`d3d.py` adapts the probability correction and forward-KL component from
+`training/pruning/losses.py` in `fudan-generative-vision/D3D`, commit
+`cd7762436217fb51d7e7a310b310b72766bb816f` (MIT).
+Copyright (c) 2026 Fusion Lab: Generative Vision Lab of Fudan University and SII.
+Copyright (c) 2026 D3D contributors.
+The full, unmodified license is bundled as `_vendor/D3D_LICENSE`.
+Upstream file SHA256:
+`7b1bc6370200212ba06c38e551051c802075db8ba09203d23ec270f4c98d2510`.
+The local adapter adds strict input checks, masked-label handling, float64
+preservation, actual positive-weight normalization, and an offline recipe.
+It does not copy the distributed reduction, activation checkpointing, full
+recovery objective, model, layer selection, or asynchronous engine.
+
 ## Independently implemented published algorithms
 
 NgramRL (`2610.32881v1`), SpecMem (`2610.31840v1`), ValuSpec

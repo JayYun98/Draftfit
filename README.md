@@ -101,6 +101,9 @@ Check the [model validation records](docs/MODEL_VALIDATION.md) before you select
 Research implementations use separate recipes and validation limits.
 Use the [research guide](docs/research/README.md) for those methods and experiment results.
 These implementations are not production backends.
+The [D3D corrected KL experiment](docs/research/d3d-corrected-kl.md) provides a
+reusable loss component and an offline CPU recipe. Full D3D training and serving
+are separate integrations.
 
 ## Documentation
 
