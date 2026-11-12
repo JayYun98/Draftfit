@@ -101,6 +101,8 @@ Check the [model validation records](docs/MODEL_VALIDATION.md) before you select
 Research implementations use separate recipes and validation limits.
 Use the [research guide](docs/research/README.md) for those methods and experiment results.
 These implementations are not production backends.
+The [DForkTree scoring reference](docs/research/dforktree-scoring.md) runs on CPU
+with supplied probability evidence. Its recipe does not build or verify a tree.
 
 ## Documentation
 

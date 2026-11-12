@@ -15,6 +15,7 @@ runtime modules do not replace or erase the authorship of adapted source.
 | [Osprey](https://github.com/LeanModels/Osprey) | `f62cd48844b03f3cb929543da25c15756e1f1095` | Draft backbone conversion and aligned embeddings |
 | [CAST](https://github.com/js-lee-AI/CAST) | `2eed73f38f9210f1d5ddf01de8059cf3ffb43c19` | Reference tree construction and corrected speculative sampling |
 | [Redline](https://github.com/js-lee-AI/Redline) | `d78ede9b035420f3c8c8c63c185ed55be5ea038f` | Paired correctness-risk calibration |
+| [DForkTree](https://github.com/Perseus037/DForkTree) | `eeed8b698b8822aa2767ec5c191efc4e1b6cdbe3` | CPU reference for fork-aware candidate probability correction |
 | Prism extended runtime | `e3de715222b2667c54a267441159a5729f11155e` | Explicit external native capture API; runtime is not bundled |
 
 ## Borrowed boundaries
@@ -49,6 +50,15 @@ runtime modules do not replace or erase the authorship of adapted source.
   a bridge revision string does not authenticate a linked native library.
 
 ## Sync policy
+
+The DForkTree reference implements paper equations 2 and 3 using supplied
+conditional and unigram probabilities. The reviewed author sources are
+`dforktree/ngram_gpu.py`, `dforktree/tree_ops.py`, and `dforktree/fc1_builder.py`.
+The original Apache-2.0 license and notice are retained as
+`draftfit/research/_vendor/DFORKTREE_LICENSE` and `DFORKTREE_NOTICE`.
+The local component does not copy the SGLang worker, Flash Linear Attention
+recurrence, GPU builder, or verifier. See `draftfit/research/NOTICE.md` for
+the source identities and intentional numerical differences.
 
 The latest research adapter additionally bundles the Apache-2.0 single-tree
 TreeWY reference from `sneha5gsm/vllm` at

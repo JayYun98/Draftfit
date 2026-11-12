@@ -325,6 +325,27 @@ class QueryLayoutConfig(StrictConfigModel):
     output_dir: str
 
 
+class DForkTreeScoringOptions(StrictConfigModel):
+    spine_weight: float = Field(default=0.3, ge=0, strict=True, allow_inf_nan=False)
+    fork_weight: float = Field(default=0.6, ge=0, strict=True, allow_inf_nan=False)
+    pmi_clip: float = Field(default=10.0, ge=0, strict=True, allow_inf_nan=False)
+
+
+class DForkTreeScoringData(StrictConfigModel):
+    input_path: str = Field(min_length=1, strict=True)
+    max_samples: int = Field(default=32, gt=0, strict=True)
+
+
+class DForkTreeScoringConfig(StrictConfigModel):
+    method: Literal["dforktree_scoring"]
+    data: DForkTreeScoringData
+    input_kind: Literal["synthetic", "recorded"]
+    scoring: DForkTreeScoringOptions = Field(default_factory=DForkTreeScoringOptions)
+    output_dir: str = Field(
+        default="outputs/research-dforktree-scoring", min_length=1, strict=True
+    )
+
+
 Recipe = Annotated[
     Union[
         CastConfig,
@@ -338,6 +359,7 @@ Recipe = Annotated[
         ARRConfig,
         MoEPolicyConfig,
         QueryLayoutConfig,
+        DForkTreeScoringConfig,
     ],
     Field(discriminator="method"),
 ]

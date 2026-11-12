@@ -61,6 +61,7 @@ def load_tests(loader, tests, pattern):
         "tests.test_runtime.test_target_revision",
         "tests.test_data.test_hf_parser",
         "tests.test_packaging.test_assets",
+        "tests.research.test_dforktree",
         "tests.test_runtime.test_package_architecture",
         "tests.test_runtime.test_cli_config_build",
         "tests.test_runtime.test_launch_plan",

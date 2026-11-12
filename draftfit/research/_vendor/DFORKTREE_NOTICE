@@ -1,0 +1,16 @@
+DForkTree
+Copyright 2026 Zhicheng Zheng, Cheng Zhang, and Chenkai Tang.
+
+The SGLang worker integration is adapted from SGLang 0.5.22
+(https://github.com/sgl-project/sglang), licensed under Apache-2.0.
+The implementation uses the native SGLang speculative verification API.
+
+The diagonal triangular recurrence in fc1_block_inverse.py is adapted
+from Flash Linear Attention's solve_tril implementation (MIT license).
+Its license is reproduced in licenses/FLASH_LINEAR_ATTENTION-LICENSE.
+
+Changes in this release package: remove experiment-only audit and baseline
+branches, replace machine-local paths with user configuration, package the
+existing DForkTree plugin, and provide package metadata.
+The PMI, tree-search, GDN verification and state-commit math is unchanged.
+

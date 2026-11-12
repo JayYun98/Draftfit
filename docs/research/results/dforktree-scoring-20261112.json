@@ -1,0 +1,184 @@
+{
+  "date": "2026-11-12",
+  "recorded_at": "2026-11-12T00:36:36.137024+00:00",
+  "base_revision": "ccd27e4fa5ceef44e6c2ffd5c205f034673cb65e",
+  "status": "scoped_cpu_checks_passed",
+  "scope": "CPU probability scoring reference for DForkTree v1 equations 2 and 3 only",
+  "source": {
+    "paper": "https://arxiv.org/html/2611.12356v1",
+    "url": "https://github.com/Perseus037/DForkTree",
+    "revision": "eeed8b698b8822aa2767ec5c191efc4e1b6cdbe3",
+    "license": "Apache-2.0",
+    "sha256": {
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "NOTICE": "db461002651716701a8183a54f7b60b6ec570e8dff0e18f564988e9ae83e91f4",
+      "dforktree/ngram_gpu.py": "97137b4692fbe28cb7bd77e3c711a8ed9a4c0919e7045ad9255c9cfa56a428fd",
+      "dforktree/fc1_builder.py": "7a7e261010f332bf7190d7b636c8b8cf582a7d87332f48ec564210e52d99b7a2",
+      "dforktree/tree_ops.py": "5ba3417fcfe251b45859ebc691d7e74f618bb67ebed41d218c1dfbe44c9647c5"
+    },
+    "upstream_limitation": "Source inspection: ngram_path_fn in tree_ops.py returns fn with no definition in its lexical scope or module. This CPU reference does not import or execute that path."
+  },
+  "environment": {
+    "python": "3.12.8",
+    "torch": "2.11.0",
+    "transformers": "5.8.1",
+    "pydantic": "2.13.4",
+    "platform": "macOS-26.4-arm64-arm-64bit",
+    "profile": "scoped contributor environment; not current locked CPU profile",
+    "macos_lock_status": "unchanged blocked artifact hash; not retried"
+  },
+  "verification_setup": "uv selects the existing contributor interpreter. A separate wheel environment borrows provisioned dependencies without modifying the shared environment or resolving the blocked lock.",
+  "checks": [
+    {
+      "name": "research",
+      "command": "python -m unittest discover -s tests/research -t . -v",
+      "status": "pass",
+      "tests": 45,
+      "skipped": 0
+    },
+    {
+      "name": "adjacent_regressions",
+      "command": "python -m unittest tests.test_research_core tests.test_research_methods tests.test_research_providers tests.test_research_review_regressions -v",
+      "status": "pass",
+      "tests": 30,
+      "skipped": 0
+    },
+    {
+      "name": "packaging",
+      "command": "python -m unittest tests.test_packaging.test_assets -v",
+      "status": "pass",
+      "tests": 3,
+      "skipped": 0
+    },
+    {
+      "name": "source_cli_plan",
+      "command": "python -m draftfit.research -c examples/configs/research/dforktree-scoring.yaml --plan",
+      "status": "pass",
+      "observed": "No input read or output directory created; recipe shape validated."
+    },
+    {
+      "name": "source_cli_execution",
+      "command": "python -m draftfit.research -c examples/configs/research/dforktree-scoring.yaml output_dir=outputs/dforktree-second-run",
+      "status": "pass",
+      "processed_count": 3,
+      "observed": "Fresh recipe.json and result.json; analytic values match to 1e-12 absolute tolerance."
+    },
+    {
+      "name": "source_hooks",
+      "command": "uvx --offline pre-commit run --files <26 changed paths>",
+      "status": "pass",
+      "exception": "Only end-of-file-fixer excludes the byte-identical author DFORKTREE_NOTICE. Other hooks still apply."
+    },
+    {
+      "name": "wheel_and_sdist",
+      "command": "uv build --python <contributor-python> --no-build-isolation --offline",
+      "status": "pass"
+    },
+    {
+      "name": "installed_wheel",
+      "command": "python -I tests/packaging/check_public_install.py",
+      "status": "pass",
+      "observed": "Installed package, exported recipe and assets, analytic values, provenance hashes, atomic failure, and overwrite refusal passed. No GPU started."
+    }
+  ],
+  "focused_tests": {
+    "tests": 26,
+    "status": "pass",
+    "included_in_research_suite": true
+  },
+  "input_sha256": "c5fc45b45a09adc035c0841ad3b8c3d45f157fb3363f49f1eb90cb5c05995a52",
+  "input_kind": "synthetic",
+  "input_digest_scope": "full_file",
+  "observed_answers": [
+    {
+      "id": "first",
+      "position": 1,
+      "parent_path": "spine",
+      "candidate_ids": [
+        101,
+        102
+      ],
+      "candidate_probs": [
+        0.5,
+        0.3
+      ],
+      "tail_probability": 0.19999999999999996,
+      "clipped_pmi": [
+        -0.6931471805599453,
+        0.6931471805599453
+      ],
+      "weight": 0.0
+    },
+    {
+      "id": "spine",
+      "position": 2,
+      "parent_path": "spine",
+      "candidate_ids": [
+        101,
+        102
+      ],
+      "candidate_probs": [
+        0.41633919763052696,
+        0.3786313314817418
+      ],
+      "tail_probability": 0.20502947088773127,
+      "clipped_pmi": [
+        -0.6931471805599453,
+        0.6931471805599453
+      ],
+      "weight": 0.3
+    },
+    {
+      "id": "fork",
+      "position": 2,
+      "parent_path": "forked",
+      "candidate_ids": [
+        101,
+        102
+      ],
+      "candidate_probs": [
+        0.33503928046719367,
+        0.4618308843984667
+      ],
+      "tail_probability": 0.2031298351343396,
+      "clipped_pmi": [
+        -0.6931471805599453,
+        0.6931471805599453
+      ],
+      "weight": 0.6
+    }
+  ],
+  "reviewed_runtime_sha256": {
+    "draftfit/research/dforktree.py": "73b1d2b63c671e03078c79ce4564315aa8ea2ea266add3aa8c8dae73633f2421",
+    "draftfit/research/config.py": "aa8a463930c0d5a9b457035a164dc66f41df277c564d3dd4f6a8a91bdbb22b48",
+    "draftfit/research/catalog.py": "2f4aeee0581fc4f3e10004c03bf16889d7944f3f277e2ec895c98e98ad02e303",
+    "draftfit/research/runner.py": "4630d3873a2cb810a076b812f177aebd6bd8c147d970fbb9832cb585d86b5ef8",
+    "tests/research/test_dforktree.py": "05637895e893492ee660121aeb1d799fc226ddd9246cf72a67605b960510d634",
+    "tests/packaging/check_public_install.py": "ba7a5a2afcfe24aa47eec6c863f12f2a13e96b70be42af0f22f039d4a0f2f7ed",
+    "examples/configs/research/data/dforktree-scoring.json": "c5fc45b45a09adc035c0841ad3b8c3d45f157fb3363f49f1eb90cb5c05995a52"
+  },
+  "hosted_locked_linux_cpu": {
+    "status": "not-run",
+    "reason": "No hosted run existed at local receipt time. PR evidence tracks the exact head revision; earlier PR results do not apply."
+  },
+  "macos_locked_environment": {
+    "status": "blocked",
+    "reason": "Unchanged Torch 2.11.0 artifact hash discrepancy; no retry or bypass. Contributor Transformers 5.8.1 differs from required 5.12.1."
+  },
+  "not_run": [
+    "raw n-gram extraction and corpus smoothing",
+    "GPU tree construction",
+    "GDN verifier",
+    "SGLang integration",
+    "real-model quality, parity, acceptance and throughput"
+  ],
+  "runtime_resume_condition": "Implement the omitted runtime path and obtain separately authorized compatible GPU resources before evaluating real-model parity or speed.",
+  "production_engine_validated": false,
+  "throughput_claim": false,
+  "numerical_review_correction": {
+    "finding": "Separately rounded logarithms broke scale-equivalent and near-neutral PMI at large accepted weights.",
+    "fix": "Use relative log1p near one and canonical frexp ratios elsewhere. Exact doubling comparisons select the neighborhood without subnormal half-rounding.",
+    "regressions": "Two methods cover equal ratios including subnormal 2/5 scale equivalents, weights 1e16 and maximum finite, and 110-digit Decimal near-neutral references.",
+    "status": "pass; 26 focused tests included in 45 research tests"
+  }
+}

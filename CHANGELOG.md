@@ -5,6 +5,10 @@ explicitly approved operation; a Git version tag does not imply a PyPI release.
 
 ## Unreleased
 
+- Add an experimental DForkTree CPU scoring reference and a synthetic recipe.
+  Retain outside-candidate probability during PMI correction and expose distinct
+  spine and post-fork weights. Tree construction and serving remain unimplemented.
+
 - Preserve stable evaluation anchors, exclude committed anchors from DSpark tau
   diagnostics and accept FP32 residual features in BF16 family drafts. Add
   opt-in joint-only checkpoint storage and bounded local generation batch tuning

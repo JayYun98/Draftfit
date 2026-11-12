@@ -100,3 +100,32 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## DForkTree scoring reference
+
+Copyright 2026 Zhicheng Zheng, Cheng Zhang, and Chenkai Tang.
+
+Reference repository: https://github.com/Perseus037/DForkTree
+Revision: `eeed8b698b8822aa2767ec5c191efc4e1b6cdbe3`.
+License: Apache-2.0. The full original license and notice are retained in
+`_vendor/DFORKTREE_LICENSE` and `_vendor/DFORKTREE_NOTICE`.
+
+Reviewed source identities:
+
+| File | SHA256 |
+| --- | --- |
+| `dforktree/ngram_gpu.py` | `97137b4692fbe28cb7bd77e3c711a8ed9a4c0919e7045ad9255c9cfa56a428fd` |
+| `dforktree/tree_ops.py` | `5ba3417fcfe251b45859ebc691d7e74f618bb67ebed41d218c1dfbe44c9647c5` |
+| `dforktree/fc1_builder.py` | `7a7e261010f332bf7190d7b636c8b8cf582a7d87332f48ec564210e52d99b7a2` |
+
+The local CPU reference implements paper equations 2 and 3 over supplied
+conditional and unigram probabilities. It uses CPU floating-point arithmetic
+and a true zero tail. The author's builder uses float32 and a tail floor of
+`1e-6`. No exact GPU numerical parity is claimed. Raw count extraction,
+smoothing, GPU tree construction, GDN verification, and SGLang integration
+are not ported. The upstream `ngram_path_fn` returns an undefined `fn` at this
+pin; the local component does not import or execute that path.
+
+No code from the upstream SGLang worker or Flash Linear Attention recurrence
+is copied by this component. Their attribution remains in the retained
+author notice to preserve its original contents.

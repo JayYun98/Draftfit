@@ -14,6 +14,7 @@ IMPLEMENTATIONS = {
     "treewy": "author_numerical_reference",
     "moe_spac": "policy_trace_reference",
     "query_layout": "tensor_diagnostic",
+    "dforktree_scoring": "cpu_probability_scoring_reference",
 }
 
 
@@ -199,6 +200,7 @@ def run(config, recipe_path=None):
         "arr",
         "moe_spac",
         "query_layout",
+        "dforktree_scoring",
     }:
         raise ValueError(f"unsupported research method: {config.method}")
     if config.method in {"ngramrl", "specmem"}:
@@ -225,6 +227,10 @@ def run(config, recipe_path=None):
         from .query_layout import run_query_layout
 
         result = run_query_layout(config)
+    elif config.method == "dforktree_scoring":
+        from .dforktree import run_dforktree_scoring
+
+        result = run_dforktree_scoring(config)
     else:
         result = _cast(config) if config.method == "cast" else _redline(config)
     memory_state = result.pop("memory_state", None)

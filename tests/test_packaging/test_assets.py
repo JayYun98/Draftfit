@@ -1,5 +1,6 @@
 """Exercise the real wheel in an isolated interpreter without torch/SGLang."""
 
+import hashlib
 import os
 import shlex
 import shutil
@@ -77,6 +78,14 @@ class AssetTests(unittest.TestCase):
             self.assertTrue(
                 (destination / "configs/ling-3.0-tiny-dspark.json").is_file()
             )
+            for name in (
+                "examples/configs/research/dforktree-scoring.yaml",
+                "examples/configs/research/data/dforktree-scoring.json",
+                "docs/research/dforktree-scoring.md",
+                "docs/specs/dforktree-scoring.md",
+                "docs/research/results/dforktree-scoring-20261112.json",
+            ):
+                self.assertTrue((destination / name).is_file(), name)
             with self.assertRaises(FileExistsError):
                 export_assets(destination)
 
@@ -130,10 +139,25 @@ class AssetTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             wheel = next(wheel_dir.glob("*.whl"))
             with zipfile.ZipFile(wheel) as archive:
-                self.assertEqual(
-                    archive.read("draftfit/research/_vendor/TREEWY_LICENSE"),
-                    (root / "draftfit/research/_vendor/TREEWY_LICENSE").read_bytes(),
-                )
+                for name in ("TREEWY_LICENSE", "DFORKTREE_LICENSE", "DFORKTREE_NOTICE"):
+                    path = "draftfit/research/_vendor/" + name
+                    self.assertEqual(archive.read(path), (root / path).read_bytes())
+                for name, digest in (
+                    (
+                        "DFORKTREE_LICENSE",
+                        "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+                    ),
+                    (
+                        "DFORKTREE_NOTICE",
+                        "db461002651716701a8183a54f7b60b6ec570e8dff0e18f564988e9ae83e91f4",
+                    ),
+                ):
+                    self.assertEqual(
+                        hashlib.sha256(
+                            archive.read("draftfit/research/_vendor/" + name)
+                        ).hexdigest(),
+                        digest,
+                    )
                 direct_payload = {
                     name: archive.read(name)
                     for name in archive.namelist()

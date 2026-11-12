@@ -6,6 +6,10 @@ These methods are experimental.
 They are not production backends.
 Use their separate recipes and execution limits.
 
+The [DForkTree scoring recipe](dforktree-scoring.md) provides a CPU reference
+for candidate probability correction. It consumes precomputed probability
+evidence. It does not build a tree, run a target verifier, or establish a speed gain.
+
 ## Existing research workflows
 
 | Method | Purpose | Guide |
