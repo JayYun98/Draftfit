@@ -74,3 +74,13 @@ uv run --no-project --python .venv/bin/python python -m tests.public_cpu
 
 Live controller, CUDA graphs, model parity, training quality, and serving speed
 remain unverified. This experimental PR is not release certification.
+
+## Small-model GPU follow-up — 2026-11-13
+
+The [component experiment](../research/results/paper-components-small100-20261113.md)
+tested the unchanged TableTune module from `e990dae50f3206809965cfdaf85353bbb30d16e0`.
+It built offline tables from 36 measured CUDA forward profiles across three
+trained small students. Every raw schedule matched the independent argmax.
+Most choices disabled drafting. This is a diagnostic offline check; live engine
+parity and serving throughput remain not-run. The linked receipt also records
+separate D3D, REAL and DForkTree source snapshots and their bounded results.
