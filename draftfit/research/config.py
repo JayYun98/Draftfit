@@ -325,6 +325,21 @@ class QueryLayoutConfig(StrictConfigModel):
     output_dir: str
 
 
+class RealLossOptions(StrictConfigModel):
+    real_weight: float = Field(
+        default=0.9, ge=0, le=1, allow_inf_nan=False, strict=True
+    )
+
+
+class RealLossConfig(StrictConfigModel):
+    method: Literal["real_loss"]
+    data: InputData
+    loss: RealLossOptions = Field(default_factory=RealLossOptions)
+    input_kind: Literal["synthetic", "recorded"] = "synthetic"
+    sampling: Literal["target"] = "target"
+    output_dir: str
+
+
 Recipe = Annotated[
     Union[
         CastConfig,
@@ -338,6 +353,7 @@ Recipe = Annotated[
         ARRConfig,
         MoEPolicyConfig,
         QueryLayoutConfig,
+        RealLossConfig,
     ],
     Field(discriminator="method"),
 ]

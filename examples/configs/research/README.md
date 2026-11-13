@@ -14,6 +14,7 @@ Use the [research guide](../../../docs/research/README.md) for results and limit
 | [TreeWY](treewy.yaml) | The included numerical fixture |
 | [MoE-SpAc](moe-spac.yaml) | The included policy trace |
 | [Query layouts](query-layout.yaml) | The included attention fixture |
+| [REAL loss](real-loss.yaml) | The included synthetic proposal-block logits and sampled token IDs |
 
 Run commands from the repository root.
 Model recipes contain paths that you must replace.

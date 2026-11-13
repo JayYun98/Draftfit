@@ -56,6 +56,13 @@ See the [test protocol and limits](latest-speculative-methods.md#non-oracle-effe
 
 ## Run a recipe
 
+### Standalone loss component
+
+The [REAL loss recipe](real-loss.md) evaluates target-sampled accepted-prefix
+weights and an auxiliary teacher-argmax CE term on synthetic logits.
+It does not run a drafter or inherit the earlier GPU measurements above.
+See its [acceptance contract](../specs/real-loss.md) for the exact scope.
+
 For platform draft training, see the separate
 [MiniCPM DSpark/DFlash2/EAGLE4 comparison](eagle4-minicpm.md).
 It records full dense training, candidate distillation and bounded serving gates.

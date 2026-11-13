@@ -16,6 +16,7 @@ runtime modules do not replace or erase the authorship of adapted source.
 | [CAST](https://github.com/js-lee-AI/CAST) | `2eed73f38f9210f1d5ddf01de8059cf3ffb43c19` | Reference tree construction and corrected speculative sampling |
 | [Redline](https://github.com/js-lee-AI/Redline) | `d78ede9b035420f3c8c8c63c185ed55be5ea038f` | Paired correctness-risk calibration |
 | Prism extended runtime | `e3de715222b2667c54a267441159a5729f11155e` | Explicit external native capture API; runtime is not bundled |
+| [REAL loss reference](https://github.com/King-ty/speculators) | `3dff4579c5f93f692108df8b5178c9e9200b8536` | Target-sampled branch estimator and auxiliary teacher-argmax CE |
 
 ## Borrowed boundaries
 
@@ -61,3 +62,21 @@ requirement. Preserve the upstream license header, record the source commit in
 this table, add a focused contract test, and keep the local adapter boundary
 independent from the upstream trainer loop. Do not merge duplicate controller,
 Ray, or checkpoint implementations without a passing single-node gate first.
+
+
+## REAL loss reference
+
+The opt-in REAL component adapts the accepted-prefix estimator and loss
+mathematics from King-ty/speculators at
+`3dff4579c5f93f692108df8b5178c9e9200b8536`. The relevant source is
+`src/speculators/models/dflash/metrics.py`. The paper is
+https://arxiv.org/abs/2611.14399v1.
+
+Source: https://github.com/King-ty/speculators/tree/3dff4579c5f93f692108df8b5178c9e9200b8536.
+License: Apache-2.0, retained in `draftfit/research/_vendor/REAL_LICENSE`.
+The pinned source tree has no root NOTICE file.
+
+Local changes provide a standalone, proposal-only tensor boundary, explicit
+validation, FP64 preservation, and a synthetic CPU research recipe. No author
+training package, fused kernel, model weight, or serving pipeline is included.
+This experimental component does not reproduce the paper's full training.

@@ -10,6 +10,13 @@ SOURCES = {
 
 # Unavailable author code is not replaced by a guessed repository/revision.
 LATEST = [
+    (
+        "real_loss",
+        "2611.14399v1",
+        "adapted_author_real_branch_component",
+        "King-ty/speculators",
+        "3dff4579c5f93f692108df8b5178c9e9200b8536",
+    ),
     ("ngramrl", "2610.32881v1", "native_synchronous_reference", None, None),
     ("specmem", "2610.31840v1", "native_memory_reference", None, None),
     ("valuspec", "2610.31338v1", "cast_conditional_branch_filter", None, None),

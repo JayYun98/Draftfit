@@ -14,18 +14,33 @@ IMPLEMENTATIONS = {
     "treewy": "author_numerical_reference",
     "moe_spac": "policy_trace_reference",
     "query_layout": "tensor_diagnostic",
+    "real_loss": "adapted_author_real_branch_component",
 }
 
 
 def plan(config, recipe_path=None):
     """Describe the selected work without loading models or writing output."""
-    return {
+    result = {
         "project": config.method,
         "implementation": IMPLEMENTATIONS.get(config.method, "native"),
         "config": config.model_dump(),
         "execution": "not-run",
         "serving_compatibility": "not_validated",
     }
+    if config.method == "real_loss":
+        result.update(
+            scope="target_sampled_real_branch_component_only",
+            ce_target="target_logits_argmax",
+            ce_position_decay=False,
+            author_wrapper_parity=False,
+            sampling_provenance_verified=False,
+            model_training="not_implemented",
+            draft_sampled_d_real="not_implemented",
+            gpu_parity="not-run",
+            real_model_quality="not-run",
+            throughput="not-run",
+        )
+    return result
 
 
 def _cast(config):
@@ -199,6 +214,7 @@ def run(config, recipe_path=None):
         "arr",
         "moe_spac",
         "query_layout",
+        "real_loss",
     }:
         raise ValueError(f"unsupported research method: {config.method}")
     if config.method in {"ngramrl", "specmem"}:
@@ -225,6 +241,10 @@ def run(config, recipe_path=None):
         from .query_layout import run_query_layout
 
         result = run_query_layout(config)
+    elif config.method == "real_loss":
+        from .real import run_real_loss
+
+        result = run_real_loss(config)
     else:
         result = _cast(config) if config.method == "cast" else _redline(config)
     memory_state = result.pop("memory_state", None)

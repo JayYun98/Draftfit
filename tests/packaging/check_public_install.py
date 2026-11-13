@@ -1,15 +1,19 @@
 """CPU/offline onboarding against an INSTALLED wheel, never the source checkout.
 
 Run with the provisioned environment: python -I tests/packaging/check_public_install.py.
-This checks metadata/configuration, not real target training or GPU support.
+This checks metadata/configuration and REAL tensor execution on CPU.
+Real target training and GPU support are separate gates.
 """
 
+import hashlib
 import importlib.metadata
 import json
+import math
 import os
 import subprocess
 import sys
 import tempfile
+from importlib.resources import files
 from pathlib import Path
 
 
@@ -73,6 +77,71 @@ def main():
         assert "docs/TRAINING_SEARCH.md" in list_assets()
         export_assets(root / "exported-assets")
         assert (root / "exported-assets/docs/TRAINING_SEARCH.md").is_file()
+        assert (
+            hashlib.sha256(
+                files("draftfit.research._vendor").joinpath("REAL_LICENSE").read_bytes()
+            ).hexdigest()
+            == "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        )
+        for name in ("docs/research/real-loss.md", "docs/specs/real-loss.md"):
+            assert (root / "exported-assets" / name).is_file()
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                "-m",
+                "draftfit.research",
+                "-c",
+                "examples/configs/research/real-loss.yaml",
+                "output_dir=outputs/installed-real-check",
+            ],
+            cwd=root / "exported-assets",
+            env=environment,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        real = json.loads(result.stdout)
+        answer = real["answers"][0]
+        assert math.isclose(
+            answer["mean_acceptance_estimate"], 0.96, rel_tol=0, abs_tol=1e-12
+        )
+        assert math.isclose(answer["real_loss"], 0.52, rel_tol=0, abs_tol=1e-12)
+        assert math.isclose(
+            answer["ce_loss"], math.log(10) / 2, rel_tol=0, abs_tol=1e-12
+        )
+        assert math.isclose(
+            answer["loss"],
+            0.9 * 0.52 + 0.1 * math.log(10) / 2,
+            rel_tol=0,
+            abs_tol=1e-12,
+        )
+        assert (
+            math.isfinite(answer["draft_gradient_norm"])
+            and answer["draft_gradient_norm"] > 0
+        )
+        assert answer["active_blocks"] == 50 and answer["active_positions"] == 100
+        assert (
+            real["ce_target"] == "target_logits_argmax"
+            and not real["ce_position_decay"]
+        )
+        assert (
+            not real["sampling_provenance_verified"]
+            and not real["author_wrapper_parity"]
+        )
+        assert (
+            real["provenance"]["source_revision"]
+            == "3dff4579c5f93f692108df8b5178c9e9200b8536"
+        )
+        assert real["provenance"]["license"] == "Apache-2.0"
+        fixture = root / "exported-assets/examples/configs/research/data/real-loss.json"
+        assert (
+            real["provenance"]["input_sha256"]
+            == hashlib.sha256(fixture.read_bytes()).hexdigest()
+        )
+        saved = root / "exported-assets/outputs/installed-real-check/result.json"
+        assert json.loads(saved.read_text()) == real
 
         target = root / "target"
         target.mkdir()
@@ -202,7 +271,8 @@ def main():
         json.dumps(
             {
                 "passed": True,
-                "scope": "installed-wheel CPU metadata onboarding",
+                "scope": "installed-wheel CPU onboarding and REAL tensor execution",
+                "real_loss": "passed",
                 "algorithms_prepared": ["dspark", "dflash", "dflash2", "eagle4"],
                 "gpu_started": False,
             }
