@@ -32,6 +32,8 @@ DOCUMENTS = (
     "docs/specs/research-methods.md",
     "docs/specs/eagle4-minicpm.md",
     "docs/research/README.md",
+    "docs/research/paper-intake.md",
+    "docs/specs/paper-intake.md",
     "docs/research/latest-speculative-methods.md",
     "docs/research/eagle4-minicpm.md",
     "docs/research/results/eagle4-minicpm-20261029.json",

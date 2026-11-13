@@ -5,6 +5,10 @@ explicitly approved operation; a Git version tag does not imply a PyPI release.
 
 ## Unreleased
 
+- Add experimental literature intake with source fingerprints, durable decisions,
+  and stale-review checks. Add an offline TableTune table recipe with retained
+  Apache-2.0 provenance. Live serving and GPU performance remain unverified.
+
 - Preserve stable evaluation anchors, exclude committed anchors from DSpark tau
   diagnostics and accept FP32 residual features in BF16 family drafts. Add
   opt-in joint-only checkpoint storage and bounded local generation batch tuning

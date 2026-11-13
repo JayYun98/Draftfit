@@ -100,6 +100,9 @@ Check the [model validation records](docs/MODEL_VALIDATION.md) before you select
 
 Research implementations use separate recipes and validation limits.
 Use the [research guide](docs/research/README.md) for those methods and experiment results.
+Use [paper intake](docs/research/paper-intake.md) to track local literature revisions
+and prepare experimental PRs. The TableTune recipe builds offline draft-length
+tables; live controller and serving integration remain unverified.
 These implementations are not production backends.
 
 ## Documentation

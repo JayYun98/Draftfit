@@ -3,6 +3,30 @@
 Native adaptations use the following upstream sources. Transformers and EAGLE
 fragments retain their existing Apache-2.0 notices and repository licenses.
 
+## TableTune
+
+`_vendor/tabletune.py` is an unmodified copy of `dsd_tuning/core.py` from
+[`asm582/tabletune`](https://github.com/asm582/tabletune), commit
+`38170878d901cb06f696a122a0b4140a3d365f02`, under Apache-2.0.
+The complete upstream license is bundled as `_vendor/TABLETUNE_LICENSE`.
+The upstream repository contains no separate NOTICE file.
+
+Source SHA256:
+`8d4c7e0d8b5d7a04f85f00fe7c28d80f1f76afd4c497657430b412df744ee80c`.
+License SHA256:
+`c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c`.
+
+The owned adapter validates prefix survival, rounded token estimates, K0 and
+acceptance support for every cost profile. It restricts schedules to the shared
+profile coverage and reuses the author's interpolation and table rules.
+Stored token estimates may differ from prefix sums by at most 0.0005, matching
+the author's three-decimal rounding. The author's full-proposal threshold of
+0.98 is retained. Below that threshold, proposal rate scales token gains and
+the full-K step cost is retained.
+The installer, profiling scripts, plugin, controller and serving engine are not
+bundled or invoked. The example profiles are synthetic arithmetic fixtures;
+their predicted goodput is not a measured speed or a speedup claim.
+
 ## TreeWY
 
 `_vendor/treewy.py` contains the first 142 lines (single-tree reference only)
