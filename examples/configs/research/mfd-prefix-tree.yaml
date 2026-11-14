@@ -1,0 +1,7 @@
+method: mfd_prefix_tree
+data:
+  input_path: examples/configs/research/data/mfd-prefix-tree.json
+  max_samples: 32
+tree:
+  budget: 4
+output_dir: outputs/research-mfd-prefix-tree

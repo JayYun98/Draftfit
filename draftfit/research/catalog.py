@@ -1,5 +1,8 @@
 """Dependency-light provenance and explicit implementation boundaries."""
 
+MFD_SOURCE_REVISION = "95040343de00f15aef8c6350a578c35e0cd53475"
+MFD_PAPER_REVISION = "2611.13017v1"
+
 SOURCES = {
     "alr_ira": ("js-lee-AI/ALR-IRA", "fa473642d48ea2667675d706ca8f16a74111183e"),
     "cast": ("js-lee-AI/CAST", "2eed73f38f9210f1d5ddf01de8059cf3ffb43c19"),
@@ -10,6 +13,13 @@ SOURCES = {
 
 # Unavailable author code is not replaced by a guessed repository/revision.
 LATEST = [
+    (
+        "mfd_prefix_tree",
+        MFD_PAPER_REVISION,
+        "cpu_reference",
+        "hhhhhhy5/multi-future-drafting",
+        MFD_SOURCE_REVISION,
+    ),
     ("ngramrl", "2610.32881v1", "native_synchronous_reference", None, None),
     ("specmem", "2610.31840v1", "native_memory_reference", None, None),
     ("valuspec", "2610.31338v1", "cast_conditional_branch_filter", None, None),

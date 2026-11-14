@@ -16,8 +16,14 @@ runtime modules do not replace or erase the authorship of adapted source.
 | [CAST](https://github.com/js-lee-AI/CAST) | `2eed73f38f9210f1d5ddf01de8059cf3ffb43c19` | Reference tree construction and corrected speculative sampling |
 | [Redline](https://github.com/js-lee-AI/Redline) | `d78ede9b035420f3c8c8c63c185ed55be5ea038f` | Paired correctness-risk calibration |
 | Prism extended runtime | `e3de715222b2667c54a267441159a5729f11155e` | Explicit external native capture API; runtime is not bundled |
+| [Multi-Future Drafting](https://github.com/hhhhhhy5/multi-future-drafting) | `95040343de00f15aef8c6350a578c35e0cd53475` | Algorithm reference for an independently written CPU best-mode prefix selector |
 
 ## Borrowed boundaries
+
+- The MFD best-mode selector follows the paper's Section 4.3. The reviewed
+  author HF tree reference has a separate MIT license beneath an Apache-2.0
+  repository root. Both notices and source digests are retained in
+  `draftfit/research/NOTICE.md`. No author runtime or model weights are bundled.
 
 - TorchSpec `torchspec/config/train_config.py`, `torchspec/ray/placement_group.py`,
   and `torchspec/training/checkpoint.py` were reviewed at `bd64d93`. Only the

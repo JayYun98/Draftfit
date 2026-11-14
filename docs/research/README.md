@@ -14,10 +14,11 @@ Use their separate recipes and execution limits.
 | Osprey | Convert a compatible backbone into a draft model | [Conversion and training](../specs/research-methods.md#osprey-conversion-and-training) |
 | CAST | Run reference tree decoding | [Tree decoding](../specs/research-methods.md#cast-reference-decoding) |
 | Redline | Select from measured configurations | [Calibration](../specs/research-methods.md#redline-recipe) |
+| MFD prefix tree | Select distinct prefixes by best-mode probability on supplied CPU tables | [Contract and limits](../specs/mfd-prefix-tree.md) |
 
 ## Tested reference experiments
 
-All eight research recipes passed CPU CLI checks.
+The eight reference experiments below passed CPU CLI checks.
 All 52 affected regression and packaging tests passed.
 GPU checks used a pinned Qwen3-0.6B model on an A100.
 These checks cover reference implementations.

@@ -48,6 +48,7 @@ class BuildWithAssets(build_py):
             "docs/specs/training-feature-integration.md",
             "docs/specs/quantized-capture.md",
             "docs/specs/research-methods.md",
+            "docs/specs/mfd-prefix-tree.md",
             "docs/specs/eagle4-minicpm.md",
             "docs/research/README.md",
             "docs/research/latest-speculative-methods.md",
@@ -56,6 +57,7 @@ class BuildWithAssets(build_py):
             "docs/research/results/eagle4-minicpm-diagnosis-20261029.json",
             "docs/research/results/eagle4-minicpm-extension-20261029.json",
             "docs/research/results/latest-methods-effects-20261028.json",
+            "docs/research/results/mfd-prefix-tree-20261114.json",
             "examples/configs/research/README.md",
         ):
             target = Path(self.build_lib) / "draftfit/assets/_data" / name

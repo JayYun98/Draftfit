@@ -14,18 +14,29 @@ IMPLEMENTATIONS = {
     "treewy": "author_numerical_reference",
     "moe_spac": "policy_trace_reference",
     "query_layout": "tensor_diagnostic",
+    "mfd_prefix_tree": "cpu_reference",
 }
 
 
 def plan(config, recipe_path=None):
     """Describe the selected work without loading models or writing output."""
-    return {
+    result = {
         "project": config.method,
         "implementation": IMPLEMENTATIONS.get(config.method, "native"),
         "config": config.model_dump(),
         "execution": "not-run",
         "serving_compatibility": "not_validated",
     }
+    if config.method == "mfd_prefix_tree":
+        from .catalog import MFD_PAPER_REVISION, MFD_SOURCE_REVISION
+
+        result.update(
+            source_revision=MFD_SOURCE_REVISION,
+            paper_revision=MFD_PAPER_REVISION,
+            model_execution_performed=False,
+            serving_validation="not-run",
+        )
+    return result
 
 
 def _cast(config):
@@ -199,6 +210,7 @@ def run(config, recipe_path=None):
         "arr",
         "moe_spac",
         "query_layout",
+        "mfd_prefix_tree",
     }:
         raise ValueError(f"unsupported research method: {config.method}")
     if config.method in {"ngramrl", "specmem"}:
@@ -225,6 +237,10 @@ def run(config, recipe_path=None):
         from .query_layout import run_query_layout
 
         result = run_query_layout(config)
+    elif config.method == "mfd_prefix_tree":
+        from .mfd import run_mfd
+
+        result = run_mfd(config)
     else:
         result = _cast(config) if config.method == "cast" else _redline(config)
     memory_state = result.pop("memory_state", None)

@@ -1,0 +1,172 @@
+{
+  "experiment": "MFD-PREFIX-01",
+  "date": "2026-11-14",
+  "paper": "https://arxiv.org/abs/2611.13017v1",
+  "scope": "CPU best-mode prefix selection on supplied factorized probabilities; no model execution",
+  "source": {
+    "repository": "https://github.com/hhhhhhy5/multi-future-drafting",
+    "commit": "95040343de00f15aef8c6350a578c35e0cd53475",
+    "reviewed_path": "inference/hf/ddtree.py",
+    "source_sha256": "51934e4af7b381a86619b1cca76486da394776fefdeaf89f475946e5689dcad1",
+    "root_license": "Apache-2.0",
+    "hf_subtree_license": "MIT",
+    "hf_copyright": "Copyright (c) 2026 Liran Ringel",
+    "executable_source_copied": false
+  },
+  "validated_state": {
+    "development_base": "ccd27e4fa5ceef44e6c2ffd5c205f034673cb65e",
+    "module_sha256": "475500f528eb39e8ea9d0d905166a7a5ac4124bc7386e2ed6d486667f7efe669",
+    "test_sha256": "de238bdd763d22db0872d1964b8cbd2bbda6f8dcf1ca2cd52ece3cec43190230",
+    "identity_note": "Working candidate identified by content digests. The published commit and its own CI are recorded in the PR evidence comments."
+  },
+  "environment": {
+    "os": "macOS 26.4 arm64",
+    "python": "3.12.8",
+    "torch": "2.11.0",
+    "transformers": "5.8.1",
+    "huggingface_hub": "1.30.0",
+    "pydantic": "2.13.4",
+    "limitation": "Reused contributor dependencies; Transformers differs from required 5.12.1. This is not the full hash-locked CPU gate."
+  },
+  "checks": [
+    {
+      "check": "MFD unit, exhaustive oracle and real CLI",
+      "status": "pass",
+      "tests": 19,
+      "skipped": 0,
+      "seeded_dyadic_table_cases": 72,
+      "oracle": "Exact rational products with exhaustive Cartesian enumeration, compared across all budgets for each bounded small table",
+      "reproduction_command": "uv run --no-project --python \"$MFD_CHECK_PYTHON\" python -m unittest -v tests.research.test_mfd_prefix_tree"
+    },
+    {
+      "check": "Existing research and packaging regressions",
+      "status": "pass",
+      "tests": 52,
+      "skipped": 0,
+      "reproduction_command": "uv run --no-project --python \"$MFD_CHECK_PYTHON\" python -m unittest -v tests.test_research_core tests.test_research_methods tests.test_research_providers tests.test_research_review_regressions tests.research.test_latest_research tests.research.test_latest_control tests.research.test_latest_kv_tree tests.test_packaging.test_assets"
+    },
+    {
+      "check": "Wheel and source distribution",
+      "status": "pass_scoped",
+      "observed": "Module, recipe, synthetic fixture, specification and both exact upstream license payloads were checked in wheel and source distribution. Packaging tests also rebuilt the wheel through the source distribution.",
+      "reproduction_command": "uv build --python \"$MFD_CHECK_PYTHON\" --no-build-isolation --offline"
+    },
+    {
+      "check": "Installed-wheel onboarding",
+      "status": "pass_scoped",
+      "observed": "Isolated import came from the installed wheel. MFD plan/run, prefix/parent order, persistence and collision rejection passed, followed by existing CPU metadata onboarding.",
+      "dependency_reuse": "A private probe venv read the same contributor site-packages without installing or changing dependencies.",
+      "reproduction_command": "uv run --no-project --python \"$MFD_WHEEL_PYTHON\" python -I tests/packaging/check_public_install.py"
+    }
+  ],
+  "distinct_unittest_cases": 71,
+  "counting_note": "The two extra selected legacy checks overlap the 52-test run and are not added again. CLI assertions and randomized table cases are not counted as additional unittest cases.",
+  "counterexample": {
+    "kind": "synthetic arithmetic",
+    "priors": [
+      0.6,
+      0.4
+    ],
+    "both_positions_mode_rows": [
+      [
+        0.9,
+        0.1
+      ],
+      [
+        0.1,
+        0.9
+      ]
+    ],
+    "budget": 4,
+    "best_mode_prefixes": [
+      [
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        1
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "best_mode_products": [
+      0.54,
+      0.486,
+      0.36,
+      0.324
+    ],
+    "collapsed_marginals": [
+      0.58,
+      0.42
+    ],
+    "collapsed_prefixes": [
+      [
+        0
+      ],
+      [
+        1
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "verdict": "Different selected prefixes on the same supplied distributions; no model-quality inference"
+  },
+  "retained_environment_failures": [
+    {
+      "check": "Initial wheel probe with system-site-packages",
+      "status": "failed",
+      "cause": "It inherited unrelated system Torch 2.13.0, Transformers 5.14.1 and huggingface-hub 2.4.0. Legacy target preparation rejected the Hub version.",
+      "resolution": "The probe alone was isolated from system dependencies and linked read-only to the already approved contributor dependency directory. The original failure was retained; no lock installation, dependency replacement or hash bypass occurred."
+    },
+    {
+      "check": "Fresh macOS hash-locked CPU install",
+      "status": "blocked",
+      "cause": "Existing unchanged Torch 2.11.0 SHA256 mismatch. Not retried."
+    }
+  ],
+  "not_run": {
+    "hosted_linux_locked_cpu": "This local receipt does not establish remote CI. Check the exact published head in its PR.",
+    "training": "No MFD mode training or Draftfit model changes in scope.",
+    "gpu": "No GPU implementation or current paid GPU authority.",
+    "quality": "No trained multimode model was evaluated.",
+    "export": "No MFD model export implementation.",
+    "serving_correctness": "Target verification, cache compaction and serving are not implemented here.",
+    "throughput": "No performance experiment or speed claim."
+  },
+  "numerical_limit": "Binary64 log accumulation can reorder near ties, including equal exact products with different rounded log sums. Deterministic depth/token ties apply to equal computed scores.",
+  "reproduction_note": "Set MFD_CHECK_PYTHON and MFD_WHEEL_PYTHON to the prepared source and installed-wheel interpreters. Personal interpreter paths are intentionally omitted.",
+  "rounding_regression": {
+    "input": [
+      [
+        [
+          1e-300,
+          1.0
+        ],
+        [
+          0.4999999999999999,
+          0.5000000000000001
+        ]
+      ]
+    ],
+    "budgets": [
+      5,
+      6
+    ],
+    "before": "Old per-row lazy order selected [0,1] before [0,0] when both computed totals were equal. The new regression failed before the fix.",
+    "after": "Per-mode-parent choices use the actual fsum total and token order. The same regression passed.",
+    "score": -691.4686750787736,
+    "scope": "Computed-score ordering, not an assertion of exact real-arithmetic ranking.",
+    "selection_bound": "Only the first B children per mode-parent are retained. Any omitted child has B distinct same-parent siblings ahead."
+  }
+}

@@ -239,6 +239,22 @@ class TreeWYConfig(StrictConfigModel):
     output_dir: str
 
 
+class MFDInputData(StrictConfigModel):
+    input_path: str = Field(min_length=1)
+    max_samples: int = Field(default=32, strict=True, gt=0, le=32)
+
+
+class MFDOptions(StrictConfigModel):
+    budget: int = Field(default=63, strict=True, ge=0, le=256)
+
+
+class MFDConfig(StrictConfigModel):
+    method: Literal["mfd_prefix_tree"]
+    data: MFDInputData
+    tree: MFDOptions = Field(default_factory=MFDOptions)
+    output_dir: str
+
+
 class ReplayOptions(StrictConfigModel):
     active_roots: int = Field(default=4, gt=0)
     max_roots: int = Field(default=32, gt=0)
@@ -335,6 +351,7 @@ Recipe = Annotated[
         SpecMemConfig,
         RIFTConfig,
         TreeWYConfig,
+        MFDConfig,
         ARRConfig,
         MoEPolicyConfig,
         QueryLayoutConfig,

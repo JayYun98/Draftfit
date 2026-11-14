@@ -2,6 +2,9 @@
 
 These recipes run experimental references and diagnostics.
 They do not select a production training or serving backend.
+The [MFD prefix recipe](mfd-prefix-tree.yaml) selects distinct prefixes from
+supplied mode probabilities. Its fixture is synthetic. See the
+[MFD contract](../../../docs/specs/mfd-prefix-tree.md) for its CPU bounds.
 Use the [research guide](../../../docs/research/README.md) for results and limits.
 
 | Recipe | Required input |

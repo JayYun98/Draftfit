@@ -74,6 +74,26 @@ def main():
         export_assets(root / "exported-assets")
         assert (root / "exported-assets/docs/TRAINING_SEARCH.md").is_file()
 
+        mfd_assets = root / "exported-assets/examples/configs/research"
+        mfd_output = root / "mfd-result"
+        mfd_args = (
+            "research",
+            "-c",
+            mfd_assets / "mfd-prefix-tree.yaml",
+            f"data.input_path={mfd_assets / 'data/mfd-prefix-tree.json'}",
+            f"output_dir={mfd_output}",
+        )
+        planned = json.loads(cli(*mfd_args, "--plan"))
+        assert planned["execution"] == "not-run" and not mfd_output.exists()
+        selected = json.loads(cli(*mfd_args))
+        assert selected["model_execution_performed"] is False
+        assert selected["serving_validation"] == "not-run"
+        nodes = selected["answers"][0]["nodes"]
+        assert [node["prefix"] for node in nodes] == [[0], [0, 0], [1], [1, 1]]
+        assert [node["parent"] for node in nodes] == [0, 1, 0, 3]
+        assert json.loads((mfd_output / "result.json").read_text()) == selected
+        cli(*mfd_args, error="output already exists")
+
         target = root / "target"
         target.mkdir()
         raw_data = root / "messages.jsonl"
@@ -203,6 +223,7 @@ def main():
             {
                 "passed": True,
                 "scope": "installed-wheel CPU metadata onboarding",
+                "mfd_prefix_tree": "synthetic CPU selection passed",
                 "algorithms_prepared": ["dspark", "dflash", "dflash2", "eagle4"],
                 "gpu_started": False,
             }
