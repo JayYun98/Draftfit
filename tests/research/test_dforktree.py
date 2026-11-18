@@ -20,7 +20,10 @@ from draftfit.research.config import (
     InputData,
     load_recipe,
 )
-from draftfit.research.dforktree import run_dforktree_scoring, score_candidates
+from draftfit.research.papers.dforktree.method import (
+    run_dforktree_scoring,
+    score_candidates,
+)
 from draftfit.research.runner import plan, run
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -64,6 +67,14 @@ def recipe(root, **changes):
 
 
 class DForkTreeNumericalTests(unittest.TestCase):
+    def test_legacy_imports_resolve_to_canonical_objects(self):
+        from draftfit.research import dforktree
+        from draftfit.research.papers.dforktree.method import CandidateScores
+
+        self.assertIs(dforktree.CandidateScores, CandidateScores)
+        self.assertIs(dforktree.score_candidates, score_candidates)
+        self.assertIs(dforktree.run_dforktree_scoring, run_dforktree_scoring)
+
     def assert_distribution(self, result):
         values = result.candidate_probs + (result.tail_probability,)
         self.assertTrue(all(math.isfinite(p) and 0 <= p <= 1 for p in values))

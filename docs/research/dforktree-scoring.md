@@ -80,7 +80,7 @@ Only the selected nonblank rows are parsed and scored.
 ## Use the scoring function
 
 ```python
-from draftfit.research.dforktree import score_candidates
+from draftfit.research.papers.dforktree.method import score_candidates
 
 result = score_candidates(
     [101, 102],

@@ -139,9 +139,10 @@ class AssetTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             wheel = next(wheel_dir.glob("*.whl"))
             with zipfile.ZipFile(wheel) as archive:
-                for name in ("TREEWY_LICENSE", "DFORKTREE_LICENSE", "DFORKTREE_NOTICE"):
-                    path = "draftfit/research/_vendor/" + name
-                    self.assertEqual(archive.read(path), (root / path).read_bytes())
+                treewy_license = "draftfit/research/_vendor/TREEWY_LICENSE"
+                self.assertEqual(
+                    archive.read(treewy_license), (root / treewy_license).read_bytes()
+                )
                 for name, digest in (
                     (
                         "DFORKTREE_LICENSE",
@@ -154,7 +155,7 @@ class AssetTests(unittest.TestCase):
                 ):
                     self.assertEqual(
                         hashlib.sha256(
-                            archive.read("draftfit/research/_vendor/" + name)
+                            archive.read("draftfit/research/papers/dforktree/" + name)
                         ).hexdigest(),
                         digest,
                     )

@@ -108,7 +108,7 @@ Copyright 2026 Zhicheng Zheng, Cheng Zhang, and Chenkai Tang.
 Reference repository: https://github.com/Perseus037/DForkTree
 Revision: `eeed8b698b8822aa2767ec5c191efc4e1b6cdbe3`.
 License: Apache-2.0. The full original license and notice are retained in
-`_vendor/DFORKTREE_LICENSE` and `_vendor/DFORKTREE_NOTICE`.
+`papers/dforktree/DFORKTREE_LICENSE` and `papers/dforktree/DFORKTREE_NOTICE`.
 
 Reviewed source identities:
 

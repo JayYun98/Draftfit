@@ -55,7 +55,8 @@ The DForkTree reference implements paper equations 2 and 3 using supplied
 conditional and unigram probabilities. The reviewed author sources are
 `dforktree/ngram_gpu.py`, `dforktree/tree_ops.py`, and `dforktree/fc1_builder.py`.
 The original Apache-2.0 license and notice are retained as
-`draftfit/research/_vendor/DFORKTREE_LICENSE` and `DFORKTREE_NOTICE`.
+[DFORKTREE_LICENSE](draftfit/research/papers/dforktree/DFORKTREE_LICENSE) and
+[DFORKTREE_NOTICE](draftfit/research/papers/dforktree/DFORKTREE_NOTICE).
 The local component does not copy the SGLang worker, Flash Linear Attention
 recurrence, GPU builder, or verifier. See `draftfit/research/NOTICE.md` for
 the source identities and intentional numerical differences.

@@ -228,7 +228,7 @@ def run(config, recipe_path=None):
 
         result = run_query_layout(config)
     elif config.method == "dforktree_scoring":
-        from .dforktree import run_dforktree_scoring
+        from .papers.dforktree.method import run_dforktree_scoring
 
         result = run_dforktree_scoring(config)
     else:

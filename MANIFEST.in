@@ -17,7 +17,8 @@ include docs/specs/training-feature-integration.md docs/specs/quantized-capture.
 include docs/specs/research-methods.md
 include draftfit/offline_capture/PRISM_RUNTIME_LICENSE draftfit/research/NOTICE.md
 include draftfit/research/_vendor/TREEWY_LICENSE
-include draftfit/research/_vendor/DFORKTREE_LICENSE draftfit/research/_vendor/DFORKTREE_NOTICE
+include draftfit/research/papers/dforktree/DFORKTREE_LICENSE draftfit/research/papers/dforktree/DFORKTREE_NOTICE
+include draftfit/research/papers/dforktree/README.md
 recursive-include docs/research *.md *.json
 include examples/configs/research/README.md
 include benchmarks/native/prism_capture_bridge.cpp

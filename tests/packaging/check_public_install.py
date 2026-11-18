@@ -172,12 +172,12 @@ def main():
         }
         from importlib.resources import files
 
-        vendor = files("draftfit.research._vendor")
+        paper = files("draftfit.research.papers.dforktree")
         for original, packaged in (
             ("LICENSE", "DFORKTREE_LICENSE"),
             ("NOTICE", "DFORKTREE_NOTICE"),
         ):
-            digest = hashlib.sha256(vendor.joinpath(packaged).read_bytes()).hexdigest()
+            digest = hashlib.sha256(paper.joinpath(packaged).read_bytes()).hexdigest()
             assert digest == source["sha256"][original]
         persisted = output / "result.json"
         result_bytes = persisted.read_bytes()
