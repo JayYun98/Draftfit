@@ -13,9 +13,9 @@ repos:
       - id: check-symlinks
       - id: destroyed-symlinks
       - id: trailing-whitespace
-        exclude: (\.patch$|^draftfit/research/_vendor/treewy\.py$)
+        exclude: (\.patch$|^draftfit/research/_vendor/treewy\.py$|^draftfit/research/papers/mfd/MFD_(ROOT|HF)_LICENSE$)
       - id: end-of-file-fixer
-        exclude: (\.patch$|^draftfit/research/_vendor/treewy\.py$)
+        exclude: (\.patch$|^draftfit/research/_vendor/treewy\.py$|^draftfit/research/papers/mfd/MFD_(ROOT|HF)_LICENSE$)
       - id: check-yaml
         args: [--allow-multiple-documents]
       - id: check-toml

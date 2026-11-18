@@ -23,7 +23,7 @@ runtime modules do not replace or erase the authorship of adapted source.
 - The MFD best-mode selector follows the paper's Section 4.3. The reviewed
   author HF tree reference has a separate MIT license beneath an Apache-2.0
   repository root. Both notices and source digests are retained in
-  `draftfit/research/NOTICE.md`. No author runtime or model weights are bundled.
+  [the MFD source notice](draftfit/research/papers/mfd/NOTICE.md). No author runtime or model weights are bundled.
 
 - TorchSpec `torchspec/config/train_config.py`, `torchspec/ray/placement_group.py`,
   and `torchspec/training/checkpoint.py` were reviewed at `bd64d93`. Only the

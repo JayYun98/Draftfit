@@ -238,7 +238,7 @@ def run(config, recipe_path=None):
 
         result = run_query_layout(config)
     elif config.method == "mfd_prefix_tree":
-        from .mfd import run_mfd
+        from .papers.mfd.method import run_mfd
 
         result = run_mfd(config)
     else:

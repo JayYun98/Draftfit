@@ -11,7 +11,7 @@ import unittest
 from fractions import Fraction
 from pathlib import Path
 
-from draftfit.research.mfd import PrefixNode, PrefixTree, select_prefixes
+from draftfit.research.papers.mfd.method import PrefixNode, PrefixTree, select_prefixes
 
 ROOT = Path(__file__).resolve().parents[2]
 RECIPE = ROOT / "examples/configs/research/mfd-prefix-tree.yaml"
@@ -361,6 +361,27 @@ class MFDRecipeTest(unittest.TestCase):
         self.assertIs(result["model_execution_performed"], False)
         self.assertEqual(result["serving_validation"], "not-run")
 
+    def test_compatibility_exports(self):
+        from draftfit.research import mfd
+        from draftfit.research.papers.mfd import method
+
+        for name in (
+            "PrefixNode",
+            "PrefixTree",
+            "select_prefixes",
+            "run_mfd",
+            "MAX_MODES",
+            "MAX_DEPTH",
+            "MAX_VOCAB",
+            "MAX_CELLS",
+            "MAX_BUDGET",
+            "MAX_SAMPLES",
+            "MAX_LINE_BYTES",
+            "NORMALIZATION_TOLERANCE",
+        ):
+            with self.subTest(name=name):
+                self.assertIs(getattr(mfd, name), getattr(method, name))
+
     def test_recipe_and_strict_config_limits(self):
         from draftfit.research.config import ADAPTER, load_recipe
 
@@ -539,7 +560,8 @@ class MFDRecipeTest(unittest.TestCase):
         code = (
             "import json, sys; from draftfit.research.catalog import source_catalog; "
             "print(json.dumps({'sources': source_catalog(), 'loaded': "
-            "[m for m in ('torch', 'transformers', 'draftfit.research.mfd') if m in sys.modules]}))"
+            "[m for m in ('torch', 'transformers', 'draftfit.research.mfd', "
+            "'draftfit.research.papers.mfd.method') if m in sys.modules]}))"
         )
         result = subprocess.run(
             [sys.executable, "-c", code],

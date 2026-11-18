@@ -134,8 +134,13 @@ class AssetTests(unittest.TestCase):
                     archive.read("draftfit/research/_vendor/TREEWY_LICENSE"),
                     (root / "draftfit/research/_vendor/TREEWY_LICENSE").read_bytes(),
                 )
-                for license_name in ("MFD_ROOT_LICENSE", "MFD_HF_LICENSE"):
-                    name = f"draftfit/research/_vendor/{license_name}"
+                for filename in (
+                    "MFD_ROOT_LICENSE",
+                    "MFD_HF_LICENSE",
+                    "NOTICE.md",
+                    "README.md",
+                ):
+                    name = f"draftfit/research/papers/mfd/{filename}"
                     self.assertEqual(archive.read(name), (root / name).read_bytes())
                 direct_payload = {
                     name: archive.read(name)
