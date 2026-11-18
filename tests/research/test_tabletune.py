@@ -410,9 +410,9 @@ class TableTuneTests(unittest.TestCase):
         self.assertEqual(source["paper_revision"], "2610.38968v2")
         self.assertEqual(source["url"], "https://github.com/asm582/tabletune")
         self.assertFalse(source["production_engine_validated"])
-        vendor = REPO / "draftfit/research/_vendor"
+        vendor = REPO / "draftfit/research/papers/tabletune"
         self.assertEqual(
-            hashlib.sha256((vendor / "tabletune.py").read_bytes()).hexdigest(),
+            hashlib.sha256((vendor / "upstream.py").read_bytes()).hexdigest(),
             "8d4c7e0d8b5d7a04f85f00fe7c28d80f1f76afd4c497657430b412df744ee80c",
         )
         self.assertEqual(

@@ -18,7 +18,7 @@ include docs/specs/research-methods.md
 include docs/specs/paper-intake.md
 include draftfit/offline_capture/PRISM_RUNTIME_LICENSE draftfit/research/NOTICE.md
 include draftfit/research/_vendor/TREEWY_LICENSE
-include draftfit/research/_vendor/TABLETUNE_LICENSE
+include draftfit/research/papers/tabletune/TABLETUNE_LICENSE
 recursive-include docs/research *.md *.json
 include examples/configs/research/README.md
 include benchmarks/native/prism_capture_bridge.cpp

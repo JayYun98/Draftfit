@@ -5,10 +5,10 @@ fragments retain their existing Apache-2.0 notices and repository licenses.
 
 ## TableTune
 
-`_vendor/tabletune.py` is an unmodified copy of `dsd_tuning/core.py` from
+`papers/tabletune/upstream.py` is an unmodified copy of `dsd_tuning/core.py` from
 [`asm582/tabletune`](https://github.com/asm582/tabletune), commit
 `38170878d901cb06f696a122a0b4140a3d365f02`, under Apache-2.0.
-The complete upstream license is bundled as `_vendor/TABLETUNE_LICENSE`.
+The complete upstream license is bundled as `papers/tabletune/TABLETUNE_LICENSE`.
 The upstream repository contains no separate NOTICE file.
 
 Source SHA256:

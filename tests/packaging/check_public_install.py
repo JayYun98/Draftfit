@@ -97,7 +97,9 @@ def main():
         from importlib.resources import files
 
         assert (
-            files("draftfit.research._vendor").joinpath("TABLETUNE_LICENSE").is_file()
+            files("draftfit.research.papers.tabletune")
+            .joinpath("TABLETUNE_LICENSE")
+            .is_file()
         )
         notes = root / "paper-notes"
         notes.mkdir()

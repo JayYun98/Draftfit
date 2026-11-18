@@ -49,7 +49,7 @@ A source URL in a note does not establish any of those conditions.
 2. Reconcile the paper's earlier PR URLs and deterministic branch before creating another PR.
 3. Resume an existing PR when it covers the same paper and scope.
 4. Create a dedicated `codex/paper-<id>-<purpose>` branch when no matching work exists.
-5. Extend the existing research recipe interface with explicit opt-in behavior.
+5. Follow the [paper package layout](README.md#paper-package-layout) and extend the existing opt-in recipe interface.
 6. Add a runnable recipe and tests for the mechanism and relevant failure boundaries.
 7. Run the affected CPU checks and packaging checks in the documented environment.
 8. Review the diff and source notices before publishing a draft PR to `dev`.

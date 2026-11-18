@@ -10,6 +10,22 @@ Use [paper intake](paper-intake.md) to track literature revisions and prepare
 experimental PRs. Its first [TableTune recipe](../../examples/configs/research/tabletune.yaml)
 builds an offline table from synthetic profiles. Live serving remains unverified.
 
+## Paper package layout
+
+Start in `draftfit/research/papers/<paper>/` when adding a paper experiment.
+Use a short Python package name, such as `tabletune`. Use the catalog to record the exact paper and source revisions.
+
+| Location | Contents |
+| --- | --- |
+| `draftfit/research/papers/<paper>/` | Put the algorithm in `method.py`. Keep copied source, its license, and any required notice beside it. |
+| The paper package’s `README.md` | Link the runnable recipe, tests, spec, and source attribution. State what the implementation covers. |
+| `examples/configs/research/` | Keep the public YAML recipe and its input fixtures here so source and installed users can run the same command. |
+| `tests/research/` | Test the method and its opt-in recipe through the existing runner. |
+| `docs/specs/` and `docs/research/results/` | Record the acceptance criteria and dated evidence. Keep paths in historical receipts tied to their tested commit. |
+
+Keep the package initializers lightweight. Import the implementation when its recipe is selected.
+Use the shared config, catalog, and runner in `draftfit/research/`. Leave training and serving defaults unchanged.
+
 ## Existing research workflows
 
 | Method | Purpose | Guide |

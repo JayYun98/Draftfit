@@ -53,7 +53,7 @@ runtime modules do not replace or erase the authorship of adapted source.
 
 The TableTune recipe adapts the dependency-light `dsd_tuning/core.py` numerical
 kernel under Apache-2.0. Its full license is bundled in
-`draftfit/research/_vendor/TABLETUNE_LICENSE`.
+`draftfit/research/papers/tabletune/TABLETUNE_LICENSE`.
 The source boundary and digest are recorded in `draftfit/research/NOTICE.md`.
 The vLLM plugin, live controller, installers, and profiling workers are not bundled.
 

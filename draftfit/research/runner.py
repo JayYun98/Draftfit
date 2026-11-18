@@ -28,7 +28,7 @@ def plan(config, recipe_path=None):
         "serving_compatibility": "not_validated",
     }
     if config.method == "tabletune":
-        from .tabletune import experiment_metadata
+        from .papers.tabletune.method import experiment_metadata
 
         result.update(experiment_metadata(config))
     return result
@@ -233,7 +233,7 @@ def run(config, recipe_path=None):
 
         result = run_query_layout(config)
     elif config.method == "tabletune":
-        from .tabletune import run_tabletune
+        from .papers.tabletune.method import run_tabletune
 
         result = run_tabletune(config)
     else:
