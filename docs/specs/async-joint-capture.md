@@ -27,7 +27,8 @@ feature-queue budget; it is not a total process RAM or GPU memory limit.
 
 The trainer releases a batch only after its optimizer update succeeds. An
 insufficient accumulation budget raises an error instead of waiting forever.
-Producer errors reach the trainer with their original cause. Early termination
+The trainer receives already published batches before a later producer error.
+The error retains its original cause. Early termination
 joins the producer, waits for any active capture and discards unconsumed lookahead.
 An active native capture cannot be forcibly interrupted by a Python thread.
 
@@ -42,8 +43,8 @@ random state. CUDA capture uses a separate stream and completes CPU copies befor
 publication. Sufficient GPU memory permits coexistence; it does not establish
 kernel overlap or a throughput gain. Both tasks still share GPU compute resources.
 
-The new flag defaults to false and is omitted from old checkpoint fingerprints
-when disabled. Changing it changes the resume contract. Keep it fixed on resume.
+Synchronous capture keeps existing checkpoint, policy and calibration fingerprints.
+Enabling asynchronous capture changes the resume contract. Keep the setting fixed on resume.
 
 ## Usage
 
@@ -88,18 +89,18 @@ Run focused checks in the contributor CPU environment:
 ```sh
 SPECFORGE_DEVICE=cpu OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
-python -m unittest draftfit.research.tests.test_async_capture_queue draftfit.research.tests.test_async_capture_joint -v
+python -m draftfit.research.tests.cpu
 ```
 
 CUDA validation needs an idle, authorized device and a matching runtime:
 
 ```sh
-DRAFTFIT_RUN_QUEUE_CUDA=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
-python -m unittest draftfit.research.tests.test_async_capture_joint.JointAsyncCaptureCUDA -v
+python -m draftfit.research.tests.cuda
 ```
 
-This gate uses the same tiny CLI inputs and separate synchronous/asynchronous
+The gate fails if CUDA is unavailable. Its capture case uses the same tiny CLI inputs and separate synchronous/asynchronous
 output roots. Separately compare complete update time, peak VRAM,
 checkpoint state and queue teardown. No GPU result or speedup is claimed here.
 GPU allocator peaks during async execution include both workloads; they are not

@@ -21,6 +21,7 @@ from draftfit.training.campaign_budget import (
     read_joint_profile,
 )
 from draftfit.training.hardware_tuning import candidates, choose
+from draftfit.training.joint_control import joint_config_for_fingerprint
 
 
 def write(path, value):
@@ -195,7 +196,7 @@ def batch_probe(
         json.dumps(
             [
                 {
-                    "config": s.config.model_dump(mode="json"),
+                    "config": joint_config_for_fingerprint(s.config),
                     "draft": s.draft_config.to_dict(),
                 }
                 for s in stages

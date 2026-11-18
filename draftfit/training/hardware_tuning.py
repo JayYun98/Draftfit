@@ -116,6 +116,7 @@ def probe_training(
             if deadline is not None and time.time() >= deadline:
                 raise TimeoutError("training tuning deadline")
             windows.append(batch)
+            del batch
             if len(windows) < t.accumulation_steps:
                 continue
             backward(stages, strategies, bundles, windows)

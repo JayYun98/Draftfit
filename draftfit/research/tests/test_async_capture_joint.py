@@ -114,10 +114,13 @@ class JointAsyncCaptureTests(unittest.TestCase):
                 _, stages = build_family_plan(str(root / "family.json"))
                 source = JointOnlineSource(stages[0], needs_dspark=True)
                 self.addCleanup(source.close)
+                first_acquired = threading.Event()
                 next_capture = threading.Event()
                 capture = source._capture_batch
 
                 def observed(rows, indices, evaluation):
+                    if indices == [1] and not first_acquired.wait(5):
+                        raise RuntimeError("consumer did not acquire the first batch")
                     result = capture(rows, indices, evaluation)
                     if indices == [1]:
                         next_capture.set()
@@ -127,6 +130,7 @@ class JointAsyncCaptureTests(unittest.TestCase):
                 loader, _ = source.loader(stages[0], 0, False, True)
                 batches = iter(loader)
                 first = next(batches)
+                first_acquired.set()
                 self.assertTrue(
                     next_capture.wait(5), "no capture overlapped held consumer batch"
                 )

@@ -300,13 +300,16 @@ class JointOnlineSource:
         return metrics
 
     def consume(self, batches):
-        """Called only after every family backward and the optimizer update."""
-        for batch in batches:
-            owned = self._leases.pop(id(batch), None)
+        """Drain the trainer's window after a successful optimizer update."""
+        acknowledgements = [(id(batch), len(batch.sample_ids)) for batch in batches]
+        # The producer can spend credit as soon as release() drops the lease.
+        batches.clear()
+        for batch_id, sample_count in acknowledgements:
+            owned = self._leases.pop(batch_id, None)
             if owned:
                 queue, lease = owned
                 queue.release(lease, consumed=True)
-            self.consumed_samples += len(batch.sample_ids)
+            self.consumed_samples += sample_count
 
     def pause_capture(self):
         if self._async_capture and self._queue is not None:

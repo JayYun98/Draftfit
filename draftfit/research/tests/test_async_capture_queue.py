@@ -79,6 +79,27 @@ class AsyncFeatureQueueTests(unittest.TestCase):
         self.assertFalse(queue.metrics()["producer_alive"])
         self.assertEqual(queue.metrics()["resident_bytes"], 0)
 
+    def test_acquire_drains_published_prefix_before_capture_failure(self):
+        queue = self.queue()
+        failure = LookupError("third capture failed")
+
+        def capture(index):
+            if index == 2:
+                raise failure
+            return torch.tensor([index])
+
+        queue.start(range(3), capture, lambda _: 8)
+        # Let the producer record its failure before the first consumer read.
+        queue._thread.join(timeout=2)
+        self.assertFalse(queue.metrics()["producer_alive"])
+        for expected in (0, 1):
+            lease = queue.acquire()
+            self.assertEqual(lease.value.item(), expected)
+            queue.release(lease, consumed=True)
+        with self.assertRaisesRegex(RuntimeError, "capture failed") as raised:
+            queue.acquire()
+        self.assertIs(raised.exception.__cause__, failure)
+
     def test_stop_unblocks_full_producer_and_preserves_uncommitted_lease(self):
         queue = self.queue(size=8, items=1)
         queue.start(range(10), lambda _: torch.ones(2), lambda _: 8)

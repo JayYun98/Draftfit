@@ -12,9 +12,22 @@ from copy import deepcopy
 from draftfit.training.joint_policy import decide, fingerprint
 
 
+def _omit_disabled_async_capture(values):
+    # Synchronous histories and receipts predate the opt-in flag.
+    if values.get("joint_async_capture") is False:
+        del values["joint_async_capture"]
+
+
+def joint_config_for_fingerprint(config):
+    values = config.model_dump(mode="json")
+    _omit_disabled_async_capture(values["training"])
+    return values
+
+
 def training_fingerprint(training):
     """Keep unrelated objective defaults out of existing policy histories."""
     values = training.model_dump(mode="json")
+    _omit_disabled_async_capture(values)
     if values.get("strategy") != "alr_ira":
         for field in ("alr_topk", "alr_hard_label_mix", "alr_tail_bucket"):
             values.pop(field, None)

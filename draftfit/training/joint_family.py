@@ -89,11 +89,12 @@ def _semantic_fingerprint(
 ) -> str:
     """Bind objectives and source identity while allowing a new output root."""
     from draftfit.runtime.data_plane.offline_reader import list_feature_files
+    from draftfit.training.joint_control import joint_config_for_fingerprint
     from draftfit.training.provenance import model_source_identity
 
     records = []
     for stage in stages:
-        cfg = stage.config.model_dump(mode="json")
+        cfg = joint_config_for_fingerprint(stage.config)
         cfg.pop("output_dir", None)
         cfg.pop("run_id", None)
         # Serialization policy does not change training or exact resume identity.
@@ -117,8 +118,6 @@ def _semantic_fingerprint(
         verification = cfg["training"].get("joint_verification")
         if verification and not verification.get("existing_drafts"):
             verification.pop("existing_drafts", None)
-        if not cfg["training"].get("joint_async_capture"):
-            cfg["training"].pop("joint_async_capture", None)
         # Disabled extensions preserve the fingerprint of pre-queue checkpoints.
         if not cfg["training"].get("joint_feature_queue_bytes"):
             cfg["training"].pop("joint_feature_queue_bytes", None)
@@ -1351,8 +1350,7 @@ def run_joint_family(
                 if not window and deadline_reached():
                     stopped_for_deadline = True
                     break
-                batch = next(batches)
-                window.append(batch)
+                window.append(next(batches))
                 if len(window) < t.accumulation_steps:
                     continue
                 device = next(bundles[0].draft_model.parameters()).device
@@ -1365,8 +1363,8 @@ def run_joint_family(
                 grad_norm = float(optimizer.step())
                 if online_source is not None:
                     online_source.consume(window)
-                window.clear()
-                del batch
+                else:
+                    window.clear()
                 if device.type == "cuda":
                     torch.cuda.synchronize(device)
                 train_seconds = time.perf_counter() - started

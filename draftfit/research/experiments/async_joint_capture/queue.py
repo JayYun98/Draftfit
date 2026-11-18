@@ -90,12 +90,12 @@ class AsyncFeatureQueue:
     def acquire(self):
         with self._condition:
             while True:
+                if self._queue.ready:
+                    return self._queue.acquire()
                 if self._error is not None:
                     raise RuntimeError(
                         "asynchronous feature capture failed"
                     ) from self._error
-                if self._queue.ready:
-                    return self._queue.acquire()
                 if self._finished or self._stopped:
                     raise StopIteration
                 if self._waiting is not None and not self._queue.can_fit(self._waiting):
