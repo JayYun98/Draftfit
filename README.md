@@ -99,7 +99,8 @@ Check the [model validation records](docs/MODEL_VALIDATION.md) before you select
 ## Research
 
 Research implementations use separate recipes and validation limits.
-Use the [research guide](docs/research/README.md) for those methods and experiment results.
+Use the [research guide](docs/research/README.md#find-an-experiment) for paper implementations and results.
+For optional backend and platform experiments, see [experimental platform features](docs/research/experimental-platform.md).
 These implementations are not production backends.
 
 ## Documentation

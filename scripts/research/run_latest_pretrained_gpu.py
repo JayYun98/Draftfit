@@ -60,7 +60,7 @@ def prepare(root, model_path):
     from transformers import AutoModelForCausalLM, AutoTokenizer, Qwen3Config
 
     from draftfit.modeling.draft.dflash import DFlashDraftModel
-    from draftfit.research.memory import Proposal
+    from draftfit.research.proposals import Proposal
     from draftfit.research.reference_decode import generate
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)

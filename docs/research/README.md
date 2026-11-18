@@ -6,6 +6,20 @@ These methods are experimental.
 They are not production backends.
 Use their separate recipes and execution limits.
 
+## Find an experiment
+
+| Start here | What you will find |
+| --- | --- |
+| [Paper implementations](../../draftfit/research/papers/README.md) | Each paper directory links its recipe or configuration, implementation, tests, and source. |
+| [Experimental platform features](experimental-platform.md) | Opt-in capture, training, and evaluation paths, including features without a paper. Each guide names the runtime that owns the code. |
+| [Recipe examples](../../examples/configs/research/README.md) | Inputs and CLI examples for the shared research runner. |
+| [Paper coverage](latest-speculative-methods.md) | Methods implemented, measurement-only contributions, and papers with no executable integration. |
+
+When adding a standalone experiment, use `draftfit/research/papers/<name>/` for a paper
+or `draftfit/research/experiments/<name>/` for a platform idea. Put its implementation
+and source notices beside its README. Link the opt-in command, fixture, tests, and known limits.
+For an experiment in an existing trainer or backend, link that owner and its configuration from the feature folder.
+
 ## Existing research workflows
 
 | Method | Purpose | Guide |

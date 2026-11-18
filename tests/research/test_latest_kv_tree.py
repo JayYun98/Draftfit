@@ -145,12 +145,12 @@ class LatestKVTreeTest(unittest.TestCase):
 
     def test_rift_real_kv_gather_and_exact_target_output(self):
         from draftfit.research.config import RIFTOptions
-        from draftfit.research.reference_decode import generate
-        from draftfit.research.rift import (
+        from draftfit.research.papers.rift.method import (
             CompressedARProposer,
             attention_scores,
             select_positions,
         )
+        from draftfit.research.reference_decode import generate
 
         target, draft = target_model(), target_model()
         prompt = torch.tensor([[1, 2, 3, 4, 5, 6]])
@@ -225,7 +225,7 @@ class LatestKVTreeTest(unittest.TestCase):
             self.assertTrue(stats["position_bins"])
 
     def test_treewy_matches_independent_recurrence_and_every_commit(self):
-        from draftfit.research.treewy import solve_tree
+        from draftfit.research.papers.treewy.method import solve_tree
 
         rng = torch.Generator().manual_seed(12)
         n, h, kd, vd = 6, 2, 3, 5

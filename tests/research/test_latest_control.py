@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class LatestControlTest(unittest.TestCase):
     def test_replay_matches_greedy_and_leaves_draft_after_mismatch(self):
-        from draftfit.research.arr import ReplayProposer
+        from draftfit.research.papers.arr.method import ReplayProposer
         from draftfit.research.reference_decode import generate
 
         target, ids = target_model(), torch.tensor([[1, 2, 3]])
@@ -38,7 +38,7 @@ class LatestControlTest(unittest.TestCase):
                 self.assertLess(stats["target_forwards"], 10)
 
     def test_arr_replacement_last_complete_and_one_vote_per_root(self):
-        from draftfit.research.arr import schedule_roots
+        from draftfit.research.papers.arr.method import schedule_roots
 
         initial = iter([[1, 9], [2, 9], [3, 9]])
         revisited = set()
@@ -109,7 +109,10 @@ class LatestControlTest(unittest.TestCase):
 
     def test_moe_paper_transitions_and_exhaustive_constraint_fallback(self):
         from draftfit.research.config import MoEPolicyOptions
-        from draftfit.research.moe_spac import UtilityEstimator, choose_threshold
+        from draftfit.research.papers.moe_spac.method import (
+            UtilityEstimator,
+            choose_threshold,
+        )
 
         estimator = UtilityEstimator(2, gamma=4, max_utility=2, smoothing=0.5)
         self.assertEqual(
@@ -140,7 +143,7 @@ class LatestControlTest(unittest.TestCase):
         )
 
     def test_query_specific_masks_noncontiguous_gqa_and_phase_admission(self):
-        from draftfit.research.query_layout import compare_layouts
+        from draftfit.research.papers.query_layout.method import compare_layouts
 
         rng = torch.Generator().manual_seed(9)
         q = torch.randn(4, 3, 5, generator=rng).transpose(0, 1)

@@ -5,11 +5,11 @@ fragments retain their existing Apache-2.0 notices and repository licenses.
 
 ## TreeWY
 
-`_vendor/treewy.py` contains the first 142 lines (single-tree reference only)
+`papers/treewy/upstream.py` contains the first 142 lines (single-tree reference only)
 of `vllm/third_party/flash_linear_attention/ops/tree_wy_ref.py` from
 `sneha5gsm/vllm`, commit `b073ed6cacfa1cf5ae23111854729e662a72a6d1`.
 Those lines are unmodified. The upstream SPDX Apache-2.0 header is preserved;
-the full Apache-2.0 license is bundled as `_vendor/TREEWY_LICENSE`.
+the full Apache-2.0 license is bundled as `papers/treewy/TREEWY_LICENSE`.
 Upstream file SHA256:
 `aa5f0f07824065044ee3b1c98a5a05ff542feace826239e0d38e9cc6292f01eb`.
 The owned adapter adds strict topology, shape, gate and accepted-node validation.
