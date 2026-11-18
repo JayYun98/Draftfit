@@ -17,7 +17,7 @@ include docs/specs/training-feature-integration.md docs/specs/quantized-capture.
 include docs/specs/research-methods.md
 include draftfit/offline_capture/PRISM_RUNTIME_LICENSE draftfit/research/NOTICE.md
 include draftfit/research/_vendor/TREEWY_LICENSE
-include draftfit/research/_vendor/REAL_LICENSE
+include draftfit/research/papers/real/REAL_LICENSE draftfit/research/papers/real/NOTICE.md draftfit/research/papers/real/README.md
 include docs/specs/real-loss.md
 recursive-include docs/research *.md *.json
 include examples/configs/research/README.md

@@ -5,7 +5,7 @@ import unittest
 
 import torch
 
-from draftfit.research.real import REALResult, real_loss
+from draftfit.research.papers.real.method import REALResult, real_loss
 
 
 def two_step_inputs(phi, theta):

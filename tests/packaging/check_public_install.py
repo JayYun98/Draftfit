@@ -19,6 +19,12 @@ from pathlib import Path
 
 def main():
     import draftfit
+    from draftfit.research import real
+    from draftfit.research.papers.real import method
+
+    assert real.REALResult is method.REALResult
+    assert real.real_loss is method.real_loss
+    assert real.run_real_loss is method.run_real_loss
 
     if not sys.flags.isolated:
         raise RuntimeError("run with python -I to exclude the source checkout")
@@ -79,7 +85,9 @@ def main():
         assert (root / "exported-assets/docs/TRAINING_SEARCH.md").is_file()
         assert (
             hashlib.sha256(
-                files("draftfit.research._vendor").joinpath("REAL_LICENSE").read_bytes()
+                files("draftfit.research.papers.real")
+                .joinpath("REAL_LICENSE")
+                .read_bytes()
             ).hexdigest()
             == "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
         )

@@ -242,7 +242,7 @@ def run(config, recipe_path=None):
 
         result = run_query_layout(config)
     elif config.method == "real_loss":
-        from .real import run_real_loss
+        from .papers.real.method import run_real_loss
 
         result = run_real_loss(config)
     else:

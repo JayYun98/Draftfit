@@ -135,19 +135,23 @@ class AssetTests(unittest.TestCase):
                     archive.read("draftfit/research/_vendor/TREEWY_LICENSE"),
                     (root / "draftfit/research/_vendor/TREEWY_LICENSE").read_bytes(),
                 )
-                real_license = archive.read("draftfit/research/_vendor/REAL_LICENSE")
+                license_path = "draftfit/research/papers/real/REAL_LICENSE"
+                real_license = archive.read(license_path)
                 self.assertEqual(
                     real_license,
-                    (root / "draftfit/research/_vendor/REAL_LICENSE").read_bytes(),
+                    (root / license_path).read_bytes(),
                 )
                 self.assertEqual(
                     hashlib.sha256(real_license).hexdigest(),
                     "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
                 )
-                self.assertEqual(
-                    archive.read("draftfit/research/real.py"),
-                    (root / "draftfit/research/real.py").read_bytes(),
-                )
+                for name in (
+                    "draftfit/research/real.py",
+                    "draftfit/research/papers/real/method.py",
+                    "draftfit/research/papers/real/NOTICE.md",
+                    "draftfit/research/papers/real/README.md",
+                ):
+                    self.assertEqual(archive.read(name), (root / name).read_bytes())
                 for name in (
                     "examples/configs/research/real-loss.yaml",
                     "examples/configs/research/data/real-loss.json",

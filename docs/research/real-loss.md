@@ -26,7 +26,7 @@ Then run the recipe commands from `./recipes`.
 ## Use the tensor component
 
 ```python
-from draftfit.research.real import real_loss
+from draftfit.research.papers.real.method import real_loss
 
 result = real_loss(
     draft_logits,
@@ -101,5 +101,5 @@ the separate D3D or DForkTree GPU checks validates this component.
 The source reference is
 [King-ty/speculators](https://github.com/King-ty/speculators/tree/3dff4579c5f93f692108df8b5178c9e9200b8536),
 commit `3dff4579c5f93f692108df8b5178c9e9200b8536`, under Apache-2.0.
-The exact license is packaged as `draftfit/research/_vendor/REAL_LICENSE`.
-Local changes and source scope are listed in `draftfit/research/NOTICE.md`.
+The exact license is packaged as `draftfit/research/papers/real/REAL_LICENSE`.
+Local changes and source scope are listed in `draftfit/research/papers/real/NOTICE.md`.

@@ -73,7 +73,7 @@ mathematics from King-ty/speculators at
 https://arxiv.org/abs/2611.14399v1.
 
 Source: https://github.com/King-ty/speculators/tree/3dff4579c5f93f692108df8b5178c9e9200b8536.
-License: Apache-2.0, retained in `draftfit/research/_vendor/REAL_LICENSE`.
+License: Apache-2.0, retained in `draftfit/research/papers/real/REAL_LICENSE`.
 The pinned source tree has no root NOTICE file.
 
 Local changes provide a standalone, proposal-only tensor boundary, explicit

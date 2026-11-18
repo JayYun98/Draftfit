@@ -17,7 +17,7 @@ from pydantic import ValidationError
 
 from draftfit.research.catalog import source_catalog
 from draftfit.research.config import ADAPTER, load_recipe
-from draftfit.research.real import run_real_loss
+from draftfit.research.papers.real.method import run_real_loss
 from draftfit.research.runner import plan, run
 
 ROOT = Path(__file__).resolve().parents[2]
