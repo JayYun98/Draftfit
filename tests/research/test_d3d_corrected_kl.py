@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import torch
 
-from draftfit.research.d3d import (
+from draftfit.research.papers.d3d.method import (
     corrected_kl_loss,
     corrected_teacher_probs,
     run_d3d_corrected_kl,
@@ -505,6 +505,13 @@ class CorrectedKLLossTest(unittest.TestCase):
 
 
 class D3DAdapterTest(unittest.TestCase):
+    def test_legacy_imports_resolve_to_the_same_functions(self):
+        from draftfit.research import d3d
+
+        self.assertIs(d3d.corrected_kl_loss, corrected_kl_loss)
+        self.assertIs(d3d.corrected_teacher_probs, corrected_teacher_probs)
+        self.assertIs(d3d.run_d3d_corrected_kl, run_d3d_corrected_kl)
+
     def test_analytic_report_backward_diagnostic_and_provenance(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -234,7 +234,7 @@ def run(config, recipe_path=None):
 
         result = run_query_layout(config)
     elif config.method == "d3d_corrected_kl":
-        from .d3d import run_d3d_corrected_kl
+        from .papers.d3d.method import run_d3d_corrected_kl
 
         result = run_d3d_corrected_kl(config)
     else:

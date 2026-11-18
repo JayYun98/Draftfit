@@ -66,7 +66,7 @@ The last position has zero weight and contributes no gradient.
 ## Reuse the loss
 
 ```python
-from draftfit.research.d3d import corrected_kl_loss
+from draftfit.research.papers.d3d.method import corrected_kl_loss
 
 loss = corrected_kl_loss(
     student_logits, teacher_logits, labels, weights,
@@ -97,4 +97,4 @@ No quality or performance improvement is claimed.
 
 The implementation adapts
 [the MIT author source](https://github.com/fudan-generative-vision/D3D/blob/cd7762436217fb51d7e7a310b310b72766bb816f/training/pruning/losses.py).
-The original license is retained in `draftfit/research/_vendor/D3D_LICENSE`.
+The original license is retained in `draftfit/research/papers/d3d/D3D_LICENSE`.

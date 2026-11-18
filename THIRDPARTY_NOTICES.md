@@ -22,7 +22,7 @@ runtime modules do not replace or erase the authorship of adapted source.
 
 - D3D's probability correction and forward-KL calculation were adapted from
   `training/pruning/losses.py`. The full MIT notice is retained in
-  `draftfit/research/_vendor/D3D_LICENSE`. No author trainer, pruning loop,
+  `draftfit/research/papers/d3d/D3D_LICENSE`. No author trainer, pruning loop,
   hidden-state loss, model, inference engine, or weights are bundled.
 - TorchSpec `torchspec/config/train_config.py`, `torchspec/ray/placement_group.py`,
   and `torchspec/training/checkpoint.py` were reviewed at `bd64d93`. Only the

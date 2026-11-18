@@ -135,8 +135,8 @@ class AssetTests(unittest.TestCase):
                     (root / "draftfit/research/_vendor/TREEWY_LICENSE").read_bytes(),
                 )
                 self.assertEqual(
-                    archive.read("draftfit/research/_vendor/D3D_LICENSE"),
-                    (root / "draftfit/research/_vendor/D3D_LICENSE").read_bytes(),
+                    archive.read("draftfit/research/papers/d3d/D3D_LICENSE"),
+                    (root / "draftfit/research/papers/d3d/D3D_LICENSE").read_bytes(),
                 )
                 direct_payload = {
                     name: archive.read(name)

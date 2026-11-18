@@ -77,7 +77,9 @@ def main():
         assert (root / "exported-assets/docs/TRAINING_SEARCH.md").is_file()
         assert (
             hashlib.sha256(
-                files("draftfit.research._vendor").joinpath("D3D_LICENSE").read_bytes()
+                files("draftfit.research.papers.d3d")
+                .joinpath("D3D_LICENSE")
+                .read_bytes()
             ).hexdigest()
             == "81054477e017851780fab7d4c7c86e1477583f83f3c81aa1d60c0c4a2d6e347b"
         )
