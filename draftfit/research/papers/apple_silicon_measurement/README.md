@@ -16,5 +16,5 @@ Times cover full-prefix generation on the configured PyTorch device. They do not
 model loading or establish performance on an Apple production engine.
 
 **Tests.** [RIFT integration
-coverage](../../../../tests/research/test_latest_kv_tree.py) checks token equality and
+coverage](../../tests/test_latest_kv_tree.py) checks token equality and
 repeated measurement output.

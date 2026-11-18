@@ -13,6 +13,8 @@ import math
 import os
 import random
 import time
+from contextlib import nullcontext
+from functools import wraps
 from numbers import Real
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -68,6 +70,7 @@ _SCHEDULE = (
     "max_checkpoints",
     "joint_feature_queue_bytes",
     "joint_feature_queue_batches",
+    "joint_async_capture",
     "joint_verification",
     "joint_control",
     "joint_target_device",
@@ -114,6 +117,8 @@ def _semantic_fingerprint(
         verification = cfg["training"].get("joint_verification")
         if verification and not verification.get("existing_drafts"):
             verification.pop("existing_drafts", None)
+        if not cfg["training"].get("joint_async_capture"):
+            cfg["training"].pop("joint_async_capture", None)
         # Disabled extensions preserve the fingerprint of pre-queue checkpoints.
         if not cfg["training"].get("joint_feature_queue_bytes"):
             cfg["training"].pop("joint_feature_queue_bytes", None)
@@ -1004,6 +1009,22 @@ def run_joint_family(
 
         monitor = JointMonitor(root, stages, start_step, resume_from)
 
+        def capture_boundary(function):
+            @wraps(function)
+            def paused(*args, **kwargs):
+                context = (
+                    online_source.pause_capture()
+                    if online_source is not None
+                    else nullcontext()
+                )
+                with context:
+                    return function(*args, **kwargs)
+
+            return paused
+
+        evaluate = capture_boundary(_evaluate)
+
+        @capture_boundary
         def checkpoint(step, epoch, next_batch, eval_metrics):
             # Arm checkpoints use the existing weights-only reader/export schema.
             for stage, bundle, result in zip(stages, bundles, results):
@@ -1109,7 +1130,7 @@ def run_joint_family(
         initial_metrics = (
             {}
             if deadline_reached() or (t.joint_control and start_step >= stop_step)
-            else _evaluate(stages, strategies, bundles, online_source)
+            else evaluate(stages, strategies, bundles, online_source)
         )
 
         def record_eval_capture(step):
@@ -1146,6 +1167,7 @@ def run_joint_family(
         stopped_for_policy = bool(t.joint_control and start_step >= stop_step)
         observer_reason = None
 
+        @capture_boundary
         def notify_observer(report, metrics):
             nonlocal policy_best_steps, observer_reason
             if milestone_observer is None:
@@ -1154,8 +1176,7 @@ def run_joint_family(
             if milestone_runtime:
                 from draftfit.training.serving_memory import release_training_models
 
-                # Capture is synchronous and all backward work is committed at
-                # this boundary. Queued CPU features and cursor remain intact.
+                # Keep production paused until the observer restores model storage.
                 runtime["memory_handoff"] = lambda: release_training_models(
                     bundles, optimizer, online_source._teacher
                 )
@@ -1198,6 +1219,8 @@ def run_joint_family(
             and not deadline_reached()
         ):
             from draftfit.training.joint_verification import evaluate_generation
+
+            evaluate_generation = capture_boundary(evaluate_generation)
 
             source_checkpoint = Path(resume_from).resolve()
             with source_checkpoint.open("rb") as stream:
@@ -1432,7 +1455,7 @@ def run_joint_family(
                     checkpoint(step, next_epoch, next_batch, {})
                     last_saved = step
                 metrics = (
-                    _evaluate(stages, strategies, bundles, online_source)
+                    evaluate(stages, strategies, bundles, online_source)
                     if do_eval
                     else {}
                 )
@@ -1467,6 +1490,8 @@ def run_joint_family(
                     )
                 if do_verify and not deadline_reached():
                     from draftfit.training.joint_verification import evaluate_generation
+
+                    evaluate_generation = capture_boundary(evaluate_generation)
 
                     settings = t.joint_verification.model_dump()
                     if deadline_unix is not None:

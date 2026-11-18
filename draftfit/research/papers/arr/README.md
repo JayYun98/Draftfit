@@ -16,7 +16,7 @@ python -m draftfit.research -c examples/configs/research/arr.yaml
 ```
 
 The result records votes, retirement reasons and processed target positions.
-The [replay and budget tests](../../../../tests/research/test_latest_control.py)
+The [replay and budget tests](../../tests/test_latest_control.py)
 exercise both a deterministic fixed point and a budget too small to admit a root.
 
 ## Source and limits

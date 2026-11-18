@@ -23,4 +23,4 @@ training objective. Generic offline teacher captures do not contain ALR anchors.
 The [source catalog](../../catalog.py) pins js-lee-AI/ALR-IRA. See the
 [source notice](../../NOTICE.md#alr-ira-and-redline) for licensing.
 
-The [regression tests](../../../../tests/test_research_methods.py) cover ALR/IRA preparation and cache reuse. The [MIT license](LICENSE) is included with this package.
+The [regression tests](../../tests/test_research_methods.py) cover ALR/IRA preparation and cache reuse. The [MIT license](LICENSE) is included with this package.

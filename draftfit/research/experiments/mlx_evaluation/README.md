@@ -7,5 +7,5 @@ The [adapter](campaign_mlx.py) verifies the trained export hashes, runs the exte
 and aggregates matching target/draft requests by domain.
 
 The [campaign guide](../../../../docs/FAMILY_CAMPAIGN.md#evaluation-and-policy) explains how the gate consumes the report.
-[Aggregation tests](../../../../tests/test_campaign.py) reject missing trials and token mismatches.
+[Aggregation tests](../../tests/test_campaign_mlx.py) reject missing trials and token mismatches.
 They do not run an MLX engine; a report applies only to its workload and runtime.

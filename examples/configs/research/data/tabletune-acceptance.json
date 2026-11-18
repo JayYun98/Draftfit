@@ -1,0 +1,7 @@
+{
+  "profile_kind": "synthetic",
+  "description": "Toy arithmetic fixture. No model, GPU, or throughput measurement.",
+  "accept_by_pos": [0.6, 0.3, 0.1],
+  "proposal_rate": 1.0,
+  "tokens_per_step_by_k": {"0": 1.0, "1": 1.6, "2": 1.9, "3": 2.0}
+}

@@ -19,6 +19,6 @@ Remove `--plan` to execute. The [memory runner](../../memory_runner.py) writes b
 locally verified output according to `memory.writeback_mode`. It consumes supplied
 embeddings and does not execute tools or validate their schemas.
 
-**Tests.** [Memory regressions](../../../../tests/research/test_latest_research.py)
+**Tests.** [Memory regressions](../../tests/test_latest_research.py)
 exercise user isolation, seed and schema fallback, eviction, state reload, and verified
 writeback.

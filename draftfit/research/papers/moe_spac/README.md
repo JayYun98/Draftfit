@@ -15,7 +15,7 @@ From the repository root:
 python -m draftfit.research -c examples/configs/research/moe-spac.yaml
 ```
 
-The [policy tests](../../../../tests/research/test_latest_control.py) check
+The [policy tests](../../tests/test_latest_control.py) check
 utility transitions, threshold selection, memory-constrained fallback and the CLI.
 
 ## Source and limits

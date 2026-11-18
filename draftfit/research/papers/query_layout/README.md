@@ -15,7 +15,7 @@ against its [tensor fixture](../../../../examples/configs/research/data/query-la
 python -m draftfit.research -c examples/configs/research/query-layout.yaml
 ```
 
-The [layout tests](../../../../tests/research/test_latest_control.py) compare
+The [layout tests](../../tests/test_latest_control.py) compare
 against per-head attention and cover noncontiguous tensors, masked keys, phase
 admission and the CLI.
 

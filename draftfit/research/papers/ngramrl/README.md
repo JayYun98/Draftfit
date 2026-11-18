@@ -19,6 +19,6 @@ Remove `--plan` to execute. The [memory runner](../../memory_runner.py) writes v
 history for continuation. This synchronous reference does not implement concurrent
 rollout workers or CPU/GPU overlap.
 
-**Tests.** [Memory regressions](../../../../tests/research/test_latest_research.py)
+**Tests.** [Memory regressions](../../tests/test_latest_research.py)
 cover snapshot aging, sampling, target parity, and resuming from a state written by the
 CLI.

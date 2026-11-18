@@ -14,7 +14,7 @@ with its [branching tree fixture](../../../../examples/configs/research/data/tre
 python -m draftfit.research -c examples/configs/research/treewy.yaml
 ```
 
-The [state tests](../../../../tests/research/test_latest_kv_tree.py) compare node
+The [state tests](../../tests/test_latest_kv_tree.py) compare node
 outputs and every possible commit against an independent recurrence, including
 branching siblings and a non-square state.
 

@@ -74,17 +74,6 @@ def main():
         export_assets(root / "exported-assets")
         assert (root / "exported-assets/docs/TRAINING_SEARCH.md").is_file()
 
-        recipes = root / "exported-assets" / "examples/configs/research"
-        tree = json.loads(
-            cli(
-                "research",
-                "-c",
-                recipes / "treewy.yaml",
-                f"data.input_path={recipes / 'data/treewy.json'}",
-            )
-        )
-        assert tree["answers"][0]["committed_gdn_state"]
-
         target = root / "target"
         target.mkdir()
         raw_data = root / "messages.jsonl"

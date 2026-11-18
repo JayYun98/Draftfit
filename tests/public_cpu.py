@@ -12,9 +12,6 @@ os.environ["WANDB_MODE"] = "disabled"
 
 def load_tests(loader, tests, pattern):
     modules = [
-        "tests.research.test_memory_tree_layout",
-        "tests.research.test_paper_method_compatibility",
-        "tests.test_campaign.AdapterTests.test_raw_mlx_aggregation_and_rejection",
         "tests.test_family",
         "tests.test_family_capture_indexing",
         "tests.test_family_concurrency",
@@ -97,7 +94,6 @@ def load_tests(loader, tests, pattern):
         "tests.test_eagle4_native_logits",
         "tests.test_eagle4_export",
         "tests.test_optimizer.test_wsd",
-        "tests.test_eagle4_comparison",
     ]
     suite = loader.loadTestsFromNames(modules)
     suite.addTests(loader.discover("tests/test_config", top_level_dir="."))

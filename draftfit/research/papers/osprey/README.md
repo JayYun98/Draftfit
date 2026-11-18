@@ -26,4 +26,4 @@ under their original architecture names.
 The [source catalog](../../catalog.py) pins LeanModels/Osprey. See the
 [source notice](../../NOTICE.md#osprey) for licensing.
 
-The [regression tests](../../../../tests/test_research_methods.py) cover conversion, tokenizer alignment, and training. The [MIT license](LICENSE) is included with this package.
+The [regression tests](../../tests/test_research_methods.py) cover conversion, tokenizer alignment, and training. The [MIT license](LICENSE) is included with this package.

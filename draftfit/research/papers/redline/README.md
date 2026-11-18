@@ -20,4 +20,4 @@ measurements you supply and does not run a model.
 The [source catalog](../../catalog.py) pins js-lee-AI/Redline. See the
 [source notice](../../NOTICE.md#alr-ira-and-redline) for licensing.
 
-The [regression tests](../../../../tests/test_research_core.py) cover calibration decisions and recipe output. The [MIT license](LICENSE) is included with this package.
+The [regression tests](../../tests/test_research_core.py) cover calibration decisions and recipe output. The [MIT license](LICENSE) is included with this package.

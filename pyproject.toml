@@ -37,7 +37,7 @@ draftfit = "draftfit.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["draftfit*"]
-exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
+exclude = ["build*", "configs*", "dist*", "scripts*", "tests*", "draftfit.research.tests", "draftfit.research.tests.*"]
 
 [project.optional-dependencies]
 quantization = ["bitsandbytes==0.50.2; sys_platform == 'linux'"]
@@ -63,8 +63,11 @@ version = {file = "version.txt"}
 "draftfit.offline_capture" = ["PRISM_RUNTIME_LICENSE"]
 "draftfit.research" = [
     "NOTICE.md", "papers/README.md", "papers/*/README.md", "papers/*/NOTICE.md",
-    "papers/*/*LICENSE", "experiments/*/README.md",
+    "papers/*/*LICENSE", "papers/*/*NOTICE", "experiments/*/README.md",
 ]
 
 [tool.uv]
 required-version = ">=0.9.18"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

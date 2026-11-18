@@ -21,7 +21,7 @@ guide](../../../../docs/specs/research-methods.md#cast-reference-decoding) expla
 sampling and tree budgets. This is a batch-one reference; its timings do not establish
 production serving speed.
 
-**Tests.** [Integration tests](../../../../tests/test_research_methods.py) check the
+**Tests.** [Integration tests](../../tests/test_research_methods.py) check the
 tree mask, greedy parity and target sampling distribution. [Boundary
-cases](../../../../tests/test_research_review_regressions.py) cover temperature, EOS and
+cases](../../tests/test_research_review_regressions.py) cover temperature, EOS and
 the final bonus token.

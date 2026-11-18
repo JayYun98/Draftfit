@@ -434,4 +434,152 @@ No calibration, repeated isolated latency/throughput benchmark, native
 DSpark/DFlash2 comparison or production qualification was performed. The
 extension improves acceptance in this reference workload but does not meet
 the required BF16/native correctness contract or show EAGLE4 quality parity
-with the existing baselines. The PR remains experimental and in draft.
+with the existing baselines.
+
+## Further 10,000 updates with the GPU optimizer
+
+The [GPU follow-up receipt](results/eagle4-minicpm-gpu-followup-20261030.json)
+records this EAGLE4-only extension from 15,000 to 25,000 dense updates.
+DSpark and DFlash2 retain their earlier 15,000-update measurements. They were
+not retrained in this follow-up, so this is not a common 25,000-update comparison.
+
+### Fixed inputs and training scope
+
+The target, data revision, 1,024 training prompts, 64 diagnostic prompts,
+maximum training length 256 and seed 29 remain fixed. Recovery regenerated
+the deleted feature cache. All 1,088 feature tensors match the retained inputs.
+Of these, 797 serialized files match directly; 291 match after reproducing
+their historical serialization names. The new capture manifest records its
+actual hashes. Training and test source identities and prompts remain disjoint.
+
+The run loads the completed 15,000-update **dense export**, resets the optimizer
+and starts another 10,000-update cosine schedule. All 239,872,512 dense
+parameters train. A separate 1,000-update candidate stage follows and preserves
+every dense tensor. Architecture, vocabulary, seven recurrent unrolls,
+learning rate, objective and clipping remain unchanged.
+
+Available GPU capacity changed after another task released its serving workload.
+This task did not stop or change a shared service. FP32 masters and fused Adam
+states now reside on the A100 GPU. The allocator cap is 12,000 MiB with a
+2,048 MiB reserve. The earlier 6,200 MiB failures remain failures; they are not
+relabelled as successful memory repairs.
+
+A 20-update checkpoint passed before exact optimizer/RNG resume to 10,000
+dense and 1,000 candidate updates. All 16 dense tensors changed. Candidate
+fitting preserved the dense tensors, and final export reload matched exactly.
+Peak allocated memory was 5,903.19 MiB. The resumed process reported
+1,521.36 seconds, including candidate fitting and export; the initial probe
+is separate. CPU optimizer placement and the shared workload differ from the
+earlier run, so these times do not isolate an optimizer-placement effect.
+
+### Diagnostic controls
+
+The evaluator now supports `--algorithm eagle4` and
+`--eagle4-head candidates|dense`. Its default candidate path remains unchanged.
+Both modes share the target verifier, recurrent states, masks and six-proposal
+chain. Dense scoring uses BF16 full-head matrix multiplication. Candidate
+scoring uses FP32 selected-row accumulation before BF16 conversion. This control
+therefore changes both selection and scoring numerics.
+
+Before training, candidate-mode results reproduce the retained baseline exactly:
+FP32 accepts 227/11,065 proposals (2.052%) with 64/64 exact outputs; BF16
+accepts 219/11,096 (1.974%) with 53/64 exact outputs. Dense mode accepts
+221/11,082 (1.994%) in FP32 and 214/11,109 (1.926%) in BF16.
+Removing candidate scoring alone does not resolve the low acceptance.
+
+Acceptance counts all proposals, including discarded suffixes. It is not
+single-token prediction accuracy or generated-output correctness. In the
+baseline FP32 candidate trace, the first proposal is accepted at 224/1,921
+eligible prefixes (11.661%); the second is accepted at 3/222 (1.351%).
+High teacher-forced candidate coverage does not establish recurrent quality.
+
+Both checkpoints use the same 64 previously inspected prompts, 64 new tokens
+and six proposals per round. FP32 requires strict 64/64 target-greedy equality.
+BF16 keeps the same strict criterion. Paired prompt bootstrap intervals use
+5,000 resamples and seed 29. These are diagnostic intervals on reused prompts,
+not fresh-holdout evidence or method-superiority tests.
+
+To evaluate an EAGLE4 export through its full head:
+
+```sh
+python benchmarks/evaluate_eagle4_comparison.py \
+  --target /path/to/minicpm5-1b --output /path/to/comparison \
+  --algorithm eagle4 --eagle4-head dense --verifier-dtype float32 \
+  --samples 64 --max-new-tokens 64 --memory-mib 12000 --reserve-mib 2048 \
+  --result-dir evaluation-fp32-dense
+```
+
+### Completed 25,000-update results
+
+All eight runs completed. Each generated 4,096 tokens on the same 64 diagnostic
+prompts. BF16 runs retain exit 1 because strict target-greedy equality failed.
+
+| Verifier / proposal head | Before accepted / proposed | After accepted / proposed | Acceptance before → after | Exact prompts before → after |
+| --- | ---: | ---: | ---: | ---: |
+| FP32 / candidates | 227 / 11,065 | 214 / 11,107 | 2.052% → 1.927% | 64/64 → 64/64 |
+| FP32 / dense | 221 / 11,082 | 211 / 11,116 | 1.994% → 1.898% | 64/64 → 64/64 |
+| BF16 / candidates | 219 / 11,096 | 217 / 11,102 | 1.974% → 1.955% | 53/64 → 53/64 |
+| BF16 / dense | 214 / 11,109 | 219 / 11,096 | 1.926% → 1.974% | 53/64 → 53/64 |
+
+**No observed improvement in the primary FP32 candidate comparison.** The
+acceptance difference is −0.1248 percentage points. Its paired diagnostic 95%
+interval is [−0.3548, +0.1030] percentage points. This includes zero and does
+not establish a population regression. Dense scoring also shows no observed
+improvement. These results close this bounded continuation recipe.
+
+The new FP32 candidate trace accepts its first proposal at 208/1,927 eligible
+prefixes (10.794%). The second accepts 6/206 (2.913%); the third accepts 0/5.
+Teacher-forced candidate retention reaches 10,643/10,687 (99.588%). Candidate
+rescoring agrees with dense argmax at 10,536/10,687 positions (98.587%). The
+measured weakness remains dense/recurrent proposal quality in this workload.
+These diagnostics do not identify its complete cause.
+
+The steady dense interval covers 9,979 updates in 1,382.05 seconds:
+7.220 updates/second, or 0.13850 seconds/update. It includes periodic checkpoint
+work. At that rate, 10,000 updates take about 23.1 minutes. A linear 100,000-update
+estimate is about 3.85 hours, excluding capture, candidate fitting and evaluation.
+The latter estimate was not executed and predicts no quality improvement.
+Native serving with the 25,000-update export, isolated serving performance,
+new-seed replication and fresh-holdout quality remain **not-run**. The earlier
+native 7/8 strict failure remains a failure.
+
+### Official source and CUDA implementation audit
+
+The follow-up audit pins EAGLE-4 release 0.1.4 at
+[`3e20798`](https://github.com/eagle-hq/EAGLE-4/tree/3e20798bcce810486cd810ecf087936488106ae2)
+and public TorchSpec at
+[`c4fc3e0`](https://github.com/lightseekorg/TorchSpec/tree/c4fc3e0f6d9254b642e9def8edc71c58eb4a64f9).
+This source inspection is separate from the executed Draftfit checks.
+
+| Suspected defect | Evidence and scoped conclusion |
+| --- | --- |
+| Candidate-only training | Contradicted: all 239,872,512 dense parameters train and all 16 dense tensors change. Candidate fitting follows separately. |
+| Wrong normalization, residual or candidate structure | The admitted dense architecture matches the inspected [SGLang model](https://github.com/eagle-hq/EAGLE-4/blob/3e20798bcce810486cd810ecf087936488106ae2/eagle_harness/sglang/models/llama_eagle4.py). This is source evidence, not engine parity. |
+| Wrong token shift or recurrent feedback | Existing real tiny-target tests align training and generation logits at three depths. This establishes internal consistency, not full upstream runtime equivalence. |
+| Candidate filtering causes the low rate | Full-vocabulary controls remain near 2%; removing candidate scoring does not resolve the measured weakness. Scoring numerics also differ. |
+| Broken CUDA cross-entropy or backward | A real seven-depth MiniCPM batch passes the predeclared loss and all-gradient parity checks below. |
+| Exact author training reproduction | Unverified. The official [new-target guide](https://github.com/eagle-hq/EAGLE-4/blob/3e20798bcce810486cd810ecf087936488106ae2/docs/new-model.md) explicitly lacks a reproducible revision of its inspected training bundle. |
+
+The CUDA diagnostic compares the fused loss with standard PyTorch on identical
+inputs. Direct FP32 and BF16 tests use vocabulary size 130,560, binary masks and
+a non-unit upstream gradient. Both pass. The actual 25,000-update export then
+runs the seven-depth training path on one retained 256-token training example.
+No optimizer update runs. Fused loss is 2.51030135; reference loss is 2.51030183.
+All 16 dense gradients are finite and nonzero. Maximum per-tensor relative L2
+error is 0.4719%; maximum absolute error is 0.00012208. These pass the declared
+1% and 0.01 limits. Peak allocation is 3,993.45 MiB.
+
+The diagnostic first failed because its script used the invalid stage name
+`dense`. Its log and result remain preserved. One manual correction to `draft`
+produced the parity result. This harness failure is separate from training and
+is not evidence of an algorithm defect.
+
+Two training differences remain against the pinned public TorchSpec source.
+Its [loss path](https://github.com/lightseekorg/TorchSpec/blob/c4fc3e0f6d9254b642e9def8edc71c58eb4a64f9/torchspec/models/eagle3.py)
+normalizes by valid-token count. Draftfit's existing EAGLE loss normalizes by
+full sequence positions, so supervised fractions affect gradient scale.
+TorchSpec's [feature projection](https://github.com/lightseekorg/TorchSpec/blob/c4fc3e0f6d9254b642e9def8edc71c58eb4a64f9/torchspec/models/draft/llama3_eagle.py)
+also accumulates in FP32 by default; this Draftfit recipe projects in BF16.
+Their effects on acceptance have not been isolated. Neither difference is
+proven to cause this result, and this audit does not certify the whole model.
+No Qwen comparison or 100,000-update extension was started.

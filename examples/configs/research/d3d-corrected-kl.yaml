@@ -1,0 +1,9 @@
+method: d3d_corrected_kl
+data:
+  input_path: examples/configs/research/data/d3d-corrected-kl.json
+  max_samples: 1
+loss:
+  temperature: 1.0
+  probability_margin: 0.1
+input_kind: synthetic
+output_dir: outputs/research-d3d-corrected-kl

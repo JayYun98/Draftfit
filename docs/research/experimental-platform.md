@@ -10,6 +10,7 @@ PyTorch trains the draft models. A working capture adapter does not establish to
 
 | Experiment | Validation boundary |
 | --- | --- |
+| [Asynchronous joint capture](../../draftfit/research/experiments/async_joint_capture/README.md) | Explicit bounded Transformers producer; CUDA overlap and throughput require separate verification. |
 | [Prism GGUF joint capture](../../draftfit/research/experiments/prism_gguf/README.md) | Bonsai PQ2_0 only; native parity requires the pinned bridge and target. |
 | [MLX offline feature capture](../../draftfit/research/experiments/mlx_capture/README.md) | Local Qwen3.5 text and reviewed Bonsai packs; training stays in PyTorch. |
 | [MLX campaign evaluation](../../draftfit/research/experiments/mlx_evaluation/README.md) | External runtime; only complete matched requests with exact tokens qualify. |

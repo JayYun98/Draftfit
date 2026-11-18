@@ -1,0 +1,12 @@
+# Synthetic arithmetic example. Predicted goodput is not measured throughput.
+method: tabletune
+profile_kind: synthetic
+data:
+  input_path: examples/configs/research/data/tabletune-acceptance.json
+table:
+  costs_pattern: examples/configs/research/data/tabletune-costs_k*.json
+  max_batch_size: 8
+  eps: 0.005
+  min_width_frac: 0.25
+  merge_tol: null
+output_dir: outputs/research-tabletune

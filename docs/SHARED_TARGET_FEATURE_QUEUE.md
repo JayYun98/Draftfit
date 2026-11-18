@@ -21,9 +21,10 @@ payloads. `training.joint_feature_queue_batches` must cover at least
 passes and the optimizer update succeed. The queue keeps no feature files.
 
 This limit does not cover target weights, model activations, optimizer state,
-loaded token rows or inference KV caches. This is synchronous prefetch with
-short capture/training alternation, not an asynchronous GPU producer generating
-responses continuously. It cannot guarantee full GPU utilization.
+loaded token rows or inference KV caches. By default, capture and training
+alternate on the caller thread. The opt-in [asynchronous capture experiment](../draftfit/research/experiments/async_joint_capture/README.md)
+reserves queue credit before a background producer captures the next batch.
+Neither mode guarantees full GPU utilization.
 
 ## Checkpoint and recovery boundary
 

@@ -16,7 +16,7 @@ python -m draftfit.research -c examples/configs/research/rift.yaml --plan
 python -m draftfit.research -c examples/configs/research/rift.yaml
 ```
 
-The [cache tests](../../../../tests/research/test_latest_kv_tree.py) check the
+The [cache tests](../../tests/test_latest_kv_tree.py) check the
 physical gather, active KV bytes and exact target output on a tiny model.
 
 ## Source and limits

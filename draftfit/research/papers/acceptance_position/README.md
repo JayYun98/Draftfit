@@ -16,7 +16,7 @@ its untried suffix is censored. These bins cannot establish the paper's position
 result.
 
 **Tests.** [RIFT integration
-coverage](../../../../tests/research/test_latest_kv_tree.py) exercises position bins and
+coverage](../../tests/test_latest_kv_tree.py) exercises position bins and
 paired timing on a local target. [Diagnostic
-tests](../../../../tests/research/test_memory_tree_layout.py) check the observed
+tests](../../tests/test_memory_tree_layout.py) check the observed
 distribution and denominator.

@@ -14,9 +14,11 @@ include docs/OWNED_GPU_ENVIRONMENT.md
 include docs/CALIBRATION.md
 include docs/TRAINING_SEARCH.md docs/WEB_WORKSPACE.md
 include docs/specs/training-feature-integration.md docs/specs/quantized-capture.md
-include docs/specs/research-methods.md
+include docs/specs/research-methods.md docs/specs/async-joint-capture.md
+include docs/specs/d3d-corrected-kl.md docs/specs/dforktree-scoring.md docs/specs/mfd-prefix-tree.md docs/specs/paper-intake.md docs/specs/real-loss.md
 include draftfit/offline_capture/PRISM_RUNTIME_LICENSE draftfit/research/NOTICE.md
-recursive-include draftfit/research/papers README.md NOTICE.md *LICENSE
+recursive-include draftfit/research/papers README.md NOTICE.md *LICENSE *NOTICE
+prune draftfit/research/tests
 recursive-include draftfit/research/experiments README.md
 recursive-include docs/research *.md *.json
 include examples/configs/research/README.md

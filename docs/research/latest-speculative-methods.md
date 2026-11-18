@@ -221,10 +221,10 @@ measurements; query-layout agreement cannot certify quantized endpoint parity.
 Reproduce the checked regression groups in that local environment with:
 
 ```sh
-python -m unittest tests.research.test_latest_research tests.research.test_latest_kv_tree \
-  tests.research.test_latest_control tests.test_research_core tests.test_packaging.test_assets -v
-python -m unittest tests.test_research_methods tests.test_research_providers \
-  tests.test_research_review_regressions -v
+python -m unittest draftfit.research.tests.test_latest_research draftfit.research.tests.test_latest_kv_tree \
+  draftfit.research.tests.test_latest_control draftfit.research.tests.test_research_core tests.test_packaging.test_assets -v
+python -m unittest draftfit.research.tests.test_research_methods draftfit.research.tests.test_research_providers \
+  draftfit.research.tests.test_research_review_regressions -v
 ```
 
 ### Pretrained GPU follow-up on existing gare2e capacity
@@ -366,6 +366,6 @@ The GPU runs predate this documentation and test reorganization.
 The recorded source hashes identify the executed implementations.
 Algorithm modules and experiment scripts retain their original paths and bytes.
 The public receipt retains its original content.
-Current test commands use the `tests.research` package.
+Run the current CPU research suite with `python -m draftfit.research.tests.cpu`.
 
 See the [research index](README.md) for recipes, results, and execution limits.

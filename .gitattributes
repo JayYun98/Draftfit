@@ -1,4 +1,9 @@
 # Unified patch context lines use a required space prefix, including blank lines.
 benchmarks/patches/*.patch whitespace=-blank-at-eol
-# Preserve the pinned author's single-tree source byte for byte.
-draftfit/research/papers/treewy/upstream.py whitespace=-blank-at-eof
+# Keep pinned upstream sources and notices byte-identical across checkouts.
+draftfit/research/papers/treewy/upstream.py -text whitespace=-blank-at-eof
+draftfit/research/papers/tabletune/upstream.py -text
+draftfit/research/papers/*/*LICENSE -text
+draftfit/research/papers/*/*NOTICE -text
+draftfit/research/papers/tabletune/TABLETUNE_LICENSE whitespace=-blank-at-eof
+draftfit/research/papers/dforktree/DFORKTREE_NOTICE whitespace=-blank-at-eof

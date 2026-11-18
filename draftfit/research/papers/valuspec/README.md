@@ -20,6 +20,6 @@ python -m draftfit.research -c examples/configs/research/valuspec-cast.yaml --pl
 Remove `--plan` to execute. Filtering supports greedy decoding only. An empty retained
 tree is valid; filtering does not guarantee a speed gain.
 
-**Tests.** [KV/tree regressions](../../../../tests/research/test_latest_kv_tree.py)
+**Tests.** [KV/tree regressions](../../tests/test_latest_kv_tree.py)
 compare conditional scores with explicit autoregressive scores, check calibration
 leakage, and verify greedy parity when every candidate is filtered out.
