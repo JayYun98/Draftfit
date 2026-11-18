@@ -300,10 +300,11 @@ class JointOnlineSource:
         return metrics
 
     def consume(self, batches):
-        """Drain the trainer's window after a successful optimizer update."""
+        """Acknowledge a successful update, draining async payloads before credit."""
         acknowledgements = [(id(batch), len(batch.sample_ids)) for batch in batches]
         # The producer can spend credit as soon as release() drops the lease.
-        batches.clear()
+        if self._async_capture:
+            batches.clear()
         for batch_id, sample_count in acknowledgements:
             owned = self._leases.pop(batch_id, None)
             if owned:

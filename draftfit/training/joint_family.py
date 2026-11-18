@@ -1363,8 +1363,7 @@ def run_joint_family(
                 grad_norm = float(optimizer.step())
                 if online_source is not None:
                     online_source.consume(window)
-                else:
-                    window.clear()
+                window.clear()
                 if device.type == "cuda":
                     torch.cuda.synchronize(device)
                 train_seconds = time.perf_counter() - started
