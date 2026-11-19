@@ -62,7 +62,7 @@ version = {file = "version.txt"}
 [tool.setuptools.package-data]
 "draftfit.offline_capture" = ["PRISM_RUNTIME_LICENSE"]
 "draftfit.research" = [
-    "NOTICE.md", "papers/README.md", "papers/*/README.md", "papers/*/NOTICE.md",
+    "README.md", "NOTICE.md", "papers/README.md", "papers/*/README.md", "papers/*/NOTICE.md",
     "papers/*/*LICENSE", "papers/*/*NOTICE", "experiments/*/README.md",
 ]
 

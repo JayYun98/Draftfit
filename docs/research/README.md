@@ -10,6 +10,7 @@ Use their separate recipes and execution limits.
 
 | Start here | What you will find |
 | --- | --- |
+| [Research verification index](../../draftfit/research/README.md) | One row per paper or platform experiment, with the checks performed and remaining limits. |
 | [Paper implementations](../../draftfit/research/papers/README.md) | Each paper directory links its recipe or configuration, implementation, tests, and source. |
 | [Experimental platform features](experimental-platform.md) | Opt-in capture, training, and evaluation paths, including features without a paper. Each guide names the runtime that owns the code. |
 | [Recipe examples](../../examples/configs/research/README.md) | Inputs and CLI examples for the shared research runner. |
