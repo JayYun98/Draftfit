@@ -302,10 +302,12 @@ def main():
         check_dforktree(exported)
         check_mfd(exported)
         check_real(exported)
+        lookup = run_recipe(exported, "session-lookup")
+        assert lookup["proposed_ids"] == [8, 9]
         tree = run_recipe(exported, "treewy", module="draftfit.cli")
         assert tree["answers"][0]["committed_gdn_state"]
     print(
-        "Installed research gate passed: TableTune, D3D, DForkTree, MFD, REAL and TreeWY (CPU)."
+        "Installed research gate passed: TableTune, D3D, DForkTree, MFD, REAL, session lookup and TreeWY (CPU)."
     )
 
 

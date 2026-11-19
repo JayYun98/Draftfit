@@ -6,7 +6,7 @@ Each directory below links its implementation, inputs, and evidence.
 | Task | Methods |
 | --- | --- |
 | Prepare or convert a draft for training | [ALR/IRA](alr_ira/README.md), [Osprey](osprey/README.md) |
-| Propose tokens from verified history | [NgramRL](ngramrl/README.md), [SpecMem](specmem/README.md) |
+| Propose tokens from verified history | [NgramRL](ngramrl/README.md), [SpecMem](specmem/README.md), [session lookup](session_lookup/README.md) |
 | Generate and filter draft trees | [CAST](cast/README.md), [ValuSpec](valuspec/README.md) |
 | Refine a response or select draft cache positions | [ARR](arr/README.md), [RIFT](rift/README.md) |
 | Evaluate a numerical kernel, layout, or trace policy | [TreeWY](treewy/README.md), [query layouts](query_layout/README.md), [MoE-SpAc](moe_spac/README.md) |

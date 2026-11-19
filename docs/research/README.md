@@ -33,6 +33,7 @@ Admission to the research suite does not establish production training, serving 
 | --- | --- | --- |
 | ALR/IRA | Prepare target rollouts for draft distillation | [Preparation and training](../specs/research-methods.md#alrira-preparation-and-training) |
 | Osprey | Convert a compatible backbone into a draft model | [Conversion and training](../specs/research-methods.md#osprey-conversion-and-training) |
+| Session lookup | Copy a full proposal from observed session tokens, with a minimum match length | [Example recipe](../../examples/configs/research/session-lookup.yaml) |
 | CAST | Run reference tree decoding | [Tree decoding](../specs/research-methods.md#cast-reference-decoding) |
 | Redline | Select from measured configurations | [Calibration](../specs/research-methods.md#redline-recipe) |
 

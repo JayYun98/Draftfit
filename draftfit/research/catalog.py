@@ -69,6 +69,13 @@ LATEST = [
     ),
     ("ngramrl", "2610.32881v1", "native_synchronous_reference", None, None),
     ("specmem", "2610.31840v1", "native_memory_reference", None, None),
+    (
+        "session_lookup",
+        "2611.19455v1",
+        "session_token_reference",
+        "antalvdb/olifant-speculative",
+        "6d7d17fe37bbfca6e4f0c1e2ca6f8f4c0d853ab8",
+    ),
     ("valuspec", "2610.31338v1", "cast_conditional_branch_filter", None, None),
     ("rift", "2610.31098v1", "native_kv_recompute_reference", None, None),
     (

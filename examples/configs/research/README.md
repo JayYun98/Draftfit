@@ -19,6 +19,7 @@ Use the [research guide](../../../docs/research/README.md) for results and limit
 | [MFD prefix tree](mfd-prefix-tree.yaml) | Included mode probabilities and token budget |
 | [REAL loss](real-loss.yaml) | Included proposal logits and target-sampled token IDs |
 | [Query layouts](query-layout.yaml) | The included attention fixture |
+| [Session lookup](session-lookup.yaml) | One inline list of token IDs; see the lookup rules in the [paper](https://arxiv.org/abs/2611.19455v1) |
 
 Run commands from the repository root.
 Model recipes contain paths that you must replace.

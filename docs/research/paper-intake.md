@@ -46,8 +46,8 @@ A source URL in a note does not establish any of those conditions.
 ## Implement an experiment
 
 1. Fetch `origin/dev` and inspect existing worktrees and PRs.
-2. Reconcile the paper's earlier PR URLs and deterministic branch before creating another PR.
-3. Resume an existing PR when it covers the same paper and scope.
+2. Reconcile the paper's earlier PR URLs and deterministic branch and any open aggregate PR before creating another PR.
+3. If an aggregate PR is designated for intake, bring the feature into that PR, test its combined head, and record its URL. Otherwise resume a PR that already covers the same scope.
 4. Create a dedicated `codex/paper-<id>-<purpose>` branch when no matching work exists.
 5. Follow the [paper package layout](README.md#find-an-experiment) and extend the existing opt-in recipe interface.
 6. Add a runnable recipe. Put tests for the mechanism and its failure cases in `draftfit/research/tests/`.
