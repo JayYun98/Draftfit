@@ -1,6 +1,6 @@
 # Research methods
 
-[Platform workflow](../../README.md) | [Documentation index](../README.md)
+[Platform workflow](https://github.com/JayYun98/Draftfit/blob/dev/README.md) | [Documentation index](https://github.com/JayYun98/Draftfit/blob/dev/docs/README.md)
 
 These methods are experimental.
 They are not production backends.
@@ -10,8 +10,8 @@ Use their separate recipes and execution limits.
 
 | Start here | What you will find |
 | --- | --- |
-| [Research verification index](../../draftfit/research/README.md) | One row per paper or platform experiment, with the checks performed and remaining limits. |
-| [Paper implementations](../../draftfit/research/papers/README.md) | Each paper directory links its recipe or configuration, implementation, tests, and source. |
+| [Research verification index](https://github.com/JayYun98/Draftfit/blob/dev/draftfit/research/README.md) | One row per paper or platform experiment, with the checks performed and remaining limits. |
+| [Paper implementations](https://github.com/JayYun98/Draftfit/blob/dev/draftfit/research/papers/README.md) | Each paper directory links its recipe or configuration, implementation, tests, and source. |
 | [Experimental platform features](experimental-platform.md) | Opt-in capture, training, and evaluation paths, including features without a paper. Each guide names the runtime that owns the code. |
 | [Recipe examples](../../examples/configs/research/README.md) | Inputs and CLI examples for the shared research runner. |
 | [Paper coverage](latest-speculative-methods.md) | Methods implemented, measurement-only contributions, and papers with no executable integration. |
@@ -100,10 +100,10 @@ Use `draftfit research` to run these recipes.
 
 | Content | Location |
 | --- | --- |
-| Implementations | [draftfit/research](../../draftfit/research/) |
+| Implementations | [draftfit/research](https://github.com/JayYun98/Draftfit/tree/dev/draftfit/research) |
 | Recipes and fixtures | [examples/configs/research](../../examples/configs/research/README.md) |
-| Experiment drivers | [scripts/research](../../scripts/research/README.md) |
-| Reference regression tests | [Research tests](../../draftfit/research/tests) |
+| Experiment drivers | [scripts/research](https://github.com/JayYun98/Draftfit/blob/dev/scripts/research/README.md) |
+| Reference regression tests | [Research tests](https://github.com/JayYun98/Draftfit/tree/dev/draftfit/research/tests) |
 | Protocol and coverage | [Latest method specification](latest-speculative-methods.md) |
 | Recorded measurements | [Public receipt](results/latest-methods-effects-20261028.json) |
 
@@ -115,12 +115,12 @@ Run the research CPU suite from a source checkout in the [CPU environment](../EN
 python -m draftfit.research.tests.cpu
 ```
 
-It runs the paper and experiment tests in [draftfit/research/tests](../../draftfit/research/tests/).
+It runs the paper and experiment tests in [draftfit/research/tests](https://github.com/JayYun98/Draftfit/tree/dev/draftfit/research/tests).
 The regular public CPU gate covers supported platform contracts and runs separately.
 For a built and installed wheel, run `python -I draftfit/research/tests/check_install.py` from the checkout.
 
 Run `python -m draftfit.research.tests.cuda` in a provisioned CUDA environment for the device and asynchronous capture gates.
-In the external MLX environment, run the [lookup budget cases](../../draftfit/research/tests/accelerator/test_mlx_lookup_budget.py)
+In the external MLX environment, run the [lookup budget cases](https://github.com/JayYun98/Draftfit/blob/dev/draftfit/research/tests/accelerator/test_mlx_lookup_budget.py)
 with `PYTHONPATH="$MLX_RUNTIME/src" python -m pytest draftfit/research/tests/accelerator/test_mlx_lookup_budget.py`.
 For an end-to-end CPU fixture with tiny local models, use a new output directory:
 

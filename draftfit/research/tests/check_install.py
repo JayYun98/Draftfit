@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 import sysconfig
@@ -52,6 +53,9 @@ def check_resources(exported):
     package = files("draftfit.research")
     # Compare checkout resources as bytes only; all Python imports use the installed wheel.
     src = SOURCE / "draftfit/research"
+    assert (
+        package.joinpath("README.md").read_bytes() == (src / "README.md").read_bytes()
+    )
     for path in [src / "real.py", src / "NOTICE.md", *(src / "papers").rglob("*")]:
         if path.is_file() and (
             path.suffix in (".py", ".md") or path.name.endswith(("LICENSE", "NOTICE"))
@@ -297,6 +301,13 @@ def main():
     with tempfile.TemporaryDirectory(prefix="draftfit-installed-research-") as temp:
         exported = export_assets(Path(temp) / "exported")
         check_resources(exported)
+        for name in ("README.md", "experimental-platform.md"):
+            guide = exported / "docs/research" / name
+            for href in re.findall(r"\]\(([^)]+)\)", guide.read_text()):
+                path = href.split("#", 1)[0]
+                if path and not path.startswith(("https://", "http://")):
+                    assert (guide.parent / path).exists(), (guide, href)
+
         check_tabletune(exported)
         check_d3d(exported)
         check_dforktree(exported)
