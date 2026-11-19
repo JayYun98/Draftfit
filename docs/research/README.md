@@ -1,10 +1,32 @@
 # Research methods
 
-[Platform workflow](../../README.md) | [Documentation index](../README.md)
+[Platform workflow](https://github.com/JayYun98/Draftfit/blob/dev/README.md) | [Documentation index](https://github.com/JayYun98/Draftfit/blob/dev/docs/README.md)
 
 These methods are experimental.
 They are not production backends.
 Use their separate recipes and execution limits.
+
+## Find an experiment
+
+| Start here | What you will find |
+| --- | --- |
+| [Research verification index](https://github.com/JayYun98/Draftfit/blob/dev/draftfit/research/README.md) | One row per paper or platform experiment, with the checks performed and remaining limits. |
+| [Paper implementations](https://github.com/JayYun98/Draftfit/blob/dev/draftfit/research/papers/README.md) | Each paper directory links its recipe or configuration, implementation, tests, and source. |
+| [Experimental platform features](experimental-platform.md) | Opt-in capture, training, and evaluation paths, including features without a paper. Each guide names the runtime that owns the code. |
+| [Recipe examples](../../examples/configs/research/README.md) | Inputs and CLI examples for the shared research runner. |
+| [Paper coverage](latest-speculative-methods.md) | Methods implemented, measurement-only contributions, and papers with no executable integration. |
+
+When adding a standalone experiment, use `draftfit/research/papers/<name>/` for a paper
+or `draftfit/research/experiments/<name>/` for a platform idea. Put its implementation
+and source notices beside its README. Link the opt-in command, fixture, tests, and known limits.
+For an experiment in an existing trainer or backend, link that owner and its configuration from the feature folder.
+
+## Paper intake and comparisons
+
+[Paper intake](paper-intake.md) tracks paper revisions and prior decisions.
+The [recipe list](../../examples/configs/research/README.md) includes TableTune, D3D, DForkTree, MFD and REAL.
+The [100-step comparison](results/paper-components-small100-20261113.md) records the tested component revisions.
+Admission to the research suite does not establish production training, serving parity, or speed.
 
 ## Existing research workflows
 
@@ -12,6 +34,7 @@ Use their separate recipes and execution limits.
 | --- | --- | --- |
 | ALR/IRA | Prepare target rollouts for draft distillation | [Preparation and training](../specs/research-methods.md#alrira-preparation-and-training) |
 | Osprey | Convert a compatible backbone into a draft model | [Conversion and training](../specs/research-methods.md#osprey-conversion-and-training) |
+| Session lookup | Copy a full proposal from observed session tokens, with a minimum match length | [Example recipe](../../examples/configs/research/session-lookup.yaml) |
 | CAST | Run reference tree decoding | [Tree decoding](../specs/research-methods.md#cast-reference-decoding) |
 | Redline | Select from measured configurations | [Calibration](../specs/research-methods.md#redline-recipe) |
 
@@ -77,27 +100,34 @@ Use `draftfit research` to run these recipes.
 
 | Content | Location |
 | --- | --- |
-| Implementations | [draftfit/research](../../draftfit/research/) |
+| Implementations | [draftfit/research](https://github.com/JayYun98/Draftfit/tree/dev/draftfit/research) |
 | Recipes and fixtures | [examples/configs/research](../../examples/configs/research/README.md) |
-| Experiment drivers | [scripts/research](../../scripts/research/README.md) |
-| Reference regression tests | [tests/research](../../tests/research/) |
+| Experiment drivers | [scripts/research](https://github.com/JayYun98/Draftfit/blob/dev/scripts/research/README.md) |
+| Reference regression tests | [Research tests](https://github.com/JayYun98/Draftfit/tree/dev/draftfit/research/tests) |
 | Protocol and coverage | [Latest method specification](latest-speculative-methods.md) |
 | Recorded measurements | [Public receipt](results/latest-methods-effects-20261028.json) |
 
 ## Verify changes
 
-Run from the repository root in the [CPU environment](../ENVIRONMENT.md).
+Run the research CPU suite from a source checkout in the [CPU environment](../ENVIRONMENT.md):
 
 ```sh
-python -m unittest discover -s tests/research -t . -v
-python -m unittest tests.test_research_core tests.test_research_methods \
-  tests.test_research_providers tests.test_research_review_regressions \
-  tests.test_packaging.test_assets -v
+python -m draftfit.research.tests.cpu
+```
+
+It runs the paper and experiment tests in [draftfit/research/tests](https://github.com/JayYun98/Draftfit/tree/dev/draftfit/research/tests).
+The regular public CPU gate covers supported platform contracts and runs separately.
+For a built and installed wheel, run `python -I draftfit/research/tests/check_install.py` from the checkout.
+
+Run `python -m draftfit.research.tests.cuda` in a provisioned CUDA environment for the device and asynchronous capture gates.
+In the external MLX environment, run the [lookup budget cases](https://github.com/JayYun98/Draftfit/blob/dev/draftfit/research/tests/accelerator/test_mlx_lookup_budget.py)
+with `PYTHONPATH="$MLX_RUNTIME/src" python -m pytest draftfit/research/tests/accelerator/test_mlx_lookup_budget.py`.
+For an end-to-end CPU fixture with tiny local models, use a new output directory:
+
+```sh
 PYTHONPATH=. OMP_NUM_THREADS=1 python scripts/research/run_latest_smoke.py \
   --output outputs/new-research-smoke
 ```
-
-The smoke driver requires a new output directory.
 
 ## Interpret results
 

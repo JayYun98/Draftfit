@@ -1,0 +1,883 @@
+{
+  "comparisons": {
+    "bfloat16-candidates": {
+      "after": {
+        "acceptance_rate": 0.019546027742749054,
+        "accepted_tokens": 217,
+        "candidate_head": {
+          "candidates": 128,
+          "dense_argmax_retained": 10643,
+          "dense_argmax_retention": 0.9958828483203893,
+          "positions": 10687,
+          "rescored_argmax_agreement": 0.9858706840086086,
+          "rescored_argmax_equal": 10536,
+          "scope": "teacher-forced one-step supervised positions; not recurrent generation"
+        },
+        "committed_tokens_per_round": 2.0908626850433896,
+        "export_sha256": {
+          "model.safetensors": "d0a6a66d9d6429bddfdd6dfb6bff8760b924d13dc518c11491b10306054c5a8f"
+        },
+        "generated_tokens": 4096,
+        "greedy_equal_samples": 53,
+        "proposed_tokens": 11102,
+        "reference_seconds": 97.46361187985167,
+        "reference_tok_s": 42.02594097425146,
+        "rounds": 1959,
+        "samples": 64
+      },
+      "after_summary_sha256": "5718e7642c67bd32fb8f0fba48386feaf4b43e50db7740fead0f28d96dae64b7",
+      "before": {
+        "acceptance_rate": 0.019736842105263157,
+        "accepted_tokens": 219,
+        "candidate_head": {
+          "candidates": 128,
+          "dense_argmax_retained": 10606,
+          "dense_argmax_retention": 0.992420698044353,
+          "positions": 10687,
+          "rescored_argmax_agreement": 0.9837185365397212,
+          "rescored_argmax_equal": 10513,
+          "scope": "teacher-forced one-step supervised positions; not recurrent generation"
+        },
+        "committed_tokens_per_round": 2.0962128966223132,
+        "export_sha256": {
+          "model.safetensors": "5230b408181fce30077082c541d0b35b891323e2f24042206ddedcdbf6402b96"
+        },
+        "generated_tokens": 4096,
+        "greedy_equal_samples": 53,
+        "proposed_tokens": 11096,
+        "reference_seconds": 98.174924088642,
+        "reference_tok_s": 41.721448099126896,
+        "rounds": 1954,
+        "samples": 64
+      },
+      "before_summary_sha256": "3366c10889bb39e03439d7df7c45a199a33e75357e01e287e7c4ffcac0cc7b80",
+      "depth_after": [
+        {
+          "accepted": 211,
+          "conditional_rate": 0.10955347871235721,
+          "depth": 1,
+          "eligible_prefixes": 1926
+        },
+        {
+          "accepted": 6,
+          "conditional_rate": 0.02926829268292683,
+          "depth": 2,
+          "eligible_prefixes": 205
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": 0.0,
+          "depth": 3,
+          "eligible_prefixes": 6
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 4,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 5,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 6,
+          "eligible_prefixes": 0
+        }
+      ],
+      "depth_before": [
+        {
+          "accepted": 216,
+          "conditional_rate": 0.11209133367929423,
+          "depth": 1,
+          "eligible_prefixes": 1927
+        },
+        {
+          "accepted": 3,
+          "conditional_rate": 0.014150943396226415,
+          "depth": 2,
+          "eligible_prefixes": 212
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": 0.0,
+          "depth": 3,
+          "eligible_prefixes": 3
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 4,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 5,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 6,
+          "eligible_prefixes": 0
+        }
+      ],
+      "paired_diagnostic": {
+        "acceptance_difference_percentage_points": -0.019081436251410303,
+        "percentile_95_interval_percentage_points": [
+          -0.24043901790996997,
+          0.20061016253909644
+        ],
+        "resamples": 5000,
+        "scope": "Paired diagnostic interval on reused prompts; not a fresh holdout or method superiority test",
+        "seed": 29,
+        "unit": "prompt"
+      },
+      "per_prompt_improved": 15
+    },
+    "bfloat16-dense": {
+      "after": {
+        "acceptance_rate": 0.019736842105263157,
+        "accepted_tokens": 219,
+        "candidate_head": {
+          "candidates": 128,
+          "dense_argmax_retained": 10643,
+          "dense_argmax_retention": 0.9958828483203893,
+          "positions": 10687,
+          "rescored_argmax_agreement": 0.9858706840086086,
+          "rescored_argmax_equal": 10536,
+          "scope": "teacher-forced one-step supervised positions; not recurrent generation"
+        },
+        "committed_tokens_per_round": 2.0919305413687437,
+        "export_sha256": {
+          "model.safetensors": "d0a6a66d9d6429bddfdd6dfb6bff8760b924d13dc518c11491b10306054c5a8f"
+        },
+        "generated_tokens": 4096,
+        "greedy_equal_samples": 53,
+        "proposed_tokens": 11096,
+        "reference_seconds": 90.97946293279529,
+        "reference_tok_s": 45.02114947662016,
+        "rounds": 1958,
+        "samples": 64
+      },
+      "after_summary_sha256": "464d515113160e893db265d3efac8fc9be942d0a3792c2fe2e0b170227490903",
+      "before": {
+        "acceptance_rate": 0.01926366009541813,
+        "accepted_tokens": 214,
+        "candidate_head": {
+          "candidates": 128,
+          "dense_argmax_retained": 10606,
+          "dense_argmax_retention": 0.992420698044353,
+          "positions": 10687,
+          "rescored_argmax_agreement": 0.9837185365397212,
+          "rescored_argmax_equal": 10513,
+          "scope": "teacher-forced one-step supervised positions; not recurrent generation"
+        },
+        "committed_tokens_per_round": 2.092999489013797,
+        "export_sha256": {
+          "model.safetensors": "5230b408181fce30077082c541d0b35b891323e2f24042206ddedcdbf6402b96"
+        },
+        "generated_tokens": 4096,
+        "greedy_equal_samples": 53,
+        "proposed_tokens": 11109,
+        "reference_seconds": 96.91706260340288,
+        "reference_tok_s": 42.26293998159395,
+        "rounds": 1957,
+        "samples": 64
+      },
+      "before_summary_sha256": "a0fecad7ec384525828d711a0d672f25717161e67aa777345cc773338683d512",
+      "depth_after": [
+        {
+          "accepted": 211,
+          "conditional_rate": 0.10961038961038962,
+          "depth": 1,
+          "eligible_prefixes": 1925
+        },
+        {
+          "accepted": 8,
+          "conditional_rate": 0.03902439024390244,
+          "depth": 2,
+          "eligible_prefixes": 205
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": 0.0,
+          "depth": 3,
+          "eligible_prefixes": 8
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 4,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 5,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 6,
+          "eligible_prefixes": 0
+        }
+      ],
+      "depth_before": [
+        {
+          "accepted": 211,
+          "conditional_rate": 0.10938310005184033,
+          "depth": 1,
+          "eligible_prefixes": 1929
+        },
+        {
+          "accepted": 3,
+          "conditional_rate": 0.014492753623188406,
+          "depth": 2,
+          "eligible_prefixes": 207
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": 0.0,
+          "depth": 3,
+          "eligible_prefixes": 3
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 4,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 5,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 6,
+          "eligible_prefixes": 0
+        }
+      ],
+      "paired_diagnostic": {
+        "acceptance_difference_percentage_points": 0.047318200984502665,
+        "percentile_95_interval_percentage_points": [
+          -0.18172505167025516,
+          0.2743992995780986
+        ],
+        "resamples": 5000,
+        "scope": "Paired diagnostic interval on reused prompts; not a fresh holdout or method superiority test",
+        "seed": 29,
+        "unit": "prompt"
+      },
+      "per_prompt_improved": 16
+    },
+    "float32-candidates": {
+      "after": {
+        "acceptance_rate": 0.01926712883766994,
+        "accepted_tokens": 214,
+        "candidate_head": {
+          "candidates": 128,
+          "dense_argmax_retained": 10643,
+          "dense_argmax_retention": 0.9958828483203893,
+          "positions": 10687,
+          "rescored_argmax_agreement": 0.9858706840086086,
+          "rescored_argmax_equal": 10536,
+          "scope": "teacher-forced one-step supervised positions; not recurrent generation"
+        },
+        "committed_tokens_per_round": 2.0919305413687437,
+        "export_sha256": {
+          "model.safetensors": "d0a6a66d9d6429bddfdd6dfb6bff8760b924d13dc518c11491b10306054c5a8f"
+        },
+        "generated_tokens": 4096,
+        "greedy_equal_samples": 64,
+        "proposed_tokens": 11107,
+        "reference_seconds": 125.132196506951,
+        "reference_tok_s": 32.73338208981627,
+        "rounds": 1958,
+        "samples": 64
+      },
+      "after_summary_sha256": "c935f8bb4728f2b9844aa75788d52f8935316b27fa86843d7df63d022a60a0af",
+      "before": {
+        "acceptance_rate": 0.020515137821961137,
+        "accepted_tokens": 227,
+        "candidate_head": {
+          "candidates": 128,
+          "dense_argmax_retained": 10606,
+          "dense_argmax_retention": 0.992420698044353,
+          "positions": 10687,
+          "rescored_argmax_agreement": 0.9837185365397212,
+          "rescored_argmax_equal": 10513,
+          "scope": "teacher-forced one-step supervised positions; not recurrent generation"
+        },
+        "committed_tokens_per_round": 2.1005128205128205,
+        "export_sha256": {
+          "model.safetensors": "5230b408181fce30077082c541d0b35b891323e2f24042206ddedcdbf6402b96"
+        },
+        "generated_tokens": 4096,
+        "greedy_equal_samples": 64,
+        "proposed_tokens": 11065,
+        "reference_seconds": 126.85447428934276,
+        "reference_tok_s": 32.288967519249034,
+        "rounds": 1950,
+        "samples": 64
+      },
+      "before_summary_sha256": "a13ba1b6cc1f374221280be36899ce5917571625c610c058bef39079bbb9f171",
+      "depth_after": [
+        {
+          "accepted": 208,
+          "conditional_rate": 0.10793980280228334,
+          "depth": 1,
+          "eligible_prefixes": 1927
+        },
+        {
+          "accepted": 6,
+          "conditional_rate": 0.02912621359223301,
+          "depth": 2,
+          "eligible_prefixes": 206
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": 0.0,
+          "depth": 3,
+          "eligible_prefixes": 5
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 4,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 5,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 6,
+          "eligible_prefixes": 0
+        }
+      ],
+      "depth_before": [
+        {
+          "accepted": 224,
+          "conditional_rate": 0.1166059344091619,
+          "depth": 1,
+          "eligible_prefixes": 1921
+        },
+        {
+          "accepted": 3,
+          "conditional_rate": 0.013513513513513514,
+          "depth": 2,
+          "eligible_prefixes": 222
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": 0.0,
+          "depth": 3,
+          "eligible_prefixes": 3
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 4,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 5,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 6,
+          "eligible_prefixes": 0
+        }
+      ],
+      "paired_diagnostic": {
+        "acceptance_difference_percentage_points": -0.1248008984291199,
+        "percentile_95_interval_percentage_points": [
+          -0.3547919199034164,
+          0.10304743527718707
+        ],
+        "resamples": 5000,
+        "scope": "Paired diagnostic interval on reused prompts; not a fresh holdout or method superiority test",
+        "seed": 29,
+        "unit": "prompt"
+      },
+      "per_prompt_improved": 13
+    },
+    "float32-dense": {
+      "after": {
+        "acceptance_rate": 0.018981648074847066,
+        "accepted_tokens": 211,
+        "candidate_head": {
+          "candidates": 128,
+          "dense_argmax_retained": 10643,
+          "dense_argmax_retention": 0.9958828483203893,
+          "positions": 10687,
+          "rescored_argmax_agreement": 0.9858706840086086,
+          "rescored_argmax_equal": 10536,
+          "scope": "teacher-forced one-step supervised positions; not recurrent generation"
+        },
+        "committed_tokens_per_round": 2.089795918367347,
+        "export_sha256": {
+          "model.safetensors": "d0a6a66d9d6429bddfdd6dfb6bff8760b924d13dc518c11491b10306054c5a8f"
+        },
+        "generated_tokens": 4096,
+        "greedy_equal_samples": 64,
+        "proposed_tokens": 11116,
+        "reference_seconds": 123.24663612479344,
+        "reference_tok_s": 33.23417278385264,
+        "rounds": 1960,
+        "samples": 64
+      },
+      "after_summary_sha256": "d19dc410c902ed53aaba1ae9219155c18981d0cc2516ebe565f50093370a2e68",
+      "before": {
+        "acceptance_rate": 0.019942248691571917,
+        "accepted_tokens": 221,
+        "candidate_head": {
+          "candidates": 128,
+          "dense_argmax_retained": 10606,
+          "dense_argmax_retention": 0.992420698044353,
+          "positions": 10687,
+          "rescored_argmax_agreement": 0.9837185365397212,
+          "rescored_argmax_equal": 10513,
+          "scope": "teacher-forced one-step supervised positions; not recurrent generation"
+        },
+        "committed_tokens_per_round": 2.0972862263184844,
+        "export_sha256": {
+          "model.safetensors": "5230b408181fce30077082c541d0b35b891323e2f24042206ddedcdbf6402b96"
+        },
+        "generated_tokens": 4096,
+        "greedy_equal_samples": 64,
+        "proposed_tokens": 11082,
+        "reference_seconds": 124.77368128299713,
+        "reference_tok_s": 32.827435705050085,
+        "rounds": 1953,
+        "samples": 64
+      },
+      "before_summary_sha256": "0a10832d3aee3db6c4b76df9224717f854995122ba3185d013352cc4ec97b8ea",
+      "depth_after": [
+        {
+          "accepted": 204,
+          "conditional_rate": 0.10580912863070539,
+          "depth": 1,
+          "eligible_prefixes": 1928
+        },
+        {
+          "accepted": 7,
+          "conditional_rate": 0.034653465346534656,
+          "depth": 2,
+          "eligible_prefixes": 202
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": 0.0,
+          "depth": 3,
+          "eligible_prefixes": 6
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 4,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 5,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 6,
+          "eligible_prefixes": 0
+        }
+      ],
+      "depth_before": [
+        {
+          "accepted": 218,
+          "conditional_rate": 0.11330561330561331,
+          "depth": 1,
+          "eligible_prefixes": 1924
+        },
+        {
+          "accepted": 3,
+          "conditional_rate": 0.013888888888888888,
+          "depth": 2,
+          "eligible_prefixes": 216
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": 0.0,
+          "depth": 3,
+          "eligible_prefixes": 3
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 4,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 5,
+          "eligible_prefixes": 0
+        },
+        {
+          "accepted": 0,
+          "conditional_rate": null,
+          "depth": 6,
+          "eligible_prefixes": 0
+        }
+      ],
+      "paired_diagnostic": {
+        "acceptance_difference_percentage_points": -0.09606006167248507,
+        "percentile_95_interval_percentage_points": [
+          -0.32613629069411265,
+          0.13187218379830598
+        ],
+        "resamples": 5000,
+        "scope": "Paired diagnostic interval on reused prompts; not a fresh holdout or method superiority test",
+        "seed": 29,
+        "unit": "prompt"
+      },
+      "per_prompt_improved": 15
+    }
+  },
+  "dataset": {
+    "model": "HuggingFaceH4/ultrachat_200k",
+    "revision": "8049631c405ae6576f93f445c6b8166f76f5505a"
+  },
+  "environment": {
+    "accelerate": "1.15.0",
+    "allocator_cap_mib": 12000,
+    "datasets": "4.4.2",
+    "gpu": "A100-SXM4-80GB",
+    "optimizer_cpu_offload": false,
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130",
+    "transformers": "5.17.0"
+  },
+  "experiment": "E4-25K",
+  "implementation_audit": {
+    "author_training_bundle_revision": "not published by the inspected EAGLE-4 guide",
+    "cuda_parity": {
+      "direct": [
+        {
+          "actual_loss": 11.889700889587402,
+          "dtype": "torch.float32",
+          "gradients": {
+            "finite": true,
+            "max_absolute": 9.313225746154785e-10,
+            "reference_nonzero": true,
+            "relative_l2": 1.1274522648818674e-07
+          },
+          "loss_close": true,
+          "passed": true,
+          "reference_loss": 11.889700889587402
+        },
+        {
+          "actual_loss": 11.925396919250488,
+          "dtype": "torch.bfloat16",
+          "gradients": {
+            "finite": true,
+            "max_absolute": 1.4901161193847656e-08,
+            "reference_nonzero": true,
+            "relative_l2": 4.978540459887881e-07
+          },
+          "loss_close": true,
+          "passed": true,
+          "reference_loss": 11.925395011901855
+        }
+      ],
+      "elapsed_seconds": 28.977255729027092,
+      "optimizer_updates": 0,
+      "peak_allocated_mib": 3993.4501953125,
+      "real_training": {
+        "export_sha256": "d0a6a66d9d6429bddfdd6dfb6bff8760b924d13dc518c11491b10306054c5a8f",
+        "input_tokens": 256,
+        "per_tensor_gradients": {
+          "fc.weight": {
+            "finite": true,
+            "max_absolute": 0.0001220703125,
+            "reference_nonzero": true,
+            "relative_l2": 0.0035639572888612747
+          },
+          "fc_norm.0.weight": {
+            "finite": true,
+            "max_absolute": 4.76837158203125e-06,
+            "reference_nonzero": true,
+            "relative_l2": 0.0027597625739872456
+          },
+          "fc_norm.1.weight": {
+            "finite": true,
+            "max_absolute": 3.0517578125e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.0038420329801738262
+          },
+          "fc_norm.2.weight": {
+            "finite": true,
+            "max_absolute": 7.62939453125e-06,
+            "reference_nonzero": true,
+            "relative_l2": 0.002895018784329295
+          },
+          "lm_head.weight": {
+            "finite": true,
+            "max_absolute": 3.0517578125e-05,
+            "reference_nonzero": true,
+            "relative_l2": 8.970937051344663e-05
+          },
+          "midlayer.hidden_norm.weight": {
+            "finite": true,
+            "max_absolute": 1.52587890625e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.004376743920147419
+          },
+          "midlayer.input_layernorm.weight": {
+            "finite": true,
+            "max_absolute": 1.52587890625e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.003984561190009117
+          },
+          "midlayer.mlp.down_proj.weight": {
+            "finite": true,
+            "max_absolute": 3.0517578125e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.0024300941731780767
+          },
+          "midlayer.mlp.gate_proj.weight": {
+            "finite": true,
+            "max_absolute": 3.0517578125e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.002622714266180992
+          },
+          "midlayer.mlp.up_proj.weight": {
+            "finite": true,
+            "max_absolute": 6.103515625e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.002533520571887493
+          },
+          "midlayer.post_attention_layernorm.weight": {
+            "finite": true,
+            "max_absolute": 1.52587890625e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.002806152682751417
+          },
+          "midlayer.self_attn.k_proj.weight": {
+            "finite": true,
+            "max_absolute": 3.0517578125e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.004718560725450516
+          },
+          "midlayer.self_attn.o_proj.weight": {
+            "finite": true,
+            "max_absolute": 3.0517578125e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.0028127767145633698
+          },
+          "midlayer.self_attn.q_proj.weight": {
+            "finite": true,
+            "max_absolute": 3.0517578125e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.003737343940883875
+          },
+          "midlayer.self_attn.v_proj.weight": {
+            "finite": true,
+            "max_absolute": 6.103515625e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.0030260721687227488
+          },
+          "norm.weight": {
+            "finite": true,
+            "max_absolute": 3.0517578125e-05,
+            "reference_nonzero": true,
+            "relative_l2": 0.0022361224982887506
+          }
+        },
+        "row_sha256": "6a86c2659dc66bf397b74d01933026cccf37e016e29303bd0df184675a0fa8c6",
+        "scalar_close": true,
+        "scalars": [
+          {
+            "loss": 2.510301351547241,
+            "mode": "fused"
+          },
+          {
+            "loss": 2.5103018283843994,
+            "mode": "reference"
+          }
+        ],
+        "target_tables_sha256": "1f487be89567c872f372a028c999c6119e7e50d0cd9d66668eeb31e2d8844154",
+        "trainable_dense_tensors": 16,
+        "unroll_depth": 7
+      },
+      "script_sha256": "5104eda76f304e7558379ee149712f6797325b25fe460a40f8ffb9db7c04a78e",
+      "source_sha256": {
+        "benchmarks/train_eagle4_comparison.py": "0f6d8cd00b9ba45c66182471e4b59753a3dbba5d0e30a8e51968a7d7f6a1d084",
+        "draftfit/algorithms/eagle3/model.py": "10fe3c6e74ff1721ccd204103ea1cc6ed8bf45bd3373d6dd72469696cc7404d1",
+        "draftfit/core/loss.py": "6ae8e089d4eff4b6fb61ee62fe7572ed5b05ad383f98fbe1012d07f0be87bbad",
+        "draftfit/modeling/draft/eagle4.py": "fdff3d84d43dee37384035faba7d10f750c925ab3245b2eaa4a7890a5b189a7e"
+      },
+      "status": "PASSED_SCOPED_CHECKS"
+    },
+    "predeclared_tolerances": {
+      "gradient_max_absolute_error": 0.01,
+      "loss_atol": 0.0001,
+      "loss_rtol": 0.0001,
+      "per_tensor_gradient_relative_l2_max": 0.01
+    },
+    "prior_harness_failure": {
+      "cause": "Diagnostic used invalid dense stage name; corrected manually to draft",
+      "retained": true,
+      "status": "EXECUTION_FAILED",
+      "training_updates": 0
+    },
+    "public_torchspec_commit": "c4fc3e0f6d9254b642e9def8edc71c58eb4a64f9",
+    "scope": "One real batch and direct kernel probes; no whole-model or upstream-training correctness claim",
+    "structure": "Source inspection matches admitted dense architecture; runtime equivalence not established",
+    "unisolated_training_differences": [
+      "Loss normalized by full sequence positions here, valid positions in public TorchSpec",
+      "BF16 feature projection here, default FP32 accumulation in public TorchSpec"
+    ],
+    "upstream_eagle4_commit": "3e20798bcce810486cd810ecf087936488106ae2"
+  },
+  "limits": [
+    "Same 64 reused diagnostic prompts; no fresh holdout or new seed",
+    "Dense/candidate controls also change scoring numerics",
+    "No optimized serving speed measurement",
+    "DSpark and DFlash2 were not extended to 25k in this follow-up",
+    "Source inspection is not author training equivalence"
+  ],
+  "protocol": {
+    "batch_size": 1,
+    "capture_manifest_sha256": "7e024c31dc35d941af414a9cd4d0d748fab7937f7790a21daa84a1d0076e8ce0",
+    "diagnostic_samples": 64,
+    "direct_file_hash_matches": 797,
+    "draft_tokens": 6,
+    "evaluation_max_new_tokens": 64,
+    "fresh_holdout": false,
+    "historical_capture_manifest_sha256": "4a2d361c6ff3577bcd2fb7e15360db9933d1337d9adba97900b9c6ed04edce9d",
+    "historical_serialization_matches": 291,
+    "max_training_tokens": 256,
+    "proposal_dtype": "bfloat16",
+    "recaptured_tensor_identity_count": 1088,
+    "same_previously_inspected_prompts": true,
+    "seed": 29,
+    "split_overlap": 0,
+    "train_samples": 1024,
+    "unroll_depth": 7
+  },
+  "scope": "Further10000dense and1000candidate updates; same64 previously inspected diagnostic prompts",
+  "source": {
+    "executed_base": "2b327b0b21ce27100d19c6af8baff9a5a99714d8",
+    "executed_files_sha256": {
+      "benchmarks/evaluate_eagle4_comparison.py": "6e84fc5c4565a6b8108e6852267fe633333d2c5cb5358fa10e77213e0d200885",
+      "benchmarks/train_eagle4_comparison.py": "0f6d8cd00b9ba45c66182471e4b59753a3dbba5d0e30a8e51968a7d7f6a1d084",
+      "draftfit/algorithms/eagle3/model.py": "10fe3c6e74ff1721ccd204103ea1cc6ed8bf45bd3373d6dd72469696cc7404d1",
+      "draftfit/core/loss.py": "6ae8e089d4eff4b6fb61ee62fe7572ed5b05ad383f98fbe1012d07f0be87bbad",
+      "draftfit/modeling/draft/eagle4.py": "fdff3d84d43dee37384035faba7d10f750c925ab3245b2eaa4a7890a5b189a7e"
+    },
+    "followup_pr_base": "bfe0bbe0dda0c0a1d2cca3ec93cdb1a963122145",
+    "identical_committed_tree": "ae1184fd34bd69b867346eb3c0f79f2dff05e55c",
+    "publication_delta": "Only Black formatting and the proposal-head docstring changed after GPU execution.",
+    "published_evaluator_sha256": "38bb28237b7d558d29693c081c1346c92ebb491f6577c97a82572b371eb54a1f"
+  },
+  "speed": {
+    "candidate_seconds_per_update": 0.12376467895252924,
+    "dense_10000_update_extrapolated_seconds": 1384.957157266168,
+    "dense_last_logged_loss": 3.7243199348449707,
+    "dense_loss_last1000_mean": 3.728598155081272,
+    "dense_observed_seconds": 1382.048747235909,
+    "dense_observed_updates": 9979,
+    "dense_seconds_per_update": 0.1384957157266168,
+    "dense_updates_per_second": 7.220439959124418,
+    "scope": "Same process steady dense interval; includes periodic checkpoint work; shared hardware state differs from old CPU-offload run"
+  },
+  "target": {
+    "model": "openbmb/MiniCPM5-1B",
+    "revision": "87179e5c1f455ef22e6223592d2d61351b525bfc"
+  },
+  "training": {
+    "algorithm": "eagle4",
+    "candidate_stage_preserved_dense_parameters": true,
+    "candidate_steps": 1000,
+    "changed_dense_parameters": [
+      "midlayer.self_attn.q_proj.weight",
+      "midlayer.self_attn.k_proj.weight",
+      "midlayer.self_attn.v_proj.weight",
+      "midlayer.self_attn.o_proj.weight",
+      "midlayer.mlp.gate_proj.weight",
+      "midlayer.mlp.up_proj.weight",
+      "midlayer.mlp.down_proj.weight",
+      "midlayer.hidden_norm.weight",
+      "midlayer.input_layernorm.weight",
+      "midlayer.post_attention_layernorm.weight",
+      "fc.weight",
+      "fc_norm.0.weight",
+      "fc_norm.1.weight",
+      "fc_norm.2.weight",
+      "norm.weight",
+      "lm_head.weight"
+    ],
+    "checkpoint_sha256": "7c19059a2ff839daffea3bbd92761c41af5962e923725d0c5c29128ee4d0e00a",
+    "cumulative_dense_steps": 25000,
+    "dense_steps": 10000,
+    "dense_trainable_parameters": 239872512,
+    "elapsed_seconds": 1521.361136753112,
+    "export_reload_equal": true,
+    "export_sha256": {
+      "model.safetensors": "d0a6a66d9d6429bddfdd6dfb6bff8760b924d13dc518c11491b10306054c5a8f"
+    },
+    "first_loss": 6.156476020812988,
+    "last_loss": 8.990056991577148,
+    "optimizer": "BF16Optimizer with FP32 master parameters and cosine warmup",
+    "optimizer_fused": true,
+    "peak_allocated_mib": 5903.193359375,
+    "resumed_from_step": 20,
+    "steps": 11000,
+    "trainable_parameters": 16908288,
+    "warm_start": {
+      "optimizer": "reset; model warm start, not an optimizer-state resume",
+      "previous_dense_steps": 15000,
+      "weights_sha256": {
+        "model.safetensors": "b17fc19d84588b1c56bd442ce29e18b7fcf8e008ba3f804b1b9b3c4de49f868d"
+      }
+    }
+  },
+  "unrun": [
+    "Native serving with new25k export",
+    "Isolated serving throughput and latency",
+    "New-seed or fresh-holdout quality replication",
+    "100k updates",
+    "Qwen comparison"
+  ],
+  "verdict": "No observed primary acceptance improvement; paired interval includes zero. No candidate-filter or CUDA loss defect explains the low rate in these controls. Full cause remains unresolved.",
+  "verification": {
+    "bf16_reference_greedy": "53/64 for every before/after head mode; strict fail and exit 1",
+    "cpu_evaluator_regression": {
+      "command": "python -B -m unittest tests.test_eagle4_comparison",
+      "status": "pass",
+      "tests": 7
+    },
+    "fp32_reference_greedy": "64/64 for every before/after head mode",
+    "historical_native_15k_export": "7/8; strict fail",
+    "native_25k_export": "not-run",
+    "pre_commit": "All applicable pinned hooks passed after one formatting-only failure"
+  }
+}

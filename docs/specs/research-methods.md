@@ -196,8 +196,8 @@ the integration checkout, using an existing CPU environment:
 ```sh
 PYTHONDONTWRITEBYTECODE=1 TORCH_COMPILE_DISABLE=1 HF_HUB_OFFLINE=1 \
 TRANSFORMERS_OFFLINE=1 OMP_NUM_THREADS=1 SPECFORGE_DEVICE=cpu \
-python -m unittest tests.test_research_methods tests.test_research_core \
-  tests.test_research_providers tests.test_research_device \
+python -m unittest draftfit.research.tests.test_research_methods draftfit.research.tests.test_research_core \
+  draftfit.research.tests.test_research_providers draftfit.research.tests.test_research_device \
   tests.test_algorithms.test_builtin_providers tests.test_config.test_schema -v
 ```
 
@@ -210,7 +210,7 @@ Redline recipe persistence, strict validation and unchanged unrelated resume
 contracts. Use the pinned environment in [ENVIRONMENT](../ENVIRONMENT.md). CPU
 checks do not substitute for the locked Linux accelerator environment.
 
-`tests.test_research_device` is a three-test handoff for the parent-owned GPU
+`draftfit.research.tests.test_research_device` is a three-test handoff for the parent-owned GPU
 check. It defaults to CPU and selects CUDA only with
 `DRAFTFIT_RESEARCH_TEST_DEVICE=cuda`; optionally set
 `DRAFTFIT_RESEARCH_TEST_DTYPE=bfloat16`. The CUDA run prints peak allocated bytes.

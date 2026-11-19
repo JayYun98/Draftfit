@@ -1,0 +1,7 @@
+method: session_lookup
+context_ids: [1, 2, 3, 4, 5, 1, 2, 3, 8, 9, 1, 2, 3]
+k: 2
+min_ngram: 3
+max_ngram: 3
+match: recent
+output_dir: outputs/research/session-lookup

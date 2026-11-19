@@ -1,0 +1,10 @@
+method: dforktree_scoring
+input_kind: synthetic
+data:
+  input_path: examples/configs/research/data/dforktree-scoring.json
+  max_samples: 3
+scoring:
+  spine_weight: 0.3
+  fork_weight: 0.6
+  pmi_clip: 10.0
+output_dir: outputs/research-dforktree-scoring

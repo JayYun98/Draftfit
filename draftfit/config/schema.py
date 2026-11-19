@@ -715,6 +715,8 @@ class TrainingConfig(StrictConfigModel):
     #: CPU feature bytes, including leased accumulation windows; zero disables.
     joint_feature_queue_bytes: int = Field(default=0, ge=0)
     joint_feature_queue_batches: int = Field(default=2, gt=0)
+    #: Capture frozen-target features while the joint trainer consumes earlier batches.
+    joint_async_capture: bool = False
     #: Keep full joint resume state while optionally omitting duplicate per-arm saves.
     joint_emit_arm_checkpoints: bool = True
     joint_verification: Optional[JointVerificationConfig] = None
@@ -996,6 +998,15 @@ class Config(StrictConfigModel):
         ):
             raise ValueError(
                 "joint_target_device requires joint_online_capture and an explicit cuda:N device"
+            )
+        if self.training.joint_async_capture and (
+            not joint_online
+            or not self.training.joint_feature_queue_bytes
+            or self.model.target_backend != "transformers"
+            or self.model.trust_remote_code
+        ):
+            raise ValueError(
+                "joint_async_capture requires a bounded joint online queue and built-in Transformers teacher"
             )
         if self.training.joint_control and not self.training.joint_verification:
             raise ValueError("joint_control requires joint_verification")

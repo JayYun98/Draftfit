@@ -7,7 +7,8 @@ import time
 
 import torch
 
-from .memory import Proposal
+from .papers.acceptance_position.method import attempted_token
+from .proposals import Proposal
 
 
 def distribution(logits, temperature, top_p=1.0):
@@ -147,21 +148,15 @@ def generate(
                     p, token, proposal.probabilities[index], generator=generator
                 )
             if record_acceptance:
-                q = proposal.probabilities[index]
-                if any(i >= vocab for i in q):
-                    raise ValueError(
-                        "proposal distribution is outside the target vocabulary"
-                    )
-                overlap = sum(min(float(p[i]), qi) for i, qi in q.items())
-                q_argmax = min(q, key=lambda i: (-q[i], i))
                 stats["token_acceptance"].append(
-                    {
-                        "output_position": offset + index,
-                        "proposed_token": token,
-                        "accepted": ok,
-                        "distribution_overlap": overlap,
-                        "argmax_agreement": q_argmax == int(p.argmax()),
-                    }
+                    attempted_token(
+                        offset + index,
+                        token,
+                        ok,
+                        p,
+                        proposal.probabilities[index],
+                        vocab,
+                    )
                 )
             committed.append(emitted)
             accepted += int(ok)

@@ -5,6 +5,12 @@ explicitly approved operation; a Git version tag does not imply a PyPI release.
 
 ## Unreleased
 
+- Add five opt-in research recipes: TableTune, D3D corrected KL, DForkTree scoring,
+  MFD prefix selection, and REAL loss. The research test suite runs separately
+  from the public CPU gate. See the [research guide](docs/research/README.md).
+- Add an opt-in [asynchronous capture queue](docs/specs/async-joint-capture.md) for joint training.
+  Synchronous capture remains the default. Retain the original [EAGLE4 follow-up receipt](docs/research/results/eagle4-minicpm-gpu-followup-20261030.json).
+
 - Preserve stable evaluation anchors, exclude committed anchors from DSpark tau
   diagnostics and accept FP32 residual features in BF16 family drafts. Add
   opt-in joint-only checkpoint storage and bounded local generation batch tuning

@@ -94,7 +94,6 @@ def load_tests(loader, tests, pattern):
         "tests.test_eagle4_native_logits",
         "tests.test_eagle4_export",
         "tests.test_optimizer.test_wsd",
-        "tests.test_eagle4_comparison",
     ]
     suite = loader.loadTestsFromNames(modules)
     suite.addTests(loader.discover("tests/test_config", top_level_dir="."))

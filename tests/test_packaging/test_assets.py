@@ -5,6 +5,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -130,10 +131,6 @@ class AssetTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             wheel = next(wheel_dir.glob("*.whl"))
             with zipfile.ZipFile(wheel) as archive:
-                self.assertEqual(
-                    archive.read("draftfit/research/_vendor/TREEWY_LICENSE"),
-                    (root / "draftfit/research/_vendor/TREEWY_LICENSE").read_bytes(),
-                )
                 direct_payload = {
                     name: archive.read(name)
                     for name in archive.namelist()
@@ -162,6 +159,11 @@ class AssetTests(unittest.TestCase):
                 env={**os.environ, "UV_PYTHON_DOWNLOADS": "never"},
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            sdist = next(sdist_dir.glob("*.tar.gz"))
+            with tarfile.open(sdist) as archive:
+                self.assertFalse(
+                    any("/draftfit/research/tests/" in n for n in archive.getnames())
+                )
             rebuilt_dir = temporary / "rebuilt"
             result = subprocess.run(
                 [
@@ -174,7 +176,7 @@ class AssetTests(unittest.TestCase):
                     "--wheel",
                     "--out-dir",
                     str(rebuilt_dir),
-                    str(next(sdist_dir.glob("*.tar.gz"))),
+                    str(sdist),
                 ],
                 capture_output=True,
                 text=True,
@@ -190,6 +192,12 @@ class AssetTests(unittest.TestCase):
                     if name.startswith("draftfit/") or name.endswith("/LICENSE")
                 }
                 self.assertEqual(direct_payload, rebuilt_payload)
+                self.assertFalse(
+                    any(
+                        n.startswith("draftfit/research/tests/")
+                        for n in rebuilt_payload
+                    )
+                )
                 self.assertTrue(
                     any(name.endswith("/LICENSE") for name in archive.namelist())
                 )

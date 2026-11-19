@@ -1,5 +1,34 @@
 """Dependency-light provenance and explicit implementation boundaries."""
 
+from copy import deepcopy
+
+DFORKTREE_SOURCE = {
+    "paper": "https://arxiv.org/html/2611.12356v1",
+    "url": "https://github.com/Perseus037/DForkTree",
+    "revision": "eeed8b698b8822aa2767ec5c191efc4e1b6cdbe3",
+    "license": "Apache-2.0",
+    "sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "db461002651716701a8183a54f7b60b6ec570e8dff0e18f564988e9ae83e91f4",
+        "dforktree/ngram_gpu.py": (
+            "97137b4692fbe28cb7bd77e3c711a8ed9a4c0919e7045ad9255c9cfa56a428fd"
+        ),
+        "dforktree/fc1_builder.py": (
+            "7a7e261010f332bf7190d7b636c8b8cf582a7d87332f48ec564210e52d99b7a2"
+        ),
+        "dforktree/tree_ops.py": (
+            "5ba3417fcfe251b45859ebc691d7e74f618bb67ebed41d218c1dfbe44c9647c5"
+        ),
+    },
+    "upstream_limitation": (
+        "Source inspection: ngram_path_fn returns an undefined fn; "
+        "the GPU path is not imported or executed."
+    ),
+}
+
+MFD_SOURCE_REVISION = "95040343de00f15aef8c6350a578c35e0cd53475"
+MFD_PAPER_REVISION = "2611.13017v1"
+
 SOURCES = {
     "alr_ira": ("js-lee-AI/ALR-IRA", "fa473642d48ea2667675d706ca8f16a74111183e"),
     "cast": ("js-lee-AI/CAST", "2eed73f38f9210f1d5ddf01de8059cf3ffb43c19"),
@@ -10,8 +39,43 @@ SOURCES = {
 
 # Unavailable author code is not replaced by a guessed repository/revision.
 LATEST = [
+    (
+        "tabletune",
+        "2610.38968v2",
+        "pinned_author_offline_table",
+        "asm582/tabletune",
+        "38170878d901cb06f696a122a0b4140a3d365f02",
+    ),
+    (
+        "d3d_corrected_kl",
+        "2611.06425v1",
+        "adapted_author_corrected_kl_component",
+        "fudan-generative-vision/D3D",
+        "cd7762436217fb51d7e7a310b310b72766bb816f",
+    ),
+    (
+        "mfd_prefix_tree",
+        MFD_PAPER_REVISION,
+        "cpu_reference",
+        "hhhhhhy5/multi-future-drafting",
+        MFD_SOURCE_REVISION,
+    ),
+    (
+        "real_loss",
+        "2611.14399v1",
+        "adapted_author_real_branch_component",
+        "King-ty/speculators",
+        "3dff4579c5f93f692108df8b5178c9e9200b8536",
+    ),
     ("ngramrl", "2610.32881v1", "native_synchronous_reference", None, None),
     ("specmem", "2610.31840v1", "native_memory_reference", None, None),
+    (
+        "session_lookup",
+        "2611.19455v1",
+        "session_token_reference",
+        "antalvdb/olifant-speculative",
+        "6d7d17fe37bbfca6e4f0c1e2ca6f8f4c0d853ab8",
+    ),
     ("valuspec", "2610.31338v1", "cast_conditional_branch_filter", None, None),
     ("rift", "2610.31098v1", "native_kv_recompute_reference", None, None),
     (
@@ -74,23 +138,35 @@ LATEST = [
 
 
 def source_catalog():
-    return [
-        {
-            "project": name,
-            "url": "https://github.com/" + repo,
-            "revision": revision,
-            "integration": "native",
-        }
-        for name, (repo, revision) in SOURCES.items()
-    ] + [
-        {
-            "project": name,
-            "paper": "https://arxiv.org/abs/" + paper,
-            "url": "https://github.com/" + repo if repo else None,
-            "revision": revision,
-            "integration": integration,
-            "paper_revision": paper,
-            "production_engine_validated": False,
-        }
-        for name, paper, integration, repo, revision in LATEST
-    ]
+    return (
+        [
+            {
+                "project": name,
+                "url": "https://github.com/" + repo,
+                "revision": revision,
+                "integration": "native",
+            }
+            for name, (repo, revision) in SOURCES.items()
+        ]
+        + [
+            {
+                "project": name,
+                "paper": "https://arxiv.org/abs/" + paper,
+                "url": "https://github.com/" + repo if repo else None,
+                "revision": revision,
+                "integration": integration,
+                "paper_revision": paper,
+                "production_engine_validated": False,
+            }
+            for name, paper, integration, repo, revision in LATEST
+        ]
+        + [
+            {
+                "project": "dforktree_scoring",
+                **deepcopy(DFORKTREE_SOURCE),
+                "paper_revision": "2611.12356v1",
+                "integration": "cpu_probability_scoring_reference",
+                "production_engine_validated": False,
+            }
+        ]
+    )

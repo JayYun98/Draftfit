@@ -5,30 +5,13 @@ full-prefix PyTorch runtime on identical greedy workloads; they are not MLX
 measurements or production-engine acceleration. Rejected suffixes are censored.
 """
 
-from collections import defaultdict
 from statistics import median
 
 import torch
 
-from .memory import Proposal
+from .papers.acceptance_position.method import position_bins
+from .proposals import Proposal
 from .reference_decode import generate
-
-
-def position_bins(records, width):
-    bins = defaultdict(list)
-    for record in records:
-        bins[record["output_position"] // width].append(record)
-    return [
-        {
-            "start_position": i * width,
-            "attempted_proposals": len(rows),
-            "observed_acceptance": sum(r["accepted"] for r in rows) / len(rows),
-            "mean_distribution_overlap": sum(r["distribution_overlap"] for r in rows)
-            / len(rows),
-            "argmax_agreement": sum(r["argmax_agreement"] for r in rows) / len(rows),
-        }
-        for i, rows in sorted(bins.items())
-    ]
 
 
 def profile_generate(target, ids, factory, generation, diagnostics, generator):

@@ -15,7 +15,7 @@ class JointControlDomainsTest(unittest.TestCase):
         from draftfit.training.joint_policy import fingerprint
 
         training = TrainingConfig(strategy="dspark")
-        legacy = training.model_dump(mode="json")
+        legacy = training.model_dump(mode="json", exclude={"joint_async_capture"})
         for key in ("alr_topk", "alr_hard_label_mix", "alr_tail_bucket"):
             legacy.pop(key)
         self.assertEqual(training_fingerprint(training), fingerprint(legacy))
@@ -24,7 +24,9 @@ class JointControlDomainsTest(unittest.TestCase):
         training.strategy = "alr_ira"
         self.assertEqual(
             training_fingerprint(training),
-            fingerprint(training.model_dump(mode="json")),
+            fingerprint(
+                training.model_dump(mode="json", exclude={"joint_async_capture"})
+            ),
         )
 
     def setUp(self):

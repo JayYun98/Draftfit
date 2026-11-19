@@ -1,0 +1,163 @@
+{
+  "date": "2026-11-11",
+  "base_revision": "ccd27e4fa5ceef44e6c2ffd5c205f034673cb65e",
+  "scope": "Corrected forward KL component only; not a full D3D implementation.",
+  "source": {
+    "upstream_revision": "cd7762436217fb51d7e7a310b310b72766bb816f",
+    "upstream_file": "training/pruning/losses.py",
+    "upstream_file_sha256": "7b1bc6370200212ba06c38e551051c802075db8ba09203d23ec270f4c98d2510",
+    "license": "MIT",
+    "license_sha256": "81054477e017851780fab7d4c7c86e1477583f83f3c81aa1d60c0c4a2d6e347b",
+    "paper": "https://arxiv.org/html/2611.06425v1",
+    "withdrawal_observed": false
+  },
+  "checks": [
+    {
+      "command": "python -m unittest discover -s tests/research -t . -v",
+      "status": "pass",
+      "tests": 46
+    },
+    {
+      "command": "python -m unittest tests.test_research_core tests.test_research_methods tests.test_research_providers tests.test_research_review_regressions -v",
+      "status": "pass",
+      "tests": 30
+    },
+    {
+      "command": "python -m unittest tests.test_packaging.test_assets -v",
+      "status": "pass",
+      "tests": 3
+    },
+    {
+      "command": "pre-commit run --files <all changed files>",
+      "status": "pass"
+    },
+    {
+      "command": "python -m tests.public_cpu",
+      "status": "not-run locally",
+      "reason": "The unchanged macOS Torch hash discrepancy blocks the current locked profile. The older contributor environment is not a substitute. Hosted CI must verify this new revision."
+    },
+    {
+      "command": "python -m draftfit.research -c examples/configs/research/d3d-corrected-kl.yaml --plan",
+      "status": "pass",
+      "scope": "No model or fixture load; no recipe output writes."
+    },
+    {
+      "command": "python -m draftfit.research -c examples/configs/research/d3d-corrected-kl.yaml",
+      "status": "pass",
+      "scope": "Included synthetic CPU fixture and actual backward diagnostic."
+    },
+    {
+      "command": "uv build --no-build-isolation",
+      "status": "pass",
+      "artifacts": [
+        "wheel",
+        "sdist"
+      ]
+    },
+    {
+      "command": "python -I tests/packaging/check_public_install.py",
+      "status": "pass",
+      "scope": "Installed wheel outside the checkout, exported recipe, actual CLI, retained license, and existing onboarding."
+    }
+  ],
+  "not_run": [
+    "full D3D recovery training",
+    "pruning",
+    "model export",
+    "asynchronous serving",
+    "real model token parity",
+    "GPU throughput"
+  ],
+  "claims": [
+    "No quality or speed improvement is claimed."
+  ],
+  "environment": {
+    "python": "3.12.8",
+    "torch": "2.11.0",
+    "transformers": "5.8.1",
+    "pydantic": "2.13.4",
+    "platform": "macOS arm64 CPU",
+    "profile": "reused contributor environment; not the current locked CPU profile"
+  },
+  "source_sha256": {
+    "draftfit/research/_vendor/D3D_LICENSE": "81054477e017851780fab7d4c7c86e1477583f83f3c81aa1d60c0c4a2d6e347b",
+    "draftfit/research/d3d.py": "780a2ce23e9ba73bd796f8dbc96d30888238dda287249a285f6a68cb3b33888b",
+    "examples/configs/research/d3d-corrected-kl.yaml": "1513730392a3f32fecd25c6ced96fe360dc3c3a69fc51d2efa97a26838652069",
+    "examples/configs/research/data/d3d-corrected-kl.json": "d92968b76fae2f13e05ecf106ba4c88473cb5c06b709782cf492e3a387f985bf",
+    "tests/research/test_d3d_corrected_kl.py": "56014e57bfa57dba4b102e85d617c7897fab848f2823a9642573c9cc6992448e",
+    "tests/research/test_d3d_recipe.py": "6206723068d5dee1d4a50eb0ebc533a4686ad097d4282e89cf2840ba81578338",
+    "MANIFEST.in": "c9a22511fdce160039547c571407d46d36b9f0fcb6e981ce51ddd304a851cdce",
+    "draftfit/assets/__init__.py": "35d944491d66af0626c1f4fbb7e73e899c93569f093c3a38cf8b114c5365a998",
+    "draftfit/research/catalog.py": "56bf25b6bc26af6733c4bf6c486dd3b9084f5faf15070f7376d83cb71332f348",
+    "draftfit/research/config.py": "38dd0f3bfeb3ef87f5e59d707c354becaeb4ad2f37f0a4611cee9f4cee8361f5",
+    "draftfit/research/runner.py": "9939eb185ebb42d8c639d3f9aa042d49b3177cc787fd28b2caa54fd56af59562",
+    "pyproject.toml": "63ada2b9fc32df8a4079780395a6d63a6c78238e51c4c70302d07e62eed209fd",
+    "setup.py": "8d0aacbe2be49e9190e20418d5114cc655262ed3bb7c4c93b2ecd85fd44d5a05",
+    "tests/packaging/check_public_install.py": "576de145a8203340724497cd9e03ff03dd2da03bf5d7d7458e7073dc499f239c",
+    "tests/public_cpu.py": "8bcb3747b2d5105840812987b7fd0c3d8ca02c1fbaeaf0010405dcaf0b8e349e",
+    "tests/test_packaging/test_assets.py": "174d3e6ae741909088282ebc3a007f72f9b6fd80bed044a1239db57bb5f7bf4b"
+  },
+  "numerical_fixture": {
+    "input": "examples/configs/research/data/d3d-corrected-kl.json",
+    "expected_first_target": [
+      0.46,
+      0.36,
+      0.18
+    ],
+    "expected_weighted_forward_kl": 0.07639151361520474,
+    "margin": 0.1,
+    "weights": [
+      1,
+      0.5,
+      0
+    ],
+    "precision": "float64",
+    "interpretation": "Synthetic math and autograd diagnostic, not a trained-model outcome.",
+    "observed": {
+      "id": "synthetic-margin-and-mask",
+      "kl_loss": 0.07639151361520483,
+      "corrected_teacher_probs": [
+        [
+          0.46,
+          0.3600000000000001,
+          0.18000000000000002
+        ],
+        [
+          0.7,
+          0.2,
+          0.10000000000000003
+        ],
+        [
+          0.3333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ]
+      ],
+      "active_positions": 2,
+      "student_gradient_norm": 0.15848822832790613
+    },
+    "input_sha256": "d92968b76fae2f13e05ecf106ba4c88473cb5c06b709782cf492e3a387f985bf"
+  },
+  "macos_lock": {
+    "cause_id": "cpu-lock-torch-hash",
+    "lock_sha256": "f88db34dcc99c2f0305a5838f5fc07a523cb6265b1257d8455f699323de58c71",
+    "status": "blocked",
+    "unchanged_setup_retried": false,
+    "hash_bypass": false,
+    "required_transformers": "5.12.1"
+  },
+  "runtime_gaps": {
+    "full_recovery_training": "not implemented; component tests are not original-drafter training evidence",
+    "pruning": "not implemented",
+    "export_and_serving": "separate model/backend integration required",
+    "gpu": "not-run; no new approved resource scope"
+  },
+  "review": {
+    "scope": "Complete working diff against ccd27e4fa5ceef44e6c2ffd5c205f034673cb65e, including untracked files",
+    "changed_files": 25,
+    "independent": true,
+    "confirmed_defects": 0,
+    "gradient_and_finite_difference_probe": "pass",
+    "remaining_gate": "New revision needs current locked Linux CPU CI; local macOS lock remains blocked."
+  }
+}

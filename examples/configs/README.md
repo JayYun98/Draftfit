@@ -96,6 +96,8 @@ features from tokenized inputs instead of loading saved feature files.
 `training.joint_target_device` optionally places that target on a separate device.
 `training.joint_feature_queue_bytes` bounds resident feature memory, and
 `training.joint_feature_queue_batches` limits lookahead batches within that bound.
+Set `training.joint_async_capture` to `true` to overlap the built-in Transformers teacher
+with student training in a bounded queue. Capture is synchronous by default.
 Set `training.joint_emit_arm_checkpoints` to `false` to omit duplicate per-family checkpoint
 files while retaining joint optimizer/cursor state and the existing export policy.
 The default is `true`; this output-only choice does not change resume identity.

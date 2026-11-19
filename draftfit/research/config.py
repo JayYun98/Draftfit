@@ -9,6 +9,7 @@ from typing import Annotated, Literal, Union
 from pydantic import Field, TypeAdapter, model_validator
 
 from draftfit.config.schema import StrictConfigModel
+from draftfit.research.papers.session_lookup.config import SessionLookupConfig
 
 
 class Target(StrictConfigModel):
@@ -325,8 +326,96 @@ class QueryLayoutConfig(StrictConfigModel):
     output_dir: str
 
 
+class TableTuneData(StrictConfigModel):
+    input_path: str = Field(min_length=1)
+
+
+class TableTuneOptions(StrictConfigModel):
+    costs_pattern: str = Field(min_length=1)
+    max_batch_size: int = Field(default=128, ge=1, le=4096, strict=True)
+    eps: float = Field(default=0.005, ge=0, lt=1, allow_inf_nan=False)
+    min_width_frac: float = Field(default=0.25, ge=0, allow_inf_nan=False)
+    merge_tol: float | None = Field(default=None, ge=0, le=1, allow_inf_nan=False)
+
+
+class TableTuneConfig(StrictConfigModel):
+    method: Literal["tabletune"]
+    data: TableTuneData
+    table: TableTuneOptions
+    profile_kind: Literal["synthetic", "measured"] = "synthetic"
+    output_dir: str
+
+
+class D3DCorrectedKLOptions(StrictConfigModel):
+    temperature: float = Field(default=1.0, gt=0, allow_inf_nan=False, strict=True)
+    probability_margin: float = Field(
+        default=0.01, gt=0, lt=1, allow_inf_nan=False, strict=True
+    )
+
+
+class D3DCorrectedKLConfig(StrictConfigModel):
+    method: Literal["d3d_corrected_kl"]
+    data: InputData
+    loss: D3DCorrectedKLOptions = Field(default_factory=D3DCorrectedKLOptions)
+    input_kind: Literal["synthetic", "recorded"] = "synthetic"
+    output_dir: str
+
+
+class DForkTreeScoringOptions(StrictConfigModel):
+    spine_weight: float = Field(default=0.3, ge=0, strict=True, allow_inf_nan=False)
+    fork_weight: float = Field(default=0.6, ge=0, strict=True, allow_inf_nan=False)
+    pmi_clip: float = Field(default=10.0, ge=0, strict=True, allow_inf_nan=False)
+
+
+class DForkTreeScoringData(StrictConfigModel):
+    input_path: str = Field(min_length=1, strict=True)
+    max_samples: int = Field(default=32, gt=0, strict=True)
+
+
+class DForkTreeScoringConfig(StrictConfigModel):
+    method: Literal["dforktree_scoring"]
+    data: DForkTreeScoringData
+    input_kind: Literal["synthetic", "recorded"]
+    scoring: DForkTreeScoringOptions = Field(default_factory=DForkTreeScoringOptions)
+    output_dir: str = Field(
+        default="outputs/research-dforktree-scoring", min_length=1, strict=True
+    )
+
+
+class MFDInputData(StrictConfigModel):
+    input_path: str = Field(min_length=1)
+    max_samples: int = Field(default=32, strict=True, gt=0, le=32)
+
+
+class MFDOptions(StrictConfigModel):
+    budget: int = Field(default=63, strict=True, ge=0, le=256)
+
+
+class MFDConfig(StrictConfigModel):
+    method: Literal["mfd_prefix_tree"]
+    data: MFDInputData
+    tree: MFDOptions = Field(default_factory=MFDOptions)
+    output_dir: str
+
+
+class RealLossOptions(StrictConfigModel):
+    real_weight: float = Field(
+        default=0.9, ge=0, le=1, allow_inf_nan=False, strict=True
+    )
+
+
+class RealLossConfig(StrictConfigModel):
+    method: Literal["real_loss"]
+    data: InputData
+    loss: RealLossOptions = Field(default_factory=RealLossOptions)
+    input_kind: Literal["synthetic", "recorded"] = "synthetic"
+    sampling: Literal["target"] = "target"
+    output_dir: str
+
+
 Recipe = Annotated[
     Union[
+        SessionLookupConfig,
         CastConfig,
         ALRConfig,
         OspreyConfig,
@@ -338,6 +427,11 @@ Recipe = Annotated[
         ARRConfig,
         MoEPolicyConfig,
         QueryLayoutConfig,
+        TableTuneConfig,
+        D3DCorrectedKLConfig,
+        DForkTreeScoringConfig,
+        MFDConfig,
+        RealLossConfig,
     ],
     Field(discriminator="method"),
 ]

@@ -155,7 +155,7 @@ Measure live target-only and target-plus-draft execution separately before claim
 ```sh
 python -m unittest tests.test_modeling.test_eagle4 tests.test_modeling.test_eagle4_precision \
   tests.test_eagle4_native_logits tests.test_optimizer.test_wsd \
-  tests.test_eagle4_comparison tests.test_eagle4_export
+  draftfit.research.tests.test_eagle4_comparison tests.test_eagle4_export
 python -m tests.public_cpu
 ```
 

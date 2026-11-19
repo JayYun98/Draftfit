@@ -15,10 +15,24 @@ runtime modules do not replace or erase the authorship of adapted source.
 | [Osprey](https://github.com/LeanModels/Osprey) | `f62cd48844b03f3cb929543da25c15756e1f1095` | Draft backbone conversion and aligned embeddings |
 | [CAST](https://github.com/js-lee-AI/CAST) | `2eed73f38f9210f1d5ddf01de8059cf3ffb43c19` | Reference tree construction and corrected speculative sampling |
 | [Redline](https://github.com/js-lee-AI/Redline) | `d78ede9b035420f3c8c8c63c185ed55be5ea038f` | Paired correctness-risk calibration |
+| [TableTune](https://github.com/asm582/tabletune) | `38170878d901cb06f696a122a0b4140a3d365f02` | Offline draft-length table construction |
+| [D3D](https://github.com/fudan-generative-vision/D3D) | `cd7762436217fb51d7e7a310b310b72766bb816f` | Corrected forward-KL component for offline recovery experiments |
+| [DForkTree](https://github.com/Perseus037/DForkTree) | `eeed8b698b8822aa2767ec5c191efc4e1b6cdbe3` | CPU reference for fork-aware candidate probability correction |
 | Prism extended runtime | `e3de715222b2667c54a267441159a5729f11155e` | Explicit external native capture API; runtime is not bundled |
+| [Multi-Future Drafting](https://github.com/hhhhhhy5/multi-future-drafting) | `95040343de00f15aef8c6350a578c35e0cd53475` | Algorithm reference for an independently written CPU best-mode prefix selector |
+| [REAL loss reference](https://github.com/King-ty/speculators) | `3dff4579c5f93f692108df8b5178c9e9200b8536` | Target-sampled branch estimator and auxiliary teacher-argmax CE |
 
 ## Borrowed boundaries
 
+- The MFD best-mode selector follows the paper's Section 4.3. The reviewed
+  author HF tree reference has a separate MIT license beneath an Apache-2.0
+  repository root. Both notices and source digests are retained in
+  [the MFD source notice](draftfit/research/papers/mfd/NOTICE.md). No author runtime or model weights are bundled.
+
+- D3D's probability correction and forward-KL calculation were adapted from
+  `training/pruning/losses.py`. The full MIT notice is retained in
+  `draftfit/research/papers/d3d/D3D_LICENSE`. No author trainer, pruning loop,
+  hidden-state loss, model, inference engine, or weights are bundled.
 - TorchSpec `torchspec/config/train_config.py`, `torchspec/ray/placement_group.py`,
   and `torchspec/training/checkpoint.py` were reviewed at `bd64d93`. Only the
   declarative launch/checkpoint contract was adapted in
@@ -50,14 +64,48 @@ runtime modules do not replace or erase the authorship of adapted source.
 
 ## Sync policy
 
+The TableTune recipe adapts the dependency-light `dsd_tuning/core.py` numerical
+kernel under Apache-2.0. Its full license is bundled in
+`draftfit/research/papers/tabletune/TABLETUNE_LICENSE`.
+The source boundary and digest are recorded in `draftfit/research/NOTICE.md`.
+The vLLM plugin, live controller, installers, and profiling workers are not bundled.
+
+The DForkTree reference implements paper equations 2 and 3 using supplied
+conditional and unigram probabilities. The reviewed author sources are
+`dforktree/ngram_gpu.py`, `dforktree/tree_ops.py`, and `dforktree/fc1_builder.py`.
+The original Apache-2.0 license and notice are retained as
+[DFORKTREE_LICENSE](draftfit/research/papers/dforktree/DFORKTREE_LICENSE) and
+[DFORKTREE_NOTICE](draftfit/research/papers/dforktree/DFORKTREE_NOTICE).
+The local component does not copy the SGLang worker, Flash Linear Attention
+recurrence, GPU builder, or verifier. See `draftfit/research/NOTICE.md` for
+the source identities and intentional numerical differences.
+
 The latest research adapter additionally bundles the Apache-2.0 single-tree
 TreeWY reference from `sneha5gsm/vllm` at
 `b073ed6cacfa1cf5ae23111854729e662a72a6d1`. Its source header, exact scope
 and original-file digest are recorded in `draftfit/research/NOTICE.md`;
-`draftfit/research/_vendor/TREEWY_LICENSE` contains the full license.
+`draftfit/research/papers/treewy/TREEWY_LICENSE` contains the full license.
 
 Upstream code is copied only when a failing gate identifies a concrete
 requirement. Preserve the upstream license header, record the source commit in
 this table, add a focused contract test, and keep the local adapter boundary
 independent from the upstream trainer loop. Do not merge duplicate controller,
 Ray, or checkpoint implementations without a passing single-node gate first.
+
+
+## REAL loss reference
+
+The opt-in REAL component adapts the accepted-prefix estimator and loss
+mathematics from King-ty/speculators at
+`3dff4579c5f93f692108df8b5178c9e9200b8536`. The relevant source is
+`src/speculators/models/dflash/metrics.py`. The paper is
+https://arxiv.org/abs/2611.14399v1.
+
+Source: https://github.com/King-ty/speculators/tree/3dff4579c5f93f692108df8b5178c9e9200b8536.
+License: Apache-2.0, retained in `draftfit/research/papers/real/REAL_LICENSE`.
+The pinned source tree has no root NOTICE file.
+
+Local changes provide a standalone, proposal-only tensor boundary, explicit
+validation, FP64 preservation, and a synthetic CPU research recipe. No author
+training package, fused kernel, model weight, or serving pipeline is included.
+This experimental component does not reproduce the paper's full training.

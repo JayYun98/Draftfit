@@ -1,0 +1,9 @@
+method: real_loss
+data:
+  input_path: examples/configs/research/data/real-loss.json
+  max_samples: 1
+loss:
+  real_weight: 0.9
+input_kind: synthetic
+sampling: target
+output_dir: outputs/research-real-loss

@@ -1,6 +1,7 @@
 """Bundle the existing recipe directories without duplicating their source files."""
 
 from pathlib import Path
+from runpy import run_path
 from shutil import copyfile
 
 from setuptools import setup
@@ -21,43 +22,7 @@ class BuildWithAssets(build_py):
                     )
                     target.parent.mkdir(parents=True, exist_ok=True)
                     copyfile(source, target)
-        for name in (
-            "LICENSE",
-            "THIRDPARTY_NOTICES.md",
-            "licenses/torchspec-LICENSE",
-            "licenses/angelspec-LICENSE",
-            "licenses/z-lab-dflash-LICENSE",
-            "docs/PUBLIC_WORKFLOW.md",
-            "docs/PUBLIC_RELEASE.md",
-            "docs/PUBLIC_SUPPORT.md",
-            "docs/EAGLE4.md",
-            "docs/SOURCE_ATTRIBUTION.md",
-            "docs/RUNTIME_PROFILES.md",
-            "docs/NATIVE_LING_REPLAY.md",
-            "docs/MODEL_VALIDATION.md",
-            "docs/PERSONAL_INFERENCE.md",
-            "docs/TARGET_EXTENSION.md",
-            "docs/PERFORMANCE_GATE.md",
-            "docs/RELEASE_GATES.md",
-            "docs/CODE_OWNERSHIP.md",
-            "docs/ENVIRONMENT.md",
-            "docs/OWNED_GPU_ENVIRONMENT.md",
-            "docs/CALIBRATION.md",
-            "docs/TRAINING_SEARCH.md",
-            "docs/WEB_WORKSPACE.md",
-            "docs/specs/training-feature-integration.md",
-            "docs/specs/quantized-capture.md",
-            "docs/specs/research-methods.md",
-            "docs/specs/eagle4-minicpm.md",
-            "docs/research/README.md",
-            "docs/research/latest-speculative-methods.md",
-            "docs/research/eagle4-minicpm.md",
-            "docs/research/results/eagle4-minicpm-20261029.json",
-            "docs/research/results/eagle4-minicpm-diagnosis-20261029.json",
-            "docs/research/results/eagle4-minicpm-extension-20261029.json",
-            "docs/research/results/latest-methods-effects-20261028.json",
-            "examples/configs/research/README.md",
-        ):
+        for name in run_path(str(root / "draftfit/assets/__init__.py"))["DOCUMENTS"]:
             target = Path(self.build_lib) / "draftfit/assets/_data" / name
             target.parent.mkdir(parents=True, exist_ok=True)
             copyfile(root / name, target)

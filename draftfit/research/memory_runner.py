@@ -6,7 +6,9 @@ import hashlib
 import json
 from pathlib import Path
 
-from .memory import NgramMemory, Proposal, SpecMemMemory, token_tuple
+from .papers.ngramrl.method import NgramMemory
+from .papers.specmem.method import SpecMemMemory
+from .proposals import Proposal, token_tuple
 
 
 def _digest(value):

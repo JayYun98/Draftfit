@@ -28,7 +28,7 @@ Preserve upstream credits when editing inherited material; see
 
 ## Research guides
 
-Use the [research index](research/README.md) for experimental methods and their validation limits.
+Use the [research index](research/README.md#find-an-experiment) for paper implementations and [experimental platform features](research/experimental-platform.md) for opt-in backends and their limits.
 ALR/IRA, Osprey, CAST, and Redline have a [separate method guide](specs/research-methods.md).
 Research implementations are not production backends.
 

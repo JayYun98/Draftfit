@@ -175,7 +175,9 @@ def pairs(args, baseline, candidate):
 
 
 def memory_probe(args):
-    from draftfit.research.memory import NgramMemory, Proposal, SpecMemMemory
+    from draftfit.research.papers.ngramrl.method import NgramMemory
+    from draftfit.research.papers.specmem.method import SpecMemMemory
+    from draftfit.research.proposals import Proposal
 
     (target,), tokenizer = models(args)
     prime_ids = chat(tokenizer, COUNT)
@@ -255,8 +257,8 @@ def memory_probe(args):
 
 def rift_probe(args):
     from draftfit.research.config import RIFTOptions
-    from draftfit.research.memory import Proposal
-    from draftfit.research.rift import CompressedARProposer
+    from draftfit.research.papers.rift.method import CompressedARProposer
+    from draftfit.research.proposals import Proposal
 
     (target, draft), tokenizer = models(args, 2)
     result = {"scope": "same_model_rift_cache_ablation", "cases": []}
@@ -307,9 +309,9 @@ def arr_probe(args):
 
     import torch
 
-    from draftfit.research.arr import run_arr
     from draftfit.research.config import ARRConfig
-    from draftfit.research.memory import Proposal
+    from draftfit.research.papers.arr.method import run_arr
+    from draftfit.research.proposals import Proposal
 
     (target,), tokenizer = models(args)
     rows, baselines = [], []
