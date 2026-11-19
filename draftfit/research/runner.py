@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 
 IMPLEMENTATIONS = {
+    "session_lookup": "session_token_reference",
     "cast": "native_reference",
     "ngramrl": "native_synchronous_reference",
     "specmem": "native_memory_reference",
@@ -190,6 +191,7 @@ def run(config, recipe_path=None):
     if destination.exists():
         raise FileExistsError(f"output already exists: {destination}")
     if config.method not in {
+        "session_lookup",
         "cast",
         "redline",
         "ngramrl",
@@ -205,6 +207,8 @@ def run(config, recipe_path=None):
         from .memory_runner import run_memory
 
         result = run_memory(config)
+    elif config.method == "session_lookup":
+        result = config.execute()
     elif config.method == "rift":
         from .rift import run_rift
 

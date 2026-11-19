@@ -1,5 +1,7 @@
 include version.txt
 prune .private
+include draftfit/research/papers/session_lookup/README.md
+prune draftfit/research/tests
 recursive-include configs *.json *.yaml *.yml
 recursive-include examples/configs *.json *.yaml *.yml
 include LICENSE

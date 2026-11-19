@@ -1,0 +1,26 @@
+name: Research CPU gate
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  research-cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.9.18'
+      - name: Install locked CPU dependencies
+        run: |
+          uv venv --python 3.12
+          uv pip sync requirements-cpu.lock --torch-backend cpu --require-hashes
+      - name: Run offline research CPU tests
+        run: uv run --offline --no-project --python .venv/bin/python python -m unittest discover -s draftfit/research/tests -v

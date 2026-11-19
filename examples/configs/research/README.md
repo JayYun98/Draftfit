@@ -14,6 +14,7 @@ Use the [research guide](../../../docs/research/README.md) for results and limit
 | [TreeWY](treewy.yaml) | The included numerical fixture |
 | [MoE-SpAc](moe-spac.yaml) | The included policy trace |
 | [Query layouts](query-layout.yaml) | The included attention fixture |
+| [Session lookup](session-lookup.yaml) | One inline list of token IDs; see the lookup rules in the [paper](https://arxiv.org/abs/2611.19455v1) |
 
 Run commands from the repository root.
 Model recipes contain paths that you must replace.

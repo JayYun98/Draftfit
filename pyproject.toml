@@ -37,7 +37,7 @@ draftfit = "draftfit.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["draftfit*"]
-exclude = ["build*", "configs*", "dist*", "scripts*", "tests*"]
+exclude = ["build*", "configs*", "dist*", "scripts*", "tests*", "draftfit.research.tests", "draftfit.research.tests.*"]
 
 [project.optional-dependencies]
 quantization = ["bitsandbytes==0.50.2; sys_platform == 'linux'"]
@@ -60,9 +60,13 @@ liger = ["liger-kernel"]
 version = {file = "version.txt"}
 
 [tool.setuptools.package-data]
+"draftfit.research.papers.session_lookup" = ["README.md"]
 "draftfit.offline_capture" = ["PRISM_RUNTIME_LICENSE"]
 "draftfit.research" = ["NOTICE.md"]
 "draftfit.research._vendor" = ["TREEWY_LICENSE"]
 
 [tool.uv]
 required-version = ">=0.9.18"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

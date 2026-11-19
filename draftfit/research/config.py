@@ -9,6 +9,7 @@ from typing import Annotated, Literal, Union
 from pydantic import Field, TypeAdapter, model_validator
 
 from draftfit.config.schema import StrictConfigModel
+from draftfit.research.papers.session_lookup.config import SessionLookupConfig
 
 
 class Target(StrictConfigModel):
@@ -327,6 +328,7 @@ class QueryLayoutConfig(StrictConfigModel):
 
 Recipe = Annotated[
     Union[
+        SessionLookupConfig,
         CastConfig,
         ALRConfig,
         OspreyConfig,
