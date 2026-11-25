@@ -4,7 +4,8 @@ Which draft tokens would receive the highest scores if the next position's sampl
 Run the [example](../../../../examples/configs/research/dice-ranking.yaml) with
 `python -m draftfit.research -c examples/configs/research/dice-ranking.yaml`.
 Token 0 has the highest draft logit, but the supplied draw puts token 1 first.
-Set `temperature=0` with the CLI override to compare without the noise.
+To compare without noise, run the same command again with
+`temperature=0 output_dir=outputs/research/dice-ranking-no-noise`.
 
 Supply raw draft logits and one vector of standard Gumbel draws in the same full
 vocabulary order. Use the same vector for prefixes predicting the same absolute
