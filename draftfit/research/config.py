@@ -9,6 +9,7 @@ from typing import Annotated, Literal, Union
 from pydantic import Field, TypeAdapter, model_validator
 
 from draftfit.config.schema import StrictConfigModel
+from draftfit.research.papers.dice.method import DiceRankingConfig
 from draftfit.research.papers.session_lookup.config import SessionLookupConfig
 
 
@@ -415,6 +416,7 @@ class RealLossConfig(StrictConfigModel):
 
 Recipe = Annotated[
     Union[
+        DiceRankingConfig,
         SessionLookupConfig,
         CastConfig,
         ALRConfig,

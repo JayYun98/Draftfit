@@ -1,0 +1,8 @@
+method: dice_ranking
+draft_logits: [2.0, 1.0, 0.0]
+position_gumbels: [-1.0, 2.0, 0.0]
+alpha: 1.0
+sigma: 1.0
+temperature: 1.0
+top_k: 2
+output_dir: outputs/research/dice-ranking

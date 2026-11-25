@@ -67,6 +67,7 @@ LATEST = [
         "King-ty/speculators",
         "3dff4579c5f93f692108df8b5178c9e9200b8536",
     ),
+    ("dice_ranking", "2611.27891v1", "cpu_position_draw_reference", None, None),
     ("ngramrl", "2610.32881v1", "native_synchronous_reference", None, None),
     ("specmem", "2610.31840v1", "native_memory_reference", None, None),
     (
