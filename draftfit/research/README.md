@@ -14,6 +14,7 @@ Run the [research CPU suite](tests/cpu.py) from a source checkout with `python -
 | [ARR](papers/arr/README.md) | Replay and budget tests; the recorded math workload showed no quality gain. | Results do not establish a general improvement. |
 | [CAST](papers/cast/README.md) | Reference tree and verifier tests cover temperature and end-of-sequence handling. | No production serving parity claim. |
 | [D3D](papers/d3d/README.md) | Corrected targets, loss and gradients checked on CPU/CUDA; small-model training results were mixed. | Full recovery training and asynchronous serving are unverified. |
+| [DICE token ranking](papers/dice/README.md) | CPU fixture checks a draw-dependent rank reversal and probabilities against a softmax reference. | Single prefix only; no tree verifier or speed measurement. |
 | [DForkTree](papers/dforktree/README.md) | CPU scoring matched a CUDA formula on fixtures and small-model inputs. | No GPU tree builder, verifier or speed measurement. |
 | [Multi-Future Drafting](papers/mfd/README.md) | CPU tests check prefix ranking, ties and the installed recipe. | No mode training, GPU tree construction or target verification. |
 | [MoE-SpAc](papers/moe_spac/README.md) | CPU tests check policy decisions on traces. | Expert execution and offload are unverified. |

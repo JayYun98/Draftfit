@@ -11,7 +11,7 @@ Each directory below links its implementation, inputs, and evidence.
 | Refine a response or select draft cache positions | [ARR](arr/README.md), [RIFT](rift/README.md) |
 | Evaluate a numerical kernel, layout, or trace policy | [TreeWY](treewy/README.md), [query layouts](query_layout/README.md), [MoE-SpAc](moe_spac/README.md) |
 | Compare target and proposal distributions | [D3D corrected KL](d3d/README.md), [REAL loss](real/README.md) |
-| Rank speculative candidates or prefixes | [DForkTree scoring](dforktree/README.md), [MFD prefix selection](mfd/README.md) |
+| Rank speculative candidates or prefixes | [DICE token ranking](dice/README.md), [DForkTree scoring](dforktree/README.md), [MFD prefix selection](mfd/README.md) |
 | Choose a draft length from cost and acceptance profiles | [TableTune](tabletune/README.md) |
 | Select configurations from observed costs and correctness | [Redline](redline/README.md) |
 | Measure attempted proposals and compare reference timings | [Acceptance position](acceptance_position/README.md), [paired timing](apple_silicon_measurement/README.md) |

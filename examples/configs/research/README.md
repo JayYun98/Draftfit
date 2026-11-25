@@ -15,6 +15,7 @@ Use the [research guide](../../../docs/research/README.md) for results and limit
 | [MoE-SpAc](moe-spac.yaml) | The included policy trace |
 | [TableTune](tabletune.yaml) | Included synthetic cost and acceptance profiles |
 | [D3D corrected KL](d3d-corrected-kl.yaml) | Included teacher, student and label fixture |
+| [DICE token ranking](dice-ranking.yaml) | Full draft logits and a fixed Gumbel vector for one output position |
 | [DForkTree scoring](dforktree-scoring.yaml) | Included candidate probabilities and branch evidence |
 | [MFD prefix tree](mfd-prefix-tree.yaml) | Included mode probabilities and token budget |
 | [REAL loss](real-loss.yaml) | Included proposal logits and target-sampled token IDs |
