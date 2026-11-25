@@ -47,6 +47,15 @@ class DiceRankingTest(unittest.TestCase):
         ).execute()
         self.assertAlmostEqual(result["token_probabilities"][1], 1 / (1 + math.exp(2)))
 
+    def test_common_offsets_preserve_noise_and_logit_differences(self):
+        for logits, draws in (([1e16] * 2, [0, 1]), ([0, 1], [1e16] * 2)):
+            with self.subTest(logits=logits):
+                result = recipe(draft_logits=logits, position_gumbels=draws).execute()
+                self.assertEqual(result["candidate_ids"], [1, 0])
+                self.assertAlmostEqual(
+                    result["token_probabilities"][0], 1 / (1 + math.e)
+                )
+
     def test_invalid_inputs(self):
         for updates in (
             {"position_gumbels": [0]},
@@ -54,7 +63,7 @@ class DiceRankingTest(unittest.TestCase):
             {"temperature": -1},
             {"draft_logits": [0, math.nan, 1]},
             {"top_k": 4},
-            {"alpha": 1e308},
+            {"alpha": math.inf},
         ):
             with self.subTest(updates=updates), self.assertRaises(ValueError):
                 recipe(**updates).execute()

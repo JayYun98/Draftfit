@@ -1,6 +1,7 @@
 """Replay DICE token scores for one prefix and one supplied position draw."""
 
 import math
+from fractions import Fraction
 from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
@@ -30,21 +31,19 @@ class DiceRankingConfig(StrictConfigModel):
         return self
 
     def execute(self):
+        # Keep the supplied binary floats exact until the common offset is gone.
+        # Otherwise a large shared logit can round away the entire position draw.
+        alpha, temperature, sigma = map(
+            Fraction, (self.alpha, self.temperature, self.sigma)
+        )
         scores = [
-            self.alpha * logit + self.temperature * noise
+            alpha * Fraction(logit) + temperature * Fraction(noise)
             for logit, noise in zip(self.draft_logits, self.position_gumbels)
         ]
-        if not all(map(math.isfinite, scores)):
-            raise ValueError("weighted scores exceed floating-point range")
         peak = max(scores)
-
-        def centered(value):
-            delta = value - peak
-            if math.isfinite(delta):
-                return delta / self.sigma
-            return value / self.sigma - peak / self.sigma
-
-        weights = [math.exp(centered(value)) for value in scores]
+        gaps = ((peak - score) / sigma for score in scores)
+        # exp(-746) already rounds to binary64 zero; larger gaps need no conversion.
+        weights = [0.0 if gap >= 746 else math.exp(-float(gap)) for gap in gaps]
         total = math.fsum(weights)
         # Rank before exponentiation so underflow cannot introduce a false tie.
         ranked = sorted(range(len(scores)), key=scores.__getitem__, reverse=True)
